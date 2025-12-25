@@ -1,0 +1,199 @@
+[
+  {
+    "id": "intl-001",
+    "jurisdiction": "European Union",
+    "name": "EU AI Act",
+    "type": "regulation",
+    "status": "enacted",
+    "date_adopted": "2024-03-13",
+    "date_effective": "2024-08-01",
+    "full_application_date": "2026-08-01",
+    "summary": "World's first comprehensive AI regulation. Establishes risk-based framework with prohibited practices, high-risk system requirements, and transparency obligations.",
+    "key_provisions": [
+      "Risk-based classification (unacceptable, high, limited, minimal)",
+      "Prohibited AI practices (social scoring, real-time biometric ID)",
+      "High-risk AI requirements (conformity assessment, CE marking)",
+      "General-purpose AI model obligations",
+      "Transparency requirements",
+      "AI Office establishment"
+    ],
+    "enforcement": {
+      "fines_max_percentage": 7,
+      "fines_max_euro": 35000000,
+      "enforcing_body": "National authorities + EU AI Office"
+    },
+    "source_url": "https://eur-lex.europa.eu/eli/reg/2024/1689/oj",
+    "tags": ["comprehensive", "risk_based", "binding", "eu"]
+  },
+  {
+    "id": "intl-002",
+    "jurisdiction": "United Kingdom",
+    "name": "UK AI Regulation Framework",
+    "type": "framework",
+    "status": "active",
+    "date_adopted": "2024-02-06",
+    "summary": "Principles-based, sector-specific approach to AI regulation. Relies on existing regulators applying cross-cutting principles.",
+    "key_provisions": [
+      "Five cross-cutting principles",
+      "Sector regulator implementation",
+      "Pro-innovation approach",
+      "No new AI-specific regulator",
+      "AI Safety Institute creation"
+    ],
+    "principles": [
+      "Safety, security, robustness",
+      "Transparency and explainability",
+      "Fairness",
+      "Accountability and governance",
+      "Contestability and redress"
+    ],
+    "source_url": "https://www.gov.uk/government/publications/ai-regulation-a-pro-innovation-approach",
+    "tags": ["principles", "sector_specific", "pro_innovation", "uk"]
+  },
+  {
+    "id": "intl-003",
+    "jurisdiction": "China",
+    "name": "Interim Measures for Generative AI Services",
+    "type": "regulation",
+    "status": "active",
+    "date_adopted": "2023-07-13",
+    "date_effective": "2023-08-15",
+    "summary": "Regulations governing generative AI services offered to the public in China. Emphasizes content control and socialist values.",
+    "key_provisions": [
+      "Service provider registration",
+      "Training data requirements",
+      "Content labeling (AI-generated)",
+      "Socialist core values alignment",
+      "User real-name verification",
+      "Algorithm filing requirements"
+    ],
+    "source_url": "http://www.cac.gov.cn/2023-07/13/c_1690898327029107.htm",
+    "tags": ["genai", "content", "registration", "china"]
+  },
+  {
+    "id": "intl-004",
+    "jurisdiction": "China",
+    "name": "Algorithm Recommendation Regulations",
+    "type": "regulation",
+    "status": "active",
+    "date_adopted": "2022-01-04",
+    "date_effective": "2022-03-01",
+    "summary": "Regulations on algorithmic recommendations in internet services. Requires transparency and user controls.",
+    "key_provisions": [
+      "Algorithm transparency requirements",
+      "User opt-out rights",
+      "Prohibition on price discrimination",
+      "Labor protection provisions",
+      "Algorithm registry"
+    ],
+    "source_url": "http://www.cac.gov.cn/2022-01/04/c_1642894606364259.htm",
+    "tags": ["algorithms", "recommendations", "transparency", "china"]
+  },
+  {
+    "id": "intl-005",
+    "jurisdiction": "Canada",
+    "name": "Artificial Intelligence and Data Act (AIDA)",
+    "type": "proposed_legislation",
+    "status": "pending",
+    "date_introduced": "2022-06-16",
+    "summary": "Part of Bill C-27. Would establish requirements for high-impact AI systems and prohibit certain AI practices.",
+    "key_provisions": [
+      "High-impact system definition",
+      "Risk assessment requirements",
+      "Transparency obligations",
+      "Prohibited conduct (serious harm)",
+      "AI and Data Commissioner"
+    ],
+    "source_url": "https://www.parl.ca/legisinfo/en/bill/44-1/c-27",
+    "tags": ["proposed", "high_impact", "comprehensive", "canada"]
+  },
+  {
+    "id": "intl-006",
+    "jurisdiction": "Brazil",
+    "name": "AI Bill (PL 2338/2023)",
+    "type": "proposed_legislation",
+    "status": "pending",
+    "date_introduced": "2023-05-03",
+    "summary": "Comprehensive AI bill establishing risk-based framework similar to EU AI Act.",
+    "key_provisions": [
+      "Risk-based classification",
+      "Fundamental rights protections",
+      "High-risk AI requirements",
+      "Regulatory sandbox provisions",
+      "National AI authority"
+    ],
+    "source_url": "https://www.camara.leg.br/propostas-legislativas/2358703",
+    "tags": ["proposed", "risk_based", "comprehensive", "brazil"]
+  },
+  {
+    "id": "intl-007",
+    "jurisdiction": "OECD",
+    "name": "OECD AI Principles",
+    "type": "principles",
+    "status": "active",
+    "date_adopted": "2019-05-22",
+    "summary": "First intergovernmental standard on AI. Non-binding principles adopted by 46 countries.",
+    "key_provisions": [
+      "Inclusive growth and sustainable development",
+      "Human-centered values and fairness",
+      "Transparency and explainability",
+      "Robustness, security, and safety",
+      "Accountability"
+    ],
+    "signatories": 46,
+    "source_url": "https://oecd.ai/en/ai-principles",
+    "tags": ["principles", "international", "non_binding", "oecd"]
+  },
+  {
+    "id": "intl-008",
+    "jurisdiction": "United Nations",
+    "name": "UN Global Digital Compact (AI Provisions)",
+    "type": "resolution",
+    "status": "adopted",
+    "date_adopted": "2024-09-22",
+    "summary": "UN resolution including AI governance provisions, emphasizing international cooperation and capacity building.",
+    "key_provisions": [
+      "International AI governance dialogue",
+      "AI capacity building for developing nations",
+      "Human rights in AI development",
+      "Scientific cooperation"
+    ],
+    "source_url": "https://www.un.org/techenvoy/global-digital-compact",
+    "tags": ["international", "un", "capacity_building", "cooperation"]
+  },
+  {
+    "id": "intl-009",
+    "jurisdiction": "G7",
+    "name": "Hiroshima AI Process",
+    "type": "framework",
+    "status": "active",
+    "date_adopted": "2023-12-01",
+    "summary": "G7 framework establishing guiding principles and code of conduct for AI developers.",
+    "key_provisions": [
+      "International guiding principles",
+      "Voluntary code of conduct",
+      "Advanced AI systems focus",
+      "Interoperability commitments"
+    ],
+    "source_url": "https://www.mofa.go.jp/ecm/ec/page5e_000076.html",
+    "tags": ["g7", "voluntary", "principles", "frontier_ai"]
+  },
+  {
+    "id": "intl-010",
+    "jurisdiction": "International",
+    "name": "Bletchley Declaration",
+    "type": "declaration",
+    "status": "active",
+    "date_adopted": "2023-11-01",
+    "summary": "Declaration from first global AI Safety Summit. 28 countries agreeing on frontier AI risks.",
+    "key_provisions": [
+      "Frontier AI risk acknowledgment",
+      "International cooperation commitment",
+      "AI Safety Summit continuation",
+      "Scientific collaboration"
+    ],
+    "signatories": 28,
+    "source_url": "https://www.gov.uk/government/publications/ai-safety-summit-2023-the-bletchley-declaration",
+    "tags": ["declaration", "safety", "frontier_ai", "international"]
+  }
+]

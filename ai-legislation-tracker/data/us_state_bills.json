@@ -1,0 +1,202 @@
+[
+  {
+    "id": "state-001",
+    "state": "Colorado",
+    "bill_number": "SB 24-205",
+    "title": "Consumer Protections for Artificial Intelligence",
+    "status": "enacted",
+    "date_introduced": "2024-01-31",
+    "date_enacted": "2024-05-17",
+    "effective_date": "2026-02-01",
+    "summary": "First comprehensive state AI regulation in the US. Requires deployers and developers of high-risk AI systems to use reasonable care to avoid algorithmic discrimination.",
+    "key_provisions": [
+      "High-risk AI system definition",
+      "Developer duties (documentation, disclosure)",
+      "Deployer duties (risk management, impact assessments)",
+      "Consumer notification and opt-out rights",
+      "Attorney General enforcement"
+    ],
+    "covered_decisions": [
+      "Employment",
+      "Education",
+      "Financial services",
+      "Healthcare",
+      "Housing",
+      "Insurance",
+      "Legal services"
+    ],
+    "source_url": "https://leg.colorado.gov/bills/sb24-205",
+    "tags": ["comprehensive", "high_risk", "discrimination", "first_state"]
+  },
+  {
+    "id": "state-002",
+    "state": "California",
+    "bill_number": "SB 1047",
+    "title": "Safe and Secure Innovation for Frontier AI Models Act",
+    "status": "vetoed",
+    "date_introduced": "2024-02-08",
+    "date_vetoed": "2024-09-29",
+    "summary": "Would have required safety testing and kill switch capabilities for frontier AI models above compute thresholds. Vetoed by Governor Newsom.",
+    "key_provisions": [
+      "Compute threshold triggers ($100M training cost or 10^26 FLOP)",
+      "Safety testing requirements",
+      "Kill switch capability",
+      "Whistleblower protections",
+      "Frontier Model Division creation"
+    ],
+    "veto_reason": "Governor cited concerns about applying strict standards to all AI models regardless of risk context",
+    "source_url": "https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202320240SB1047",
+    "tags": ["frontier_ai", "safety", "vetoed", "compute_threshold"]
+  },
+  {
+    "id": "state-003",
+    "state": "California",
+    "bill_number": "AB 2013",
+    "title": "AI Training Data Transparency",
+    "status": "enacted",
+    "date_introduced": "2024-02-05",
+    "date_enacted": "2024-09-28",
+    "effective_date": "2026-01-01",
+    "summary": "Requires developers of generative AI systems to post documentation about training data on their websites.",
+    "key_provisions": [
+      "Training data documentation requirement",
+      "High-level summary of data sources",
+      "Website publication requirement",
+      "Applies to GenAI offered in California"
+    ],
+    "source_url": "https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202320240AB2013",
+    "tags": ["transparency", "training_data", "disclosure", "genai"]
+  },
+  {
+    "id": "state-004",
+    "state": "California",
+    "bill_number": "AB 2885",
+    "title": "AI Definition Standardization",
+    "status": "enacted",
+    "date_introduced": "2024-02-15",
+    "date_enacted": "2024-09-29",
+    "effective_date": "2025-01-01",
+    "summary": "Establishes standard definition of artificial intelligence for California law, aligned with NIST and federal definitions.",
+    "key_provisions": [
+      "Standardized AI definition across CA code",
+      "NIST alignment",
+      "Applies to future AI legislation"
+    ],
+    "source_url": "https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202320240AB2885",
+    "tags": ["definition", "standardization", "nist"]
+  },
+  {
+    "id": "state-005",
+    "state": "Illinois",
+    "bill_number": "HB 3773",
+    "title": "AI Video Interview Act (Amendment)",
+    "status": "enacted",
+    "date_introduced": "2019-01-01",
+    "date_enacted": "2020-01-01",
+    "effective_date": "2020-01-01",
+    "summary": "First state law regulating AI in employment. Requires notice and consent for AI analysis of video interviews.",
+    "key_provisions": [
+      "Notice to candidates before AI analysis",
+      "Consent requirement",
+      "Explanation of AI use",
+      "Video deletion upon request"
+    ],
+    "source_url": "https://www.ilga.gov/legislation/ilcs/ilcs3.asp?ActID=4015",
+    "tags": ["employment", "video_interview", "consent", "notice", "first_ai_law"]
+  },
+  {
+    "id": "state-006",
+    "state": "New York City",
+    "bill_number": "Local Law 144",
+    "title": "Automated Employment Decision Tools",
+    "status": "enacted",
+    "date_introduced": "2021-01-01",
+    "date_enacted": "2021-12-11",
+    "effective_date": "2023-07-05",
+    "summary": "Requires bias audits and notice for automated employment decision tools used in hiring in NYC.",
+    "key_provisions": [
+      "Annual bias audit requirement",
+      "Audit results publication",
+      "Candidate notice requirements",
+      "Alternative process availability"
+    ],
+    "source_url": "https://www.nyc.gov/site/dca/about/automated-employment-decision-tools.page",
+    "tags": ["employment", "bias_audit", "local", "aedt"]
+  },
+  {
+    "id": "state-007",
+    "state": "Texas",
+    "bill_number": "HB 2060",
+    "title": "AI Advisory Council",
+    "status": "enacted",
+    "date_introduced": "2023-03-09",
+    "date_enacted": "2023-06-18",
+    "effective_date": "2023-09-01",
+    "summary": "Creates advisory council to study AI use in state government and make recommendations.",
+    "key_provisions": [
+      "Advisory council creation",
+      "Study of AI in state government",
+      "Annual report requirements",
+      "Recommendations to legislature"
+    ],
+    "source_url": "https://capitol.texas.gov/BillLookup/History.aspx?LegSess=88R&Bill=HB2060",
+    "tags": ["advisory", "state_government", "study"]
+  },
+  {
+    "id": "state-008",
+    "state": "Utah",
+    "bill_number": "SB 149",
+    "title": "AI Policy Act",
+    "status": "enacted",
+    "date_introduced": "2024-01-16",
+    "date_enacted": "2024-03-13",
+    "effective_date": "2024-05-01",
+    "summary": "Creates AI learning lab and establishes disclosure requirements for generative AI interactions.",
+    "key_provisions": [
+      "AI learning laboratory (regulatory sandbox)",
+      "GenAI disclosure requirements",
+      "Office of AI Policy creation",
+      "State employee AI training"
+    ],
+    "source_url": "https://le.utah.gov/~2024/bills/static/SB0149.html",
+    "tags": ["sandbox", "disclosure", "genai", "regulatory"]
+  },
+  {
+    "id": "state-009",
+    "state": "Tennessee",
+    "bill_number": "HB 2959",
+    "title": "ELVIS Act (AI Voice Protection)",
+    "status": "enacted",
+    "date_introduced": "2024-01-01",
+    "date_enacted": "2024-03-21",
+    "effective_date": "2024-07-01",
+    "summary": "Protects artists from unauthorized AI-generated replicas of their voice and likeness.",
+    "key_provisions": [
+      "Voice and likeness protection from AI",
+      "Right of publicity expansion",
+      "AI-specific provisions",
+      "Music industry protections"
+    ],
+    "source_url": "https://wapp.capitol.tn.gov/apps/BillInfo/default.aspx?BillNumber=HB2959",
+    "tags": ["voice", "likeness", "right_of_publicity", "music"]
+  },
+  {
+    "id": "state-010",
+    "state": "Connecticut",
+    "bill_number": "SB 1103",
+    "title": "AI Inventory and Assessment",
+    "status": "enacted",
+    "date_introduced": "2023-01-01",
+    "date_enacted": "2023-06-07",
+    "effective_date": "2023-10-01",
+    "summary": "Requires state agencies to inventory AI systems and conduct impact assessments.",
+    "key_provisions": [
+      "State agency AI inventory",
+      "Impact assessments for high-risk AI",
+      "Public reporting requirements",
+      "Chief AI Officer consideration"
+    ],
+    "source_url": "https://www.cga.ct.gov/asp/cgabillstatus/cgabillstatus.asp?selBillType=Bill&bill_num=SB1103",
+    "tags": ["state_government", "inventory", "impact_assessment"]
+  }
+]
