@@ -3,6 +3,9 @@
   <img src="https://img.shields.io/badge/Jurisdictions-21-green?style=for-the-badge" alt="Jurisdictions"/>
   <img src="https://img.shields.io/badge/Python-3.7+-yellow?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
   <img src="https://img.shields.io/badge/License-MIT-purple?style=for-the-badge" alt="License"/>
+  <a href="https://delschlangen.github.io/ai-legislation-tracker/">
+    <img src="https://img.shields.io/badge/Try%20It%20Live-Visit%20Site-ff6b6b?style=for-the-badge" alt="Try It Live"/>
+  </a>
 </p>
 
 <h1 align="center">AI Legislation Tracker</h1>
@@ -12,12 +15,17 @@
 </p>
 
 <p align="center">
+  <a href="https://delschlangen.github.io/ai-legislation-tracker/">🚀 <strong>Use this tool live</strong></a> — No installation required. Search and filter legislation in your browser.
+</p>
+
+<p align="center">
   <a href="#data-currency">Data Currency</a> •
   <a href="#quick-reference">Quick Reference</a> •
   <a href="#getting-started">Getting Started</a> •
   <a href="#whats-tracked">Coverage</a> •
   <a href="#query-examples">Query</a> •
-  <a href="#contributing">Contribute</a>
+  <a href="#contributing">Contribute</a> •
+  <a href="#live-demo">Live Demo</a>
 </p>
 
 ---
@@ -322,6 +330,21 @@ This is a **research and tracking tool**, not legal advice. Legislation changes 
 - [ ] Add timeline visualization
 - [ ] Automate updates via official APIs
 - [ ] Add notification system for effective date approaches
+
+---
+
+## Live Demo
+
+**Use this tool directly in your browser:**
+
+### **[https://delschlangen.github.io/ai-legislation-tracker](https://delschlangen.github.io/ai-legislation-tracker)**
+
+No installation or dependencies required. The web interface provides:
+- Searchable table of all 28 legislation items
+- Filter by jurisdiction, status, and tags
+- Full-text search across titles, summaries, and provisions
+- Expandable rows with complete details and source links
+- Mobile-responsive design
 
 ---
 
