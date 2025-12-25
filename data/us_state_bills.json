@@ -26,7 +26,8 @@
       "Legal services"
     ],
     "source_url": "https://leg.colorado.gov/bills/sb24-205",
-    "tags": ["comprehensive", "high_risk", "discrimination", "first_state"]
+    "tags": ["comprehensive", "high_risk", "discrimination", "first_state"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "state-002",
@@ -46,7 +47,8 @@
     ],
     "veto_reason": "Governor cited concerns about applying strict standards to all AI models regardless of risk context",
     "source_url": "https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202320240SB1047",
-    "tags": ["frontier_ai", "safety", "vetoed", "compute_threshold"]
+    "tags": ["frontier_ai", "safety", "vetoed", "compute_threshold"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "state-003",
@@ -65,7 +67,8 @@
       "Applies to GenAI offered in California"
     ],
     "source_url": "https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202320240AB2013",
-    "tags": ["transparency", "training_data", "disclosure", "genai"]
+    "tags": ["transparency", "training_data", "disclosure", "genai"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "state-004",
@@ -83,7 +86,8 @@
       "Applies to future AI legislation"
     ],
     "source_url": "https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202320240AB2885",
-    "tags": ["definition", "standardization", "nist"]
+    "tags": ["definition", "standardization", "nist"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "state-005",
@@ -102,7 +106,8 @@
       "Video deletion upon request"
     ],
     "source_url": "https://www.ilga.gov/legislation/ilcs/ilcs3.asp?ActID=4015",
-    "tags": ["employment", "video_interview", "consent", "notice", "first_ai_law"]
+    "tags": ["employment", "video_interview", "consent", "notice", "first_ai_law"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "state-006",
@@ -121,7 +126,8 @@
       "Alternative process availability"
     ],
     "source_url": "https://www.nyc.gov/site/dca/about/automated-employment-decision-tools.page",
-    "tags": ["employment", "bias_audit", "local", "aedt"]
+    "tags": ["employment", "bias_audit", "local", "aedt"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "state-007",
@@ -140,7 +146,8 @@
       "Recommendations to legislature"
     ],
     "source_url": "https://capitol.texas.gov/BillLookup/History.aspx?LegSess=88R&Bill=HB2060",
-    "tags": ["advisory", "state_government", "study"]
+    "tags": ["advisory", "state_government", "study"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "state-008",
@@ -159,7 +166,8 @@
       "State employee AI training"
     ],
     "source_url": "https://le.utah.gov/~2024/bills/static/SB0149.html",
-    "tags": ["sandbox", "disclosure", "genai", "regulatory"]
+    "tags": ["sandbox", "disclosure", "genai", "regulatory"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "state-009",
@@ -178,7 +186,8 @@
       "Music industry protections"
     ],
     "source_url": "https://wapp.capitol.tn.gov/apps/BillInfo/default.aspx?BillNumber=HB2959",
-    "tags": ["voice", "likeness", "right_of_publicity", "music"]
+    "tags": ["voice", "likeness", "right_of_publicity", "music"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "state-010",
@@ -197,6 +206,7 @@
       "Chief AI Officer consideration"
     ],
     "source_url": "https://www.cga.ct.gov/asp/cgabillstatus/cgabillstatus.asp?selBillType=Bill&bill_num=SB1103",
-    "tags": ["state_government", "inventory", "impact_assessment"]
+    "tags": ["state_government", "inventory", "impact_assessment"],
+    "last_verified": "2024-12-24"
   }
 ]

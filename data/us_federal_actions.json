@@ -16,7 +16,8 @@
       "AI talent immigration provisions"
     ],
     "source_url": "https://www.whitehouse.gov/briefing-room/presidential-actions/2023/10/30/executive-order-on-the-safe-secure-and-trustworthy-development-and-use-of-artificial-intelligence/",
-    "tags": ["safety", "frontier_ai", "reporting", "compute_threshold"]
+    "tags": ["safety", "frontier_ai", "reporting", "compute_threshold"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "fed-002",
@@ -33,7 +34,8 @@
       "Implementation guidance via Playbook"
     ],
     "source_url": "https://www.nist.gov/itl/ai-risk-management-framework",
-    "tags": ["framework", "risk_management", "voluntary", "nist"]
+    "tags": ["framework", "risk_management", "voluntary", "nist"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "fed-003",
@@ -51,7 +53,8 @@
       "Annual compliance reporting"
     ],
     "source_url": "https://www.whitehouse.gov/omb/briefing-room/2024/03/28/omb-releases-implementation-guidance-following-president-bidens-executive-order-on-artificial-intelligence/",
-    "tags": ["federal_agencies", "governance", "chief_ai_officer", "safeguards"]
+    "tags": ["federal_agencies", "governance", "chief_ai_officer", "safeguards"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "fed-004",
@@ -69,7 +72,8 @@
       "Human alternatives and fallback"
     ],
     "source_url": "https://www.whitehouse.gov/ostp/ai-bill-of-rights/",
-    "tags": ["principles", "rights", "voluntary", "ostp"]
+    "tags": ["principles", "rights", "voluntary", "ostp"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "fed-005",
@@ -85,7 +89,8 @@
       "MD&A discussion requirements"
     ],
     "source_url": "https://www.sec.gov",
-    "tags": ["disclosure", "securities", "ai_washing", "sec"]
+    "tags": ["disclosure", "securities", "ai_washing", "sec"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "fed-006",
@@ -102,7 +107,8 @@
       "Commercial surveillance rulemaking"
     ],
     "source_url": "https://www.ftc.gov/business-guidance/blog/2023/02/keep-your-ai-claims-check",
-    "tags": ["enforcement", "ftc", "consumer_protection", "discrimination"]
+    "tags": ["enforcement", "ftc", "consumer_protection", "discrimination"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "fed-007",
@@ -119,7 +125,8 @@
       "Industry partnership frameworks"
     ],
     "source_url": "https://www.defense.gov",
-    "tags": ["defense", "adoption", "military", "dod"]
+    "tags": ["defense", "adoption", "military", "dod"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "fed-008",
@@ -136,6 +143,7 @@
       "Cloud computing restrictions"
     ],
     "source_url": "https://www.bis.doc.gov",
-    "tags": ["export_controls", "chips", "china", "bis"]
+    "tags": ["export_controls", "chips", "china", "bis"],
+    "last_verified": "2024-12-24"
   }
 ]

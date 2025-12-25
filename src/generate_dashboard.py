@@ -36,25 +36,44 @@ def generate_summary_stats(data: dict) -> dict:
         "total": 0
     }
     stats["total"] = stats["federal_actions"] + stats["state_bills"] + stats["international"]
-    
+
     # Status breakdown for state bills
     state_bills = data.get("us_state_bills", [])
     stats["state_enacted"] = sum(1 for b in state_bills if b.get("status") == "enacted")
     stats["state_vetoed"] = sum(1 for b in state_bills if b.get("status") == "vetoed")
     stats["state_pending"] = sum(1 for b in state_bills if b.get("status") == "pending")
-    
+
     # Federal status
     federal = data.get("us_federal_actions", [])
     stats["federal_active"] = sum(1 for f in federal if f.get("status") == "active")
     stats["federal_rescinded"] = sum(1 for f in federal if f.get("status") == "rescinded")
-    
+
     # Tag frequency
     all_tags = []
     for dataset in data.values():
         for item in dataset:
             all_tags.extend(item.get("tags", []))
     stats["top_tags"] = Counter(all_tags).most_common(10)
-    
+
+    # Verification date range
+    verification_dates = []
+    needs_verification_count = 0
+    for dataset in data.values():
+        for item in dataset:
+            last_verified = item.get("last_verified", "")
+            if last_verified and last_verified != "needs_verification":
+                verification_dates.append(last_verified)
+            elif last_verified == "needs_verification":
+                needs_verification_count += 1
+
+    if verification_dates:
+        stats["earliest_verified"] = min(verification_dates)
+        stats["latest_verified"] = max(verification_dates)
+    else:
+        stats["earliest_verified"] = None
+        stats["latest_verified"] = None
+    stats["needs_verification_count"] = needs_verification_count
+
     return stats
 
 
@@ -62,11 +81,21 @@ def generate_dashboard(data: dict, stats: dict) -> str:
     """Generate the markdown dashboard."""
     
     lines = []
-    
+
     # Header
     lines.append("# AI Legislation Landscape Dashboard")
     lines.append(f"\n**Last Updated:** {datetime.now().strftime('%Y-%m-%d')}")
-    lines.append(f"\n**Total Items Tracked:** {stats['total']}\n")
+    lines.append(f"\n**Total Items Tracked:** {stats['total']}")
+
+    # Verification date range
+    if stats.get("earliest_verified") and stats.get("latest_verified"):
+        if stats["earliest_verified"] == stats["latest_verified"]:
+            lines.append(f"\n**Data Verified:** {stats['latest_verified']}")
+        else:
+            lines.append(f"\n**Data Verified:** {stats['earliest_verified']} to {stats['latest_verified']}")
+    if stats.get("needs_verification_count", 0) > 0:
+        lines.append(f" ({stats['needs_verification_count']} entries need verification)")
+    lines.append("\n")
     
     # Summary stats
     lines.append("## Overview\n")

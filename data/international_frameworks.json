@@ -23,7 +23,8 @@
       "enforcing_body": "National authorities + EU AI Office"
     },
     "source_url": "https://eur-lex.europa.eu/eli/reg/2024/1689/oj",
-    "tags": ["comprehensive", "risk_based", "binding", "eu"]
+    "tags": ["comprehensive", "risk_based", "binding", "eu"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "intl-002",
@@ -48,7 +49,8 @@
       "Contestability and redress"
     ],
     "source_url": "https://www.gov.uk/government/publications/ai-regulation-a-pro-innovation-approach",
-    "tags": ["principles", "sector_specific", "pro_innovation", "uk"]
+    "tags": ["principles", "sector_specific", "pro_innovation", "uk"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "intl-003",
@@ -68,7 +70,8 @@
       "Algorithm filing requirements"
     ],
     "source_url": "http://www.cac.gov.cn/2023-07/13/c_1690898327029107.htm",
-    "tags": ["genai", "content", "registration", "china"]
+    "tags": ["genai", "content", "registration", "china"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "intl-004",
@@ -87,7 +90,8 @@
       "Algorithm registry"
     ],
     "source_url": "http://www.cac.gov.cn/2022-01/04/c_1642894606364259.htm",
-    "tags": ["algorithms", "recommendations", "transparency", "china"]
+    "tags": ["algorithms", "recommendations", "transparency", "china"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "intl-005",
@@ -105,7 +109,8 @@
       "AI and Data Commissioner"
     ],
     "source_url": "https://www.parl.ca/legisinfo/en/bill/44-1/c-27",
-    "tags": ["proposed", "high_impact", "comprehensive", "canada"]
+    "tags": ["proposed", "high_impact", "comprehensive", "canada"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "intl-006",
@@ -123,7 +128,8 @@
       "National AI authority"
     ],
     "source_url": "https://www.camara.leg.br/propostas-legislativas/2358703",
-    "tags": ["proposed", "risk_based", "comprehensive", "brazil"]
+    "tags": ["proposed", "risk_based", "comprehensive", "brazil"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "intl-007",
@@ -142,7 +148,8 @@
     ],
     "signatories": 46,
     "source_url": "https://oecd.ai/en/ai-principles",
-    "tags": ["principles", "international", "non_binding", "oecd"]
+    "tags": ["principles", "international", "non_binding", "oecd"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "intl-008",
@@ -159,7 +166,8 @@
       "Scientific cooperation"
     ],
     "source_url": "https://www.un.org/techenvoy/global-digital-compact",
-    "tags": ["international", "un", "capacity_building", "cooperation"]
+    "tags": ["international", "un", "capacity_building", "cooperation"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "intl-009",
@@ -176,7 +184,8 @@
       "Interoperability commitments"
     ],
     "source_url": "https://www.mofa.go.jp/ecm/ec/page5e_000076.html",
-    "tags": ["g7", "voluntary", "principles", "frontier_ai"]
+    "tags": ["g7", "voluntary", "principles", "frontier_ai"],
+    "last_verified": "2024-12-24"
   },
   {
     "id": "intl-010",
@@ -194,6 +203,7 @@
     ],
     "signatories": 28,
     "source_url": "https://www.gov.uk/government/publications/ai-safety-summit-2023-the-bletchley-declaration",
-    "tags": ["declaration", "safety", "frontier_ai", "international"]
+    "tags": ["declaration", "safety", "frontier_ai", "international"],
+    "last_verified": "2024-12-24"
   }
 ]
