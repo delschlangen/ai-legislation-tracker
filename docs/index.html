@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Legislation Tracker</title>
+  <meta name="description" content="A searchable database of global AI legislation, regulations, and governance frameworks across US federal, state, and international jurisdictions.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <h1>AI Legislation Tracker</h1>
+      <p class="subtitle">A structured database tracking AI laws, regulations, and governance frameworks worldwide</p>
+      <div class="header-meta">
+        <span class="data-currency">Data verified as of December 2024</span>
+        <a href="https://github.com/delschlangen/ai-legislation-tracker" class="github-link" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+          View on GitHub
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <!-- Filters Section -->
+    <section class="filters-section">
+      <div class="search-container">
+        <input type="text" id="search-input" class="search-input" placeholder="Search legislation by title, summary, or provisions...">
+        <span class="search-icon">
+          <svg viewBox="0 0 20 20" width="20" height="20"><path fill="currentColor" d="M12.9 14.32a8 8 0 1 1 1.41-1.41l5.35 5.33-1.42 1.42-5.33-5.34zM8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12z"/></svg>
+        </span>
+      </div>
+
+      <div class="filter-groups">
+        <div class="filter-group">
+          <label class="filter-label">Jurisdiction</label>
+          <div class="filter-buttons" id="jurisdiction-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="federal">US Federal</button>
+            <button class="filter-btn" data-filter="state">US State</button>
+            <button class="filter-btn" data-filter="international">International</button>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">Status</label>
+          <div class="filter-buttons" id="status-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="enacted">Enacted</button>
+            <button class="filter-btn" data-filter="active">Active</button>
+            <button class="filter-btn" data-filter="pending">Pending</button>
+            <button class="filter-btn" data-filter="vetoed">Vetoed</button>
+            <button class="filter-btn" data-filter="rescinded">Rescinded</button>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">Popular Tags</label>
+          <div class="filter-buttons tag-filters" id="tag-filters">
+            <!-- Tags populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+
+      <div class="results-count" id="results-count">
+        Showing <span id="visible-count">28</span> of <span id="total-count">28</span> items
+      </div>
+    </section>
+
+    <!-- Data Table -->
+    <section class="table-section">
+      <div class="table-container">
+        <table class="legislation-table" id="legislation-table">
+          <thead>
+            <tr>
+              <th class="col-jurisdiction">Jurisdiction</th>
+              <th class="col-title">Name / Title</th>
+              <th class="col-status">Status</th>
+              <th class="col-effective">Effective Date</th>
+              <th class="col-expand"></th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <!-- Rows populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="no-results" id="no-results" style="display: none;">
+        <svg viewBox="0 0 24 24" width="48" height="48"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        <p>No legislation matches your filters</p>
+        <button class="reset-btn" id="reset-filters">Clear all filters</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>About This Dataset</h3>
+        <p>This is a <strong>research and tracking tool</strong>, not legal advice. Data is curated from official government sources and verified as of December 2024. Always verify current status with official sources before making compliance decisions.</p>
+      </div>
+      <div class="footer-section">
+        <h3>Resources</h3>
+        <ul>
+          <li><a href="https://github.com/delschlangen/ai-legislation-tracker" target="_blank" rel="noopener">GitHub Repository</a></li>
+          <li><a href="https://github.com/delschlangen/ai-legislation-tracker/blob/main/CITATION.md" target="_blank" rel="noopener">How to Cite</a></li>
+          <li><a href="https://github.com/delschlangen/ai-legislation-tracker/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contribute</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h3>Data</h3>
+        <ul>
+          <li>28 legislation items tracked</li>
+          <li>21 jurisdictions covered</li>
+          <li>Last verified: 2024-12-24</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Built by <a href="https://linkedin.com/in/del-s-759557175/" target="_blank" rel="noopener">Del Schlangen</a> | MIT License</p>
+    </div>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

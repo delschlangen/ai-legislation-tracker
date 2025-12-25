@@ -1,0 +1,693 @@
+/* AI Legislation Tracker - Styles */
+
+:root {
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-light: #3b82f6;
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-info: #0891b2;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --radius: 8px;
+  --radius-sm: 4px;
+  --radius-lg: 12px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  color: var(--color-gray-800);
+  background: var(--color-gray-50);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, var(--color-gray-900) 0%, var(--color-gray-800) 100%);
+  color: white;
+  padding: 2rem 1rem;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: var(--color-gray-300);
+  margin-bottom: 1rem;
+}
+
+.header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.875rem;
+}
+
+.data-currency {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-gray-300);
+}
+
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+  text-decoration: none;
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.2s;
+}
+
+.github-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+  width: 100%;
+}
+
+/* Filters Section */
+.filters-section {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1.5rem;
+}
+
+.search-container {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.875rem 1rem 0.875rem 2.75rem;
+  font-size: 1rem;
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-gray-400);
+}
+
+.filter-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius);
+  background: white;
+  color: var(--color-gray-700);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background: var(--color-gray-100);
+  border-color: var(--color-gray-400);
+}
+
+.filter-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.tag-filters .filter-btn {
+  font-size: 0.8125rem;
+  padding: 0.375rem 0.75rem;
+}
+
+.tag-filters .filter-btn.active {
+  background: var(--color-gray-700);
+  border-color: var(--color-gray-700);
+}
+
+.results-count {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-gray-200);
+  font-size: 0.875rem;
+  color: var(--color-gray-600);
+}
+
+#visible-count {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+/* Table Section */
+.table-section {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.legislation-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.legislation-table th {
+  background: var(--color-gray-50);
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  border-bottom: 2px solid var(--color-gray-200);
+}
+
+.legislation-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-gray-100);
+  vertical-align: top;
+}
+
+.legislation-table tbody tr {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.legislation-table tbody tr:hover {
+  background: var(--color-gray-50);
+}
+
+.legislation-table tbody tr.expanded {
+  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+}
+
+.legislation-table tbody tr.expanded:hover {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+}
+
+.col-jurisdiction {
+  width: 15%;
+  min-width: 120px;
+}
+
+.col-title {
+  width: 45%;
+  min-width: 200px;
+}
+
+.col-status {
+  width: 15%;
+  min-width: 100px;
+}
+
+.col-effective {
+  width: 15%;
+  min-width: 110px;
+}
+
+.col-expand {
+  width: 10%;
+  min-width: 50px;
+  text-align: center;
+}
+
+.jurisdiction-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.jurisdiction-badge.federal {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.jurisdiction-badge.state {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.jurisdiction-badge.international {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+
+tr.expanded .jurisdiction-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.title-cell {
+  font-weight: 500;
+}
+
+.title-cell .bill-number {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-gray-500);
+  font-weight: 400;
+  margin-top: 0.25rem;
+}
+
+tr.expanded .title-cell .bill-number {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--radius);
+}
+
+.status-badge.enacted,
+.status-badge.active,
+.status-badge.adopted {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.vetoed,
+.status-badge.rescinded {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+tr.expanded .status-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.enacted,
+.status-dot.active,
+.status-dot.adopted {
+  background: #22c55e;
+}
+
+.status-dot.pending {
+  background: #f59e0b;
+}
+
+.status-dot.vetoed,
+.status-dot.rescinded {
+  background: #ef4444;
+}
+
+tr.expanded .status-dot {
+  background: white;
+}
+
+.expand-icon {
+  transition: transform 0.2s;
+  color: var(--color-gray-400);
+}
+
+tr.expanded .expand-icon {
+  transform: rotate(180deg);
+  color: white;
+}
+
+/* Detail Row */
+.detail-row {
+  display: none;
+}
+
+.detail-row.visible {
+  display: table-row;
+}
+
+.detail-row td {
+  padding: 0;
+  background: var(--color-gray-50);
+}
+
+.detail-content {
+  padding: 1.5rem;
+  border-left: 4px solid var(--color-primary);
+}
+
+.detail-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.detail-section h4 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.detail-section p {
+  color: var(--color-gray-700);
+  line-height: 1.7;
+}
+
+.provisions-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.provisions-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: var(--color-gray-700);
+}
+
+.provisions-list li::before {
+  content: "•";
+  color: var(--color-primary);
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.detail-tag {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--color-gray-200);
+  color: var(--color-gray-700);
+  border-radius: var(--radius-sm);
+}
+
+.source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.source-link:hover {
+  text-decoration: underline;
+}
+
+.verified-date {
+  font-size: 0.875rem;
+  color: var(--color-gray-500);
+}
+
+/* No Results */
+.no-results {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--color-gray-500);
+}
+
+.no-results svg {
+  color: var(--color-gray-300);
+  margin-bottom: 1rem;
+}
+
+.no-results p {
+  font-size: 1.125rem;
+  margin-bottom: 1rem;
+}
+
+.reset-btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.reset-btn:hover {
+  background: var(--color-primary-dark);
+}
+
+/* Footer */
+.footer {
+  background: var(--color-gray-800);
+  color: var(--color-gray-300);
+  padding: 3rem 1rem 1.5rem;
+  margin-top: auto;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  gap: 2rem;
+}
+
+.footer-section h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+}
+
+.footer-section p {
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.footer-section ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.footer-section a {
+  color: var(--color-gray-300);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: color 0.2s;
+}
+
+.footer-section a:hover {
+  color: white;
+}
+
+.footer-bottom {
+  max-width: 1200px;
+  margin: 2rem auto 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-gray-700);
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.footer-bottom a {
+  color: var(--color-primary-light);
+  text-decoration: none;
+}
+
+.footer-bottom a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (min-width: 640px) {
+  .header {
+    padding: 3rem 1.5rem;
+  }
+
+  .header h1 {
+    font-size: 2.5rem;
+  }
+
+  .main-content {
+    padding: 2rem 1.5rem;
+  }
+
+  .detail-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .footer-content {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .filter-groups {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .filter-group {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .filter-group:last-child {
+    flex: 2;
+  }
+}
+
+/* Mobile table adjustments */
+@media (max-width: 768px) {
+  .legislation-table th,
+  .legislation-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .col-effective {
+    display: none;
+  }
+
+  .legislation-table th.col-effective,
+  .legislation-table td:nth-child(4) {
+    display: none;
+  }
+
+  .jurisdiction-badge {
+    font-size: 0.6875rem;
+    padding: 0.1875rem 0.375rem;
+  }
+
+  .status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .detail-content {
+    padding: 1rem;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Print styles */
+@media print {
+  .header,
+  .filters-section,
+  .footer {
+    display: none;
+  }
+
+  .legislation-table {
+    font-size: 10pt;
+  }
+
+  .detail-row {
+    display: table-row !important;
+  }
+}
