@@ -12,12 +12,12 @@
 </p>
 
 <p align="center">
-  <a href="#-quick-reference">Quick Reference</a> •
-  <a href="#-getting-started">Getting Started</a> •
-  <a href="#-whats-tracked">Coverage</a> •
-  <a href="#-query-examples">Query</a> •
-  <a href="#%EF%B8%8F-upcoming-deadlines">Deadlines</a> •
-  <a href="#-contributing">Contribute</a>
+  <a href="#data-currency">Data Currency</a> •
+  <a href="#quick-reference">Quick Reference</a> •
+  <a href="#getting-started">Getting Started</a> •
+  <a href="#whats-tracked">Coverage</a> •
+  <a href="#query-examples">Query</a> •
+  <a href="#contributing">Contribute</a>
 </p>
 
 ---
@@ -31,6 +31,22 @@ This repo provides:
 - **CLI tools** for querying across jurisdictions
 - **Dashboard generation** for at-a-glance status reports
 - **Zero dependencies** — pure Python standard library
+
+---
+
+## Data Currency
+
+> **This dataset reflects AI legislation status as of December 2024.**
+
+All 28 entries were verified against official government sources on **2024-12-24**. Each entry includes a `last_verified` field indicating when it was last checked.
+
+**Important:** Legislation changes frequently. Always verify current status with official sources before making compliance decisions.
+
+| Resource | Description |
+|:---------|:------------|
+| [CITATION.md](CITATION.md) | How to cite this dataset (BibTeX, APA, Chicago, Bluebook) |
+| [MAINTENANCE.md](MAINTENANCE.md) | Update schedule, verification methodology, how to report corrections |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to add new legislation or submit updates |
 
 ---
 
@@ -219,7 +235,8 @@ All legislation entries follow a consistent JSON schema:
     "Deployer duties (risk management, impact assessments)"
   ],
   "source_url": "https://leg.colorado.gov/bills/sb24-205",
-  "tags": ["comprehensive", "high_risk", "discrimination"]
+  "tags": ["comprehensive", "high_risk", "discrimination"],
+  "last_verified": "2024-12-24"
 }
 ```
 
@@ -238,6 +255,9 @@ ai-legislation-tracker/
 │   └── query_legislation.py         # CLI tool for filtering and searching
 ├── examples/
 │   └── current_landscape.md         # Sample generated dashboard
+├── CITATION.md                      # How to cite this dataset
+├── CONTRIBUTING.md                  # Contribution guidelines
+├── MAINTENANCE.md                   # Update schedule and verification info
 ├── README.md
 └── LICENSE
 ```
@@ -284,6 +304,7 @@ ai-legislation-tracker/
 | `source_url` | Yes | Official source link |
 | `tags` | Yes | Relevant topic tags |
 | `effective_date` | If enacted | When it takes effect |
+| `last_verified` | Yes | Date entry was last verified (YYYY-MM-DD) |
 
 ---
 
