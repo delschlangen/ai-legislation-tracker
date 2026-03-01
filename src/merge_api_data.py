@@ -17,6 +17,8 @@ DATA_DIR = ROOT / "data"
 
 # Data files
 FEDERAL_FILE = DATA_DIR / "us_federal_actions.json"
+STATE_FILE = DATA_DIR / "us_state_bills.json"
+OPENSTATES_FILE = DATA_DIR / "openstates_bills.json"
 CACHE_CONGRESS = CACHE_DIR / "congress_gov.json"
 CACHE_FEDERAL_REG = CACHE_DIR / "federal_register.json"
 
@@ -101,6 +103,19 @@ def main():
     else:
         print("\nNo Federal Register cache found, skipping...")
 
+    # Merge OpenStates data into state bills
+    if OPENSTATES_FILE.exists():
+        print("\nMerging OpenStates data...")
+        state_data = load_json(STATE_FILE)
+        openstates_data = load_json(OPENSTATES_FILE)
+        print(f"  Existing state entries: {len(state_data)}")
+        print(f"  OpenStates entries: {len(openstates_data)}")
+        state_data, new_count = merge_entries(state_data, openstates_data)
+        total_new += new_count
+        save_json(STATE_FILE, state_data)
+    else:
+        print("\nNo OpenStates data found, skipping...")
+
     # Update last_verified on all entries
     for entry in federal_data:
         if entry.get("_source") in ["congress_gov_api", "federal_register_api"]:
@@ -140,7 +155,39 @@ def regenerate_docs_data():
         f.write(f"// Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n")
         f.write("const LEGISLATION_DATA = ")
         json.dump(all_entries, f, indent=2)
-        f.write(";\n")
+        f.write(";\n\n")
+
+        # Add helper functions required by app.js
+        f.write("""// Helper functions for app.js
+function getAllLegislation() {
+  return LEGISLATION_DATA.map(item => {
+    // Add jurisdiction_type for filtering
+    let jurisdiction_type;
+    if (item.state) {
+      jurisdiction_type = 'state';
+    } else if (item.jurisdiction === 'United States' || item.issuing_body || item.type === 'executive_order') {
+      jurisdiction_type = 'federal';
+    } else {
+      jurisdiction_type = 'international';
+    }
+    return { ...item, jurisdiction_type };
+  });
+}
+
+function getTagCounts() {
+  const tagCounts = {};
+  LEGISLATION_DATA.forEach(item => {
+    (item.tags || []).forEach(tag => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    });
+  });
+
+  // Sort by count descending, return top 10
+  return Object.entries(tagCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+}
+""")
 
     print(f"  Updated {docs_data} with {len(all_entries)} entries")
 

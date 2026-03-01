@@ -1,5 +1,5 @@
 // Auto-generated from data/*.json files
-// Last updated: 2026-03-01 01:59:30 UTC
+// Last updated: 2026-03-01 02:28:04 UTC
 
 const LEGISLATION_DATA = [
   {
@@ -626,7 +626,7 @@ const LEGISLATION_DATA = [
       "AI washing enforcement priority",
       "MD&A discussion requirements"
     ],
-    "source_url": "https://www.sec.gov",
+    "source_url": "https://www.sec.gov/newsroom/speeches-statements/gensler-ai-021324",
     "tags": [
       "disclosure",
       "securities",
@@ -672,7 +672,7 @@ const LEGISLATION_DATA = [
       "Workforce AI training requirements",
       "Industry partnership frameworks"
     ],
-    "source_url": "https://www.defense.gov",
+    "source_url": "https://www.defense.gov/News/Releases/Release/Article/3578219/",
     "tags": [
       "defense",
       "adoption",
@@ -695,7 +695,7 @@ const LEGISLATION_DATA = [
       "Country-specific controls (China, Russia, Iran)",
       "Cloud computing restrictions"
     ],
-    "source_url": "https://www.bis.doc.gov",
+    "source_url": "https://www.bis.doc.gov/index.php/policy-guidance/semiconductor-controls",
     "tags": [
       "export_controls",
       "chips",
@@ -705,3 +705,33 @@ const LEGISLATION_DATA = [
     "last_verified": "2024-12-24"
   }
 ];
+
+// Helper functions for app.js
+function getAllLegislation() {
+  return LEGISLATION_DATA.map(item => {
+    // Add jurisdiction_type for filtering
+    let jurisdiction_type;
+    if (item.state) {
+      jurisdiction_type = 'state';
+    } else if (item.jurisdiction === 'United States' || item.issuing_body || item.type === 'executive_order') {
+      jurisdiction_type = 'federal';
+    } else {
+      jurisdiction_type = 'international';
+    }
+    return { ...item, jurisdiction_type };
+  });
+}
+
+function getTagCounts() {
+  const tagCounts = {};
+  LEGISLATION_DATA.forEach(item => {
+    (item.tags || []).forEach(tag => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    });
+  });
+
+  // Sort by count descending, return top 10
+  return Object.entries(tagCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+}
