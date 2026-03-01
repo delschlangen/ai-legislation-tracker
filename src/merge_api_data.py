@@ -19,6 +19,7 @@ DATA_DIR = ROOT / "data"
 FEDERAL_FILE = DATA_DIR / "us_federal_actions.json"
 STATE_FILE = DATA_DIR / "us_state_bills.json"
 OPENSTATES_FILE = DATA_DIR / "openstates_bills.json"
+LEGISCAN_FILE = DATA_DIR / "legiscan_bills.json"
 CACHE_CONGRESS = CACHE_DIR / "congress_gov.json"
 CACHE_FEDERAL_REG = CACHE_DIR / "federal_register.json"
 
@@ -104,17 +105,33 @@ def main():
         print("\nNo Federal Register cache found, skipping...")
 
     # Merge OpenStates data into state bills
+    state_data = load_json(STATE_FILE)
+    state_updated = False
+
     if OPENSTATES_FILE.exists():
         print("\nMerging OpenStates data...")
-        state_data = load_json(STATE_FILE)
         openstates_data = load_json(OPENSTATES_FILE)
         print(f"  Existing state entries: {len(state_data)}")
         print(f"  OpenStates entries: {len(openstates_data)}")
         state_data, new_count = merge_entries(state_data, openstates_data)
         total_new += new_count
-        save_json(STATE_FILE, state_data)
+        state_updated = True
     else:
         print("\nNo OpenStates data found, skipping...")
+
+    # Merge LegiScan data into state bills
+    if LEGISCAN_FILE.exists():
+        print("\nMerging LegiScan data...")
+        legiscan_data = load_json(LEGISCAN_FILE)
+        print(f"  LegiScan entries: {len(legiscan_data)}")
+        state_data, new_count = merge_entries(state_data, legiscan_data)
+        total_new += new_count
+        state_updated = True
+    else:
+        print("\nNo LegiScan data found, skipping...")
+
+    if state_updated:
+        save_json(STATE_FILE, state_data)
 
     # Update last_verified on all entries
     for entry in federal_data:

@@ -41,6 +41,13 @@ jobs:
         run: python scripts/fetch_openstates.py
         continue-on-error: true
 
+      - name: Fetch LegiScan data (50 free calls/day)
+        if: ${{ secrets.LEGISCAN_API_KEY != '' }}
+        env:
+          LEGISCAN_API_KEY: ${{ secrets.LEGISCAN_API_KEY }}
+        run: python scripts/fetch_legiscan.py
+        continue-on-error: true
+
       - name: Merge new data into tracker
         run: python src/merge_api_data.py
 
