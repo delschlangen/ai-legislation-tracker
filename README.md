@@ -254,24 +254,15 @@ All legislation entries follow a consistent JSON schema:
 
 ```
 ai-legislation-tracker/
-├── .github/workflows/
-│   └── update-legislation.yml       # Weekly auto-update workflow
 ├── data/
 │   ├── us_federal_actions.json      # Federal executive orders, guidance, frameworks
 │   ├── us_state_bills.json          # State legislation across 10 jurisdictions
 │   └── international_frameworks.json # EU, UK, China, OECD, UN, G7, etc.
 ├── src/
 │   ├── generate_dashboard.py        # Creates markdown summary reports
-│   ├── query_legislation.py         # CLI tool for filtering and searching
-│   ├── merge_api_data.py            # Merges API data into tracker
-│   ├── federal_register.py          # Federal Register API integration
-│   └── congress_gov.py              # Congress.gov API integration
-├── docs/                            # GitHub Pages site
-│   ├── index.html
-│   ├── styles.css
-│   ├── app.js
-│   └── data.js
-├── API_SOURCES.md                   # API documentation
+│   └── query_legislation.py         # CLI tool for filtering and searching
+├── examples/
+│   └── current_landscape.md         # Sample generated dashboard
 ├── CITATION.md                      # How to cite this dataset
 ├── CONTRIBUTING.md                  # Contribution guidelines
 ├── MAINTENANCE.md                   # Update schedule and verification info
@@ -331,29 +322,13 @@ This is a **research and tracking tool**, not legal advice. Legislation changes 
 
 ---
 
-## Automated Updates
-
-This tracker **automatically updates every week** via GitHub Actions. New AI legislation from Congress.gov and Federal Register is fetched and merged into the dataset.
-
-| Source | Frequency | What It Tracks |
-|:-------|:---------:|:---------------|
-| [Federal Register](https://www.federalregister.gov/developers) | Weekly | Federal rules, proposed rules, executive orders |
-| [Congress.gov](https://api.congress.gov/) | Weekly | Congressional bills (HR, S, etc.) |
-
-**Setup (one-time):** Add your Congress.gov API key as a GitHub secret named `CONGRESS_API_KEY`. Get a free key at [api.congress.gov/sign-up](https://api.congress.gov/sign-up/).
-
-See [API_SOURCES.md](API_SOURCES.md) for full documentation.
-
----
-
 ## Roadmap
 
-- [x] ~~Automate updates via official APIs~~ (Federal Register, Congress.gov)
-- [x] ~~GitHub Actions workflow for automated weekly updates~~
 - [ ] Add RSS/webhook integration for legislative tracking services
 - [ ] Include bill text links where available
 - [ ] Create jurisdiction comparison tool
 - [ ] Add timeline visualization
+- [ ] Automate updates via official APIs
 - [ ] Add notification system for effective date approaches
 
 ---
