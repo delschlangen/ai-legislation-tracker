@@ -1,5 +1,5 @@
 // Auto-generated from data/*.json files
-// Last updated: 2026-03-01 02:28:04 UTC
+// Last updated: 2026-03-01 02:10:47 UTC
 
 const LEGISLATION_DATA = [
   {
@@ -706,14 +706,14 @@ const LEGISLATION_DATA = [
   }
 ];
 
-// Helper functions for app.js
+// Helper functions required by app.js
 function getAllLegislation() {
   return LEGISLATION_DATA.map(item => {
     // Add jurisdiction_type for filtering
     let jurisdiction_type;
     if (item.state) {
       jurisdiction_type = 'state';
-    } else if (item.jurisdiction === 'United States' || item.issuing_body || item.type === 'executive_order') {
+    } else if (item.issuing_body || item.id?.startsWith('fed-')) {
       jurisdiction_type = 'federal';
     } else {
       jurisdiction_type = 'international';
@@ -729,7 +729,7 @@ function getTagCounts() {
       tagCounts[tag] = (tagCounts[tag] || 0) + 1;
     });
   });
-
+  
   // Sort by count descending, return top 10
   return Object.entries(tagCounts)
     .sort((a, b) => b[1] - a[1])

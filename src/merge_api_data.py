@@ -175,14 +175,13 @@ def regenerate_docs_data():
         f.write(";\n\n")
 
         # Add helper functions required by app.js
-        f.write("""// Helper functions for app.js
+        f.write("""// Helper functions required by app.js
 function getAllLegislation() {
   return LEGISLATION_DATA.map(item => {
-    // Add jurisdiction_type for filtering
     let jurisdiction_type;
     if (item.state) {
       jurisdiction_type = 'state';
-    } else if (item.jurisdiction === 'United States' || item.issuing_body || item.type === 'executive_order') {
+    } else if (item.issuing_body || item.id?.startsWith('fed-')) {
       jurisdiction_type = 'federal';
     } else {
       jurisdiction_type = 'international';
@@ -198,8 +197,6 @@ function getTagCounts() {
       tagCounts[tag] = (tagCounts[tag] || 0) + 1;
     });
   });
-
-  // Sort by count descending, return top 10
   return Object.entries(tagCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
