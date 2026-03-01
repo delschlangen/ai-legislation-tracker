@@ -254,6 +254,8 @@ All legislation entries follow a consistent JSON schema:
 
 ```
 ai-legislation-tracker/
+├── .github/workflows/
+│   └── update-legislation.yml       # Weekly auto-update workflow
 ├── data/
 │   ├── us_federal_actions.json      # Federal executive orders, guidance, frameworks
 │   ├── us_state_bills.json          # State legislation across 10 jurisdictions
@@ -261,18 +263,14 @@ ai-legislation-tracker/
 ├── src/
 │   ├── generate_dashboard.py        # Creates markdown summary reports
 │   ├── query_legislation.py         # CLI tool for filtering and searching
-│   ├── update_tracker.py            # Main script to fetch updates from APIs
+│   ├── merge_api_data.py            # Merges API data into tracker
 │   ├── federal_register.py          # Federal Register API integration
-│   ├── congress_gov.py              # Congress.gov API integration
-│   ├── legiscan.py                  # LegiScan API integration (state bills)
-│   └── summarize.py                 # Claude API for summarization
+│   └── congress_gov.py              # Congress.gov API integration
 ├── docs/                            # GitHub Pages site
 │   ├── index.html
 │   ├── styles.css
 │   ├── app.js
 │   └── data.js
-├── examples/
-│   └── current_landscape.md         # Sample generated dashboard
 ├── API_SOURCES.md                   # API documentation
 ├── CITATION.md                      # How to cite this dataset
 ├── CONTRIBUTING.md                  # Contribution guidelines
@@ -335,25 +333,14 @@ This is a **research and tracking tool**, not legal advice. Legislation changes 
 
 ## Automated Updates
 
-This tracker includes scripts to fetch new AI legislation from official APIs:
+This tracker **automatically updates every week** via GitHub Actions. New AI legislation from Congress.gov and Federal Register is fetched and merged into the dataset.
 
-| Source | Key Required | What It Tracks |
-|:-------|:------------:|:---------------|
-| [Federal Register](https://www.federalregister.gov/developers) | No | Federal rules, proposed rules, executive orders |
-| [Congress.gov](https://api.congress.gov/) | Free | Congressional bills (HR, S, etc.) |
-| [LegiScan](https://legiscan.com/legiscan) | Free tier | State legislation (all 50 states) |
-| [Claude API](https://console.anthropic.com/) | Paid | Auto-summarization (optional) |
+| Source | Frequency | What It Tracks |
+|:-------|:---------:|:---------------|
+| [Federal Register](https://www.federalregister.gov/developers) | Weekly | Federal rules, proposed rules, executive orders |
+| [Congress.gov](https://api.congress.gov/) | Weekly | Congressional bills (HR, S, etc.) |
 
-**Quick start:**
-```bash
-# Fetch new federal items (no API key needed)
-python src/update_tracker.py
-
-# Fetch from all sources
-export CONGRESS_API_KEY="your-key"
-export LEGISCAN_API_KEY="your-key"
-python src/update_tracker.py --all
-```
+**Setup (one-time):** Add your Congress.gov API key as a GitHub secret named `CONGRESS_API_KEY`. Get a free key at [api.congress.gov/sign-up](https://api.congress.gov/sign-up/).
 
 See [API_SOURCES.md](API_SOURCES.md) for full documentation.
 
@@ -361,13 +348,13 @@ See [API_SOURCES.md](API_SOURCES.md) for full documentation.
 
 ## Roadmap
 
-- [x] ~~Automate updates via official APIs~~ (Federal Register, Congress.gov, LegiScan)
+- [x] ~~Automate updates via official APIs~~ (Federal Register, Congress.gov)
+- [x] ~~GitHub Actions workflow for automated weekly updates~~
 - [ ] Add RSS/webhook integration for legislative tracking services
 - [ ] Include bill text links where available
 - [ ] Create jurisdiction comparison tool
 - [ ] Add timeline visualization
 - [ ] Add notification system for effective date approaches
-- [ ] GitHub Actions workflow for automated weekly updates
 
 ---
 
