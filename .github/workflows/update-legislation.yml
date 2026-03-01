@@ -5,6 +5,9 @@ on:
     # Run every Monday at 9 AM UTC
     - cron: '0 9 * * 1'
   workflow_dispatch:  # Allow manual trigger
+  push:
+    paths:
+      - '.github/workflows/update-legislation.yml'
 
 jobs:
   update-data:
@@ -39,6 +42,7 @@ jobs:
         run: python src/generate_dashboard.py
 
       - name: Commit and push if changed
+        if: github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
