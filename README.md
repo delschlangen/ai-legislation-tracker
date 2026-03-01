@@ -260,9 +260,20 @@ ai-legislation-tracker/
 │   └── international_frameworks.json # EU, UK, China, OECD, UN, G7, etc.
 ├── src/
 │   ├── generate_dashboard.py        # Creates markdown summary reports
-│   └── query_legislation.py         # CLI tool for filtering and searching
+│   ├── query_legislation.py         # CLI tool for filtering and searching
+│   ├── update_tracker.py            # Main script to fetch updates from APIs
+│   ├── federal_register.py          # Federal Register API integration
+│   ├── congress_gov.py              # Congress.gov API integration
+│   ├── legiscan.py                  # LegiScan API integration (state bills)
+│   └── summarize.py                 # Claude API for summarization
+├── docs/                            # GitHub Pages site
+│   ├── index.html
+│   ├── styles.css
+│   ├── app.js
+│   └── data.js
 ├── examples/
 │   └── current_landscape.md         # Sample generated dashboard
+├── API_SOURCES.md                   # API documentation
 ├── CITATION.md                      # How to cite this dataset
 ├── CONTRIBUTING.md                  # Contribution guidelines
 ├── MAINTENANCE.md                   # Update schedule and verification info
@@ -322,14 +333,41 @@ This is a **research and tracking tool**, not legal advice. Legislation changes 
 
 ---
 
+## Automated Updates
+
+This tracker includes scripts to fetch new AI legislation from official APIs:
+
+| Source | Key Required | What It Tracks |
+|:-------|:------------:|:---------------|
+| [Federal Register](https://www.federalregister.gov/developers) | No | Federal rules, proposed rules, executive orders |
+| [Congress.gov](https://api.congress.gov/) | Free | Congressional bills (HR, S, etc.) |
+| [LegiScan](https://legiscan.com/legiscan) | Free tier | State legislation (all 50 states) |
+| [Claude API](https://console.anthropic.com/) | Paid | Auto-summarization (optional) |
+
+**Quick start:**
+```bash
+# Fetch new federal items (no API key needed)
+python src/update_tracker.py
+
+# Fetch from all sources
+export CONGRESS_API_KEY="your-key"
+export LEGISCAN_API_KEY="your-key"
+python src/update_tracker.py --all
+```
+
+See [API_SOURCES.md](API_SOURCES.md) for full documentation.
+
+---
+
 ## Roadmap
 
+- [x] ~~Automate updates via official APIs~~ (Federal Register, Congress.gov, LegiScan)
 - [ ] Add RSS/webhook integration for legislative tracking services
 - [ ] Include bill text links where available
 - [ ] Create jurisdiction comparison tool
 - [ ] Add timeline visualization
-- [ ] Automate updates via official APIs
 - [ ] Add notification system for effective date approaches
+- [ ] GitHub Actions workflow for automated weekly updates
 
 ---
 
