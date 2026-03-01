@@ -140,7 +140,36 @@ def regenerate_docs_data():
         f.write(f"// Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n")
         f.write("const LEGISLATION_DATA = ")
         json.dump(all_entries, f, indent=2)
-        f.write(";\n")
+        f.write(";\n\n")
+
+        # Add helper functions required by app.js
+        f.write("""// Helper functions required by app.js
+function getAllLegislation() {
+  return LEGISLATION_DATA.map(item => {
+    let jurisdiction_type;
+    if (item.state) {
+      jurisdiction_type = 'state';
+    } else if (item.issuing_body || item.id?.startsWith('fed-')) {
+      jurisdiction_type = 'federal';
+    } else {
+      jurisdiction_type = 'international';
+    }
+    return { ...item, jurisdiction_type };
+  });
+}
+
+function getTagCounts() {
+  const tagCounts = {};
+  LEGISLATION_DATA.forEach(item => {
+    (item.tags || []).forEach(tag => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    });
+  });
+  return Object.entries(tagCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+}
+""")
 
     print(f"  Updated {docs_data} with {len(all_entries)} entries")
 

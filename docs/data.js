@@ -705,3 +705,33 @@ const LEGISLATION_DATA = [
     "last_verified": "2024-12-24"
   }
 ];
+
+// Helper functions required by app.js
+function getAllLegislation() {
+  return LEGISLATION_DATA.map(item => {
+    // Add jurisdiction_type for filtering
+    let jurisdiction_type;
+    if (item.state) {
+      jurisdiction_type = 'state';
+    } else if (item.issuing_body || item.id?.startsWith('fed-')) {
+      jurisdiction_type = 'federal';
+    } else {
+      jurisdiction_type = 'international';
+    }
+    return { ...item, jurisdiction_type };
+  });
+}
+
+function getTagCounts() {
+  const tagCounts = {};
+  LEGISLATION_DATA.forEach(item => {
+    (item.tags || []).forEach(tag => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    });
+  });
+  
+  // Sort by count descending, return top 10
+  return Object.entries(tagCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+}
