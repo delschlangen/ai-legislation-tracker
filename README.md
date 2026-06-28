@@ -2,7 +2,12 @@
   <img src="https://img.shields.io/badge/Legislation%20Tracked-44-blue?style=for-the-badge" alt="Legislation Tracked"/>
   <img src="https://img.shields.io/badge/Jurisdictions-22-green?style=for-the-badge" alt="Jurisdictions"/>
   <img src="https://img.shields.io/badge/Python-3.7+-yellow?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
-  <img src="https://img.shields.io/badge/License-MIT-purple?style=for-the-badge" alt="License"/>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-purple?style=for-the-badge" alt="License: MIT"/>
+  </a>
+  <a href="https://orcid.org/0009-0005-5116-9564">
+    <img src="https://img.shields.io/badge/ORCID-0009--0005--5116--9564-A6CE39?style=for-the-badge&logo=orcid&logoColor=white" alt="ORCID"/>
+  </a>
   <a href="https://delschlangen.github.io/ai-legislation-tracker/">
     <img src="https://img.shields.io/badge/Try%20It%20Live-Visit%20Site-ff6b6b?style=for-the-badge" alt="Try It Live"/>
   </a>
@@ -11,7 +16,7 @@
 <h1 align="center">AI Legislation Tracker</h1>
 
 <p align="center">
-  <strong>A structured, queryable database tracking AI laws, regulations, and governance frameworks worldwide.</strong>
+  <strong>An open-source, machine-readable dataset and CLI toolkit for tracking AI legislation, AI regulation, and AI governance frameworks across US federal, US state, and international jurisdictions — including the EU AI Act, state AI laws, executive orders, and global AI policy.</strong>
 </p>
 
 <p align="center">
@@ -224,6 +229,7 @@ ai-legislation-tracker/
 │   └── workflows/validate.yml       # Read-only data check on pull requests
 ├── examples/current_landscape.md    # Sample generated dashboard
 ├── validate.py                      # Data validator (read-only)
+├── CITATION.cff                     # Machine-readable citation metadata (GitHub "Cite this repository")
 ├── CITATION.md · CONTRIBUTING.md · MAINTENANCE.md · LICENSE
 └── README.md
 ```
@@ -256,15 +262,21 @@ If you would rather edit the data directly, see [CONTRIBUTING.md](CONTRIBUTING.m
 
 ---
 
+## Citing This Dataset
+
+GitHub's **"Cite this repository"** button (top right of the repo page) reads [CITATION.cff](CITATION.cff) and produces APA and BibTeX entries. [CITATION.md](CITATION.md) has Chicago, Bluebook and IEEE formats, plus guidance on citing a specific commit for reproducibility.
+
+---
+
 ## License
 
-**MIT License** — See [LICENSE](LICENSE)
+This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for the full text.
 
-Data is curated from public government sources.
+Copyright (c) 2024 Del Schlangen. The dataset is curated from public government sources; cite the primary source for any individual law.
 
 ---
 
 <p align="center">
-  <strong>Built by Del Schlangen</strong><br/>
-  <a href="https://linkedin.com/in/del-s-759557175/">LinkedIn</a>
+  <strong>Built by <a href="https://orcid.org/0009-0005-5116-9564">Del Schlangen</a></strong><br/>
+  <a href="https://linkedin.com/in/del-s-759557175/">LinkedIn</a> · <a href="https://orcid.org/0009-0005-5116-9564">ORCID</a>
 </p>

@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this dataset, please cite it as below. For reproducible work, cite a specific commit (see CITATION.md)."
+title: "AI Legislation Tracker: A Curated Dataset of Global AI Laws and Governance Frameworks"
+type: dataset
+authors:
+  - family-names: Schlangen
+    given-names: Del
+    orcid: "https://orcid.org/0009-0005-5116-9564"
+repository-code: "https://github.com/delschlangen/ai-legislation-tracker"
+url: "https://delschlangen.github.io/ai-legislation-tracker/"
+license: MIT
+abstract: >-
+  A structured, machine-readable dataset tracking AI legislation, regulation
+  and governance frameworks across US federal, US state and international
+  jurisdictions. Each record carries a permanent id, a last_verified date,
+  a verification level (primary, secondary or unconfirmed) and supersession
+  links showing what replaced what. Includes CLI tools for querying and
+  a browser interface.
+keywords:
+  - artificial-intelligence
+  - ai-legislation
+  - ai-governance
+  - ai-regulation
+  - ai-policy
+  - eu-ai-act
+  - state-ai-laws
+  - technology-policy
+  - dataset
+  - public-policy
+date-released: "2026-09-17"
