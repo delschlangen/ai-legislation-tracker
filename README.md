@@ -2,7 +2,12 @@
   <img src="https://img.shields.io/badge/Legislation%20Tracked-28-blue?style=for-the-badge" alt="Legislation Tracked"/>
   <img src="https://img.shields.io/badge/Jurisdictions-21-green?style=for-the-badge" alt="Jurisdictions"/>
   <img src="https://img.shields.io/badge/Python-3.7+-yellow?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
-  <img src="https://img.shields.io/badge/License-MIT-purple?style=for-the-badge" alt="License"/>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-purple?style=for-the-badge" alt="License"/>
+  </a>
+  <a href="CITATION.cff">
+    <img src="https://img.shields.io/badge/DOI-ORCID-A6CE39?style=for-the-badge&logo=orcid&logoColor=white" alt="ORCID"/>
+  </a>
   <a href="https://delschlangen.github.io/ai-legislation-tracker/">
     <img src="https://img.shields.io/badge/Try%20It%20Live-Visit%20Site-ff6b6b?style=for-the-badge" alt="Try It Live"/>
   </a>
@@ -11,7 +16,7 @@
 <h1 align="center">AI Legislation Tracker</h1>
 
 <p align="center">
-  <strong>A structured, queryable database tracking AI laws, regulations, and governance frameworks worldwide.</strong>
+  <strong>A structured, machine-readable dataset and CLI toolkit for tracking AI legislation, regulation, and governance frameworks across US federal, US state, and international jurisdictions.</strong>
 </p>
 
 <p align="center">
@@ -263,6 +268,7 @@ ai-legislation-tracker/
 │   └── query_legislation.py         # CLI tool for filtering and searching
 ├── examples/
 │   └── current_landscape.md         # Sample generated dashboard
+├── CITATION.cff                     # Machine-readable citation metadata (GitHub "Cite this repository")
 ├── CITATION.md                      # How to cite this dataset
 ├── CONTRIBUTING.md                  # Contribution guidelines
 ├── MAINTENANCE.md                   # Update schedule and verification info
@@ -350,13 +356,17 @@ No installation or dependencies required. The web interface provides:
 
 ## License
 
-**MIT License** — See [LICENSE](LICENSE)
+This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
 
-Data is curated from public government sources.
+Copyright (c) 2024 Del Schlangen. Data is curated from public government sources.
+
+## Citing This Project
+
+If you use this dataset in academic or policy work, GitHub provides a "Cite this repository" button powered by [CITATION.cff](CITATION.cff). See [CITATION.md](CITATION.md) for BibTeX, APA, Chicago, and Bluebook formats.
 
 ---
 
 <p align="center">
-  <strong>Built by Del Schlangen</strong><br/>
+  <strong>Built by <a href="https://orcid.org/0009-0005-5116-9564">Del Schlangen</a></strong><br/>
   <a href="https://linkedin.com/in/del-s-759557175/">LinkedIn</a>
 </p>
