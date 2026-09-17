@@ -49,29 +49,60 @@
     'https://raw.githubusercontent.com/delschlangen/ai-legislation-tracker/main/data'
   ];
 
-  let resolvedBase = null;
+  // A 200 is not enough to trust a location. This site lives at
+  // delschlangen.com/ai-legislation-tracker/, so the relative candidate
+  // resolves to delschlangen.com/data/ — which belongs to a different
+  // repository and could serve something unrelated. Require the response to
+  // actually look like this dataset before accepting it.
+  function looksLikeLegislation(value) {
+    return Array.isArray(value) && value.length > 0 &&
+           value.every(record => record && typeof record === 'object' && 'id' in record && 'status' in record);
+  }
 
-  async function dataBaseUrl() {
-    if (resolvedBase) return resolvedBase;
+  let resolvedSource = null;
 
-    const probe = DATA_FILES[0].file;
+  async function resolveDataSource() {
+    if (resolvedSource) return resolvedSource;
+
+    const first = DATA_FILES[0];
     const attempts = [];
 
     for (const base of DATA_BASES) {
       try {
-        // HEAD, so probing does not download a file the real load fetches again.
-        const response = await fetch(`${base}/${probe}`, { method: 'HEAD', cache: 'no-cache' });
-        if (response.ok) {
-          resolvedBase = base;
-          return base;
+        const response = await fetch(`${base}/${first.file}`, { cache: 'no-cache' });
+        if (!response.ok) {
+          attempts.push(`${base} -> HTTP ${response.status}`);
+          continue;
         }
-        attempts.push(`${base} -> HTTP ${response.status}`);
+
+        const payload = await response.json();
+        if (!looksLikeLegislation(payload)) {
+          attempts.push(`${base} -> responded but is not this dataset`);
+          continue;
+        }
+
+        // Keep the payload so the first file is not downloaded twice.
+        resolvedSource = { base, first: payload };
+        return resolvedSource;
       } catch (error) {
         attempts.push(`${base} -> ${error.message || error}`);
       }
     }
 
     throw new Error(`Could not reach the data from any known location (${attempts.join('; ')})`);
+  }
+
+  // jurisdiction_type is derived from which file a record came from; it is what
+  // the jurisdiction filter and the badge styling key on.
+  function tagRecords(records, source) {
+    return records.map(record => ({
+      ...record,
+      jurisdiction_type: source.jurisdiction_type,
+      // Federal records carry issuing_body but no jurisdiction; give every
+      // record one so search and display behave the same across all three files.
+      jurisdiction: record.jurisdiction || record.state ||
+        (source.jurisdiction_type === 'federal' ? 'US Federal' : '')
+    }));
   }
 
   async function loadOneFile(source, base) {
@@ -83,24 +114,22 @@
     if (!Array.isArray(records)) {
       throw new Error(`${source.file}: expected an array of records`);
     }
-    // jurisdiction_type is derived from which file a record came from; it is
-    // what the jurisdiction filter and the badge styling key on.
-    return records.map(record => ({
-      ...record,
-      jurisdiction_type: source.jurisdiction_type,
-      // Federal records carry issuing_body but no jurisdiction; give every
-      // record one so search and display behave the same across all three files.
-      jurisdiction: record.jurisdiction || record.state ||
-        (source.jurisdiction_type === 'federal' ? 'US Federal' : '')
-    }));
+    return tagRecords(records, source);
   }
 
   // Load each file independently. One malformed file degrades to a warning and
   // the rest of the dataset still renders, rather than blanking the whole page.
   async function loadLegislation() {
-    const base = await dataBaseUrl();
+    const { base, first } = await resolveDataSource();
+
     const settled = await Promise.allSettled(
-      DATA_FILES.map(source => loadOneFile(source, base))
+      DATA_FILES.map((source, index) =>
+        // The first file was already fetched and validated while resolving the
+        // source; reuse it instead of downloading it a second time.
+        index === 0
+          ? Promise.resolve(tagRecords(first, source))
+          : loadOneFile(source, base)
+      )
     );
 
     const records = [];
