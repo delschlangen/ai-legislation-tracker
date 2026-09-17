@@ -1,0 +1,35 @@
+# Read-only data check.
+#
+# This workflow runs validate.py and nothing else. It has read-only permissions,
+# uses no secrets, fetches no external data, and never edits or commits a file.
+# Its only effect is to pass or fail a pull request.
+name: Validate data
+
+on:
+  pull_request:
+    paths:
+      - 'data/**'
+      - 'validate.py'
+      - '.github/workflows/validate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'data/**'
+      - 'validate.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check data/*.json
+        run: python3 validate.py

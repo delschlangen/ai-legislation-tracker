@@ -1,0 +1,60 @@
+name: Report an incorrect or out-of-date entry
+description: Tell us an entry is wrong, superseded, or has a broken link. No coding required.
+title: "[Correction] "
+labels: ["correction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping keep this accurate. You do not need to know Git — just fill this in.
+
+  - type: input
+    id: entry
+    attributes:
+      label: Which entry?
+      description: The entry id or the title as it appears on the site.
+      placeholder: "state-001, or: Colorado SB 24-205"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: problem
+    attributes:
+      label: What is wrong with it?
+      options:
+        - The status is wrong (it was amended, repealed, superseded or struck down)
+        - A date is wrong (enacted, effective, or superseded)
+        - The source link is broken or points at the wrong document
+        - The summary or key provisions are inaccurate
+        - It describes the wrong bill entirely
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: correction
+    attributes:
+      label: What should it say instead?
+      description: Be as specific as you can. Exact dates and bill numbers help most.
+    validations:
+      required: true
+
+  - type: input
+    id: source
+    attributes:
+      label: Official source
+      description: >
+        A link to the legislature, agency or official gazette. Please avoid news
+        articles and law-firm posts as the primary citation, though they are
+        useful as supporting context.
+      placeholder: "https://leg.colorado.gov/bills/sb26-189"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: Optional.
+    validations:
+      required: false

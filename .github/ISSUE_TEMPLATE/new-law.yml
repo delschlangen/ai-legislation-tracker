@@ -1,0 +1,90 @@
+name: Suggest a law to add
+description: Propose an AI law, regulation or framework that is not tracked yet.
+title: "[Add] "
+labels: ["new-entry"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Suggest something missing. Partial information is fine — we would rather
+        hear about it than not.
+
+  - type: input
+    id: name
+    attributes:
+      label: Official name
+      placeholder: "Transparency in Frontier Artificial Intelligence Act"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Where does it apply?
+      options:
+        - US federal
+        - US state or local
+        - International (a country, treaty or multilateral framework)
+    validations:
+      required: true
+
+  - type: input
+    id: jurisdiction
+    attributes:
+      label: Jurisdiction
+      description: The state, country or body that issued it.
+      placeholder: "California / South Korea / Council of Europe"
+    validations:
+      required: true
+
+  - type: input
+    id: number
+    attributes:
+      label: Bill or instrument number
+      description: Optional.
+      placeholder: "SB 53"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: Current status
+      options:
+        - Enacted
+        - Active (in force, non-legislative instrument)
+        - Adopted
+        - Pending
+        - Vetoed
+        - Rescinded
+        - Superseded
+        - Expired or dead
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: effective
+    attributes:
+      label: Effective date
+      description: When obligations begin, if known. Optional.
+      placeholder: "2026-01-01"
+    validations:
+      required: false
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What does it do?
+      description: One to three sentences, plus the main obligations if you know them.
+    validations:
+      required: true
+
+  - type: input
+    id: source
+    attributes:
+      label: Official source
+      description: A link to the legislature, agency or official gazette.
+      placeholder: "https://leginfo.legislature.ca.gov/..."
+    validations:
+      required: true

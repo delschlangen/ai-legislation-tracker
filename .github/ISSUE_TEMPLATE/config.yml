@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: How this dataset is maintained
+    url: https://github.com/delschlangen/ai-legislation-tracker/blob/main/MAINTENANCE.md
+    about: Review cadence, how entries are verified, and what the status values mean.
+  - name: How to cite this dataset
+    url: https://github.com/delschlangen/ai-legislation-tracker/blob/main/CITATION.md
+    about: BibTeX, APA, Chicago and Bluebook formats.
