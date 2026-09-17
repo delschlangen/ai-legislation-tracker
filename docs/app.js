@@ -50,31 +50,51 @@
     return `https://raw.githubusercontent.com/${owner}/${repo}/main/data`;
   }
 
+  async function loadOneFile(source, base) {
+    const response = await fetch(`${base}/${source.file}`, { cache: 'no-cache' });
+    if (!response.ok) {
+      throw new Error(`${source.file}: HTTP ${response.status}`);
+    }
+    const records = await response.json();
+    if (!Array.isArray(records)) {
+      throw new Error(`${source.file}: expected an array of records`);
+    }
+    // jurisdiction_type is derived from which file a record came from; it is
+    // what the jurisdiction filter and the badge styling key on.
+    return records.map(record => ({
+      ...record,
+      jurisdiction_type: source.jurisdiction_type,
+      // Federal records carry issuing_body but no jurisdiction; give every
+      // record one so search and display behave the same across all three files.
+      jurisdiction: record.jurisdiction || record.state ||
+        (source.jurisdiction_type === 'federal' ? 'US Federal' : '')
+    }));
+  }
+
+  // Load each file independently. One malformed file degrades to a warning and
+  // the rest of the dataset still renders, rather than blanking the whole page.
   async function loadLegislation() {
     const base = dataBaseUrl();
+    const settled = await Promise.allSettled(
+      DATA_FILES.map(source => loadOneFile(source, base))
+    );
 
-    const groups = await Promise.all(DATA_FILES.map(async source => {
-      const response = await fetch(`${base}/${source.file}`, { cache: 'no-cache' });
-      if (!response.ok) {
-        throw new Error(`${source.file}: HTTP ${response.status}`);
-      }
-      const records = await response.json();
-      if (!Array.isArray(records)) {
-        throw new Error(`${source.file}: expected an array of records`);
-      }
-      // jurisdiction_type is derived from which file a record came from; it is
-      // what the jurisdiction filter and the badge styling key on.
-      return records.map(record => ({
-        ...record,
-        jurisdiction_type: source.jurisdiction_type,
-        // Federal records carry issuing_body but no jurisdiction; give every
-        // record one so search and display behave the same across all three files.
-        jurisdiction: record.jurisdiction || record.state ||
-          (source.jurisdiction_type === 'federal' ? 'US Federal' : '')
-      }));
-    }));
+    const records = [];
+    const failures = [];
 
-    return groups.flat();
+    settled.forEach((outcome, index) => {
+      if (outcome.status === 'fulfilled') {
+        records.push(...outcome.value);
+      } else {
+        failures.push(`${DATA_FILES[index].file}: ${outcome.reason.message || outcome.reason}`);
+      }
+    });
+
+    if (!records.length) {
+      throw new Error(failures.join('; ') || 'No records loaded');
+    }
+
+    return { records, failures };
   }
 
   function getTagCounts() {
@@ -103,8 +123,11 @@
 
   // Initialize
   async function init() {
+    let failures = [];
     try {
-      allData = await loadLegislation();
+      const loaded = await loadLegislation();
+      allData = loaded.records;
+      failures = loaded.failures;
     } catch (error) {
       console.error('Failed to load legislation data:', error);
       showLoadError(error);
@@ -116,9 +139,23 @@
     totalCount.textContent = allData.length;
 
     renderDataStats();
+    renderPartialLoadWarning(failures);
     renderTagFilters();
     renderTable();
     bindEvents();
+  }
+
+  // Surface a partial load rather than quietly showing an incomplete dataset.
+  function renderPartialLoadWarning(failures) {
+    if (!failures || !failures.length) return;
+    const banner = document.createElement('p');
+    banner.className = 'partial-load-warning';
+    banner.textContent =
+      `Some data could not be loaded, so this list is incomplete: ${failures.join('; ')}`;
+    const results = document.getElementById('results-count');
+    if (results && results.parentNode) {
+      results.parentNode.insertBefore(banner, results);
+    }
   }
 
   // Derive the header/footer stats from the data itself, so they can never
@@ -284,9 +321,33 @@
             <p class="verified-date">Last verified: ${escapeHtml(lastVerified)}</p>
             ${renderVerificationNote(item)}
           </div>
+
+          <div class="detail-section">
+            ${renderLineage(item)}
+          </div>
         </div>
       </div>
     `;
+  }
+
+  // What replaced this, or what it replaced. Tracking supersession is the thing
+  // a static PDF tracker cannot do: ids are permanent, so a citation stays
+  // resolvable even after the law behind it is repealed.
+  function renderLineage(item) {
+    const links = [];
+    const label = id => {
+      const target = allData.find(r => r.id === id);
+      return target ? (target.title || target.name || id) : id;
+    };
+
+    if (item.superseded_by) links.push(`Superseded by <strong>${escapeHtml(label(item.superseded_by))}</strong>`);
+    if (item.supersedes) links.push(`Replaces <strong>${escapeHtml(label(item.supersedes))}</strong>`);
+    if (item.amended_by) links.push(`Amended by <strong>${escapeHtml(label(item.amended_by))}</strong>`);
+    if (item.amends) links.push(`Amends <strong>${escapeHtml(label(item.amends))}</strong>`);
+
+    if (!links.length) return '';
+    return `<h4>Related</h4><ul class="provisions-list">${
+      links.map(l => `<li>${l}</li>`).join('')}</ul>`;
   }
 
   // Be explicit about how an entry was checked. "secondary" means it was

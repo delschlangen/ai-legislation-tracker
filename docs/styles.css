@@ -714,3 +714,14 @@ tr.expanded .expand-icon {
 .verification-note.unconfirmed {
   color: var(--color-warning, #b45309);
 }
+
+/* Shown when one data file fails to load but the others succeeded. */
+.partial-load-warning {
+  margin: 0 0 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-left: 4px solid var(--color-warning, #b45309);
+  background-color: #fffbeb;
+  color: #92400e;
+  font-size: 0.875rem;
+  border-radius: var(--radius-sm, 4px);
+}

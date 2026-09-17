@@ -268,5 +268,33 @@
     ],
     "last_verified": "2026-09-17",
     "verification": "secondary"
+  },
+  {
+    "id": "fed-012",
+    "title": "TAKE IT DOWN Act (Public Law 119-12)",
+    "type": "statute",
+    "status": "enacted",
+    "date_issued": "2025-05-19",
+    "date_enacted": "2025-05-19",
+    "effective_date": "2026-05-19",
+    "issuing_body": "United States Congress",
+    "summary": "The first federal statute imposing AI-related duties on private platforms. Criminalises knowing publication of non-consensual intimate imagery, including AI-generated deepfakes, and requires covered platforms to run a notice-and-removal process. The criminal provisions applied on enactment; the platform obligations applied from 2026-05-19.",
+    "key_provisions": [
+      "Criminalises knowing publication of non-consensual intimate visual depictions, including AI-generated ones",
+      "Covered platforms must provide a notice-and-takedown process",
+      "Removal of a validly reported depiction and known identical copies within 48 hours",
+      "Platform compliance deadline of 2026-05-19",
+      "Enforced by the Federal Trade Commission"
+    ],
+    "source_url": "https://www.congress.gov/bill/119th-congress/senate-bill/146",
+    "tags": [
+      "deepfake",
+      "statute",
+      "platforms",
+      "ftc",
+      "nonconsensual_imagery"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
   }
 ]
