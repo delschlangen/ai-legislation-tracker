@@ -4,17 +4,17 @@
     "state": "Colorado",
     "bill_number": "SB 24-205",
     "title": "Consumer Protections for Artificial Intelligence",
-    "status": "enacted",
+    "status": "superseded",
     "date_introduced": "2024-01-31",
     "date_enacted": "2024-05-17",
-    "effective_date": "2026-02-01",
-    "summary": "First comprehensive state AI regulation in the US. Requires deployers and developers of high-risk AI systems to use reasonable care to avoid algorithmic discrimination.",
+    "summary": "The first comprehensive US state AI law, imposing duties of reasonable care on developers and deployers of high-risk AI systems to avoid algorithmic discrimination. Its effective date was delayed from 2026-02-01 to 2026-06-30 by SB 25B-004, enforcement was then suspended by stipulated order in xAI v. Weiser, and it was repealed and reenacted in narrower form by SB 26-189 on 2026-05-14. It never became enforceable.",
     "key_provisions": [
       "High-risk AI system definition",
       "Developer duties (documentation, disclosure)",
       "Deployer duties (risk management, impact assessments)",
       "Consumer notification and opt-out rights",
-      "Attorney General enforcement"
+      "Attorney General enforcement",
+      "Repealed and reenacted by SB 26-189 before taking effect"
     ],
     "covered_decisions": [
       "Employment",
@@ -26,8 +26,16 @@
       "Legal services"
     ],
     "source_url": "https://leg.colorado.gov/bills/sb24-205",
-    "tags": ["comprehensive", "high_risk", "discrimination", "first_state"],
-    "last_verified": "2024-12-24"
+    "tags": [
+      "comprehensive",
+      "high_risk",
+      "discrimination",
+      "first_state"
+    ],
+    "last_verified": "2026-09-17",
+    "date_superseded": "2026-05-14",
+    "superseded_by": "state-011",
+    "verification": "secondary"
   },
   {
     "id": "state-002",
@@ -47,7 +55,12 @@
     ],
     "veto_reason": "Governor cited concerns about applying strict standards to all AI models regardless of risk context",
     "source_url": "https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202320240SB1047",
-    "tags": ["frontier_ai", "safety", "vetoed", "compute_threshold"],
+    "tags": [
+      "frontier_ai",
+      "safety",
+      "vetoed",
+      "compute_threshold"
+    ],
     "last_verified": "2024-12-24"
   },
   {
@@ -67,7 +80,12 @@
       "Applies to GenAI offered in California"
     ],
     "source_url": "https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202320240AB2013",
-    "tags": ["transparency", "training_data", "disclosure", "genai"],
+    "tags": [
+      "transparency",
+      "training_data",
+      "disclosure",
+      "genai"
+    ],
     "last_verified": "2024-12-24"
   },
   {
@@ -86,28 +104,39 @@
       "Applies to future AI legislation"
     ],
     "source_url": "https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202320240AB2885",
-    "tags": ["definition", "standardization", "nist"],
+    "tags": [
+      "definition",
+      "standardization",
+      "nist"
+    ],
     "last_verified": "2024-12-24"
   },
   {
     "id": "state-005",
     "state": "Illinois",
-    "bill_number": "HB 3773",
-    "title": "AI Video Interview Act (Amendment)",
+    "bill_number": "HB 2557",
+    "title": "Artificial Intelligence Video Interview Act",
     "status": "enacted",
-    "date_introduced": "2019-01-01",
-    "date_enacted": "2020-01-01",
+    "date_introduced": "2019-02-15",
+    "date_enacted": "2019-08-09",
     "effective_date": "2020-01-01",
-    "summary": "First state law regulating AI in employment. Requires notice and consent for AI analysis of video interviews.",
+    "summary": "First US state law regulating AI in employment. Requires notice and consent before AI is used to analyse video interviews of job applicants, an explanation of how the AI evaluates candidates, limits on sharing the video, and deletion on request.",
     "key_provisions": [
       "Notice to candidates before AI analysis",
       "Consent requirement",
       "Explanation of AI use",
       "Video deletion upon request"
     ],
-    "source_url": "https://www.ilga.gov/legislation/ilcs/ilcs3.asp?ActID=4015",
-    "tags": ["employment", "video_interview", "consent", "notice", "first_ai_law"],
-    "last_verified": "2024-12-24"
+    "source_url": "https://www.ilga.gov/Legislation/ILCS/Articles?ActID=4015&ChapterID=68",
+    "tags": [
+      "employment",
+      "video_interview",
+      "consent",
+      "notice",
+      "first_ai_law"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
   },
   {
     "id": "state-006",
@@ -126,7 +155,12 @@
       "Alternative process availability"
     ],
     "source_url": "https://www.nyc.gov/site/dca/about/automated-employment-decision-tools.page",
-    "tags": ["employment", "bias_audit", "local", "aedt"],
+    "tags": [
+      "employment",
+      "bias_audit",
+      "local",
+      "aedt"
+    ],
     "last_verified": "2024-12-24"
   },
   {
@@ -146,7 +180,11 @@
       "Recommendations to legislature"
     ],
     "source_url": "https://capitol.texas.gov/BillLookup/History.aspx?LegSess=88R&Bill=HB2060",
-    "tags": ["advisory", "state_government", "study"],
+    "tags": [
+      "advisory",
+      "state_government",
+      "study"
+    ],
     "last_verified": "2024-12-24"
   },
   {
@@ -158,7 +196,7 @@
     "date_introduced": "2024-01-16",
     "date_enacted": "2024-03-13",
     "effective_date": "2024-05-01",
-    "summary": "Creates AI learning lab and establishes disclosure requirements for generative AI interactions.",
+    "summary": "Created an AI learning laboratory and disclosure duties for generative AI. Materially amended in 2025 by SB 226, which narrowed the consumer-facing disclosure duty to cases where a consumer asks whether AI is in use, and by SB 332, which extended the Act's repeal date to 2027-07-01.",
     "key_provisions": [
       "AI learning laboratory (regulatory sandbox)",
       "GenAI disclosure requirements",
@@ -166,8 +204,14 @@
       "State employee AI training"
     ],
     "source_url": "https://le.utah.gov/~2024/bills/static/SB0149.html",
-    "tags": ["sandbox", "disclosure", "genai", "regulatory"],
-    "last_verified": "2024-12-24"
+    "tags": [
+      "sandbox",
+      "disclosure",
+      "genai",
+      "regulatory"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
   },
   {
     "id": "state-009",
@@ -186,7 +230,12 @@
       "Music industry protections"
     ],
     "source_url": "https://wapp.capitol.tn.gov/apps/BillInfo/default.aspx?BillNumber=HB2959",
-    "tags": ["voice", "likeness", "right_of_publicity", "music"],
+    "tags": [
+      "voice",
+      "likeness",
+      "right_of_publicity",
+      "music"
+    ],
     "last_verified": "2024-12-24"
   },
   {
@@ -198,7 +247,7 @@
     "date_introduced": "2023-01-01",
     "date_enacted": "2023-06-07",
     "effective_date": "2023-10-01",
-    "summary": "Requires state agencies to inventory AI systems and conduct impact assessments.",
+    "summary": "Required state agencies to inventory AI systems and conduct impact assessments. Substantially supplemented in 2026 by the Connecticut Artificial Intelligence Responsibility and Transparency Act (Public Act 26-15), which extends AI duties to private employers and other sectors.",
     "key_provisions": [
       "State agency AI inventory",
       "Impact assessments for high-risk AI",
@@ -206,7 +255,208 @@
       "Chief AI Officer consideration"
     ],
     "source_url": "https://www.cga.ct.gov/asp/cgabillstatus/cgabillstatus.asp?selBillType=Bill&bill_num=SB1103",
-    "tags": ["state_government", "inventory", "impact_assessment"],
-    "last_verified": "2024-12-24"
+    "tags": [
+      "state_government",
+      "inventory",
+      "impact_assessment"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
+  },
+  {
+    "id": "state-011",
+    "state": "Colorado",
+    "bill_number": "SB 26-189",
+    "title": "Automated Decision-Making Technology in Consequential Decisions",
+    "status": "enacted",
+    "date_enacted": "2026-05-14",
+    "effective_date": "2027-01-01",
+    "summary": "Repeals and reenacts the Colorado AI Act in narrower form. Replaces the risk-management regime for high-risk AI with a notice-and-transparency framework governing automated decision-making technology that materially influences a consequential decision.",
+    "key_provisions": [
+      "Drops risk management programs and annual impact assessments",
+      "Pre-use notice before covered technology materially influences a consequential decision",
+      "Adverse-outcome explanation within 30 days",
+      "Right to correct inaccurate data and request meaningful human review",
+      "Developer duty to supply deployers with technical documentation",
+      "Attorney General exclusive enforcement with required rulemaking"
+    ],
+    "covered_decisions": [
+      "Employment",
+      "Education",
+      "Real estate",
+      "Financial services",
+      "Insurance",
+      "Health care"
+    ],
+    "source_url": "https://leg.colorado.gov/bills/sb26-189",
+    "tags": [
+      "comprehensive",
+      "admt",
+      "transparency",
+      "consequential_decisions"
+    ],
+    "supersedes": "state-001",
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
+  },
+  {
+    "id": "state-012",
+    "state": "Illinois",
+    "bill_number": "HB 3773",
+    "title": "Illinois Human Rights Act Amendment on Artificial Intelligence",
+    "status": "enacted",
+    "date_enacted": "2024-08-09",
+    "effective_date": "2026-01-01",
+    "summary": "Amends the Illinois Human Rights Act to make it a civil rights violation for an employer to use AI that discriminates on the basis of a protected class in employment decisions. Enacted as Public Act 103-0804 and effective 2026-01-01.",
+    "key_provisions": [
+      "Bars AI that has a discriminatory effect in recruitment, hiring, promotion, discipline and discharge",
+      "Bars use of ZIP code as a proxy for a protected class",
+      "Requires notice to applicants and employees when AI is used",
+      "Enforced by the Illinois Department of Human Rights"
+    ],
+    "source_url": "https://www.ilga.gov/Legislation/PublicActs/View/103-0804",
+    "tags": [
+      "employment",
+      "discrimination",
+      "notice",
+      "civil_rights"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
+  },
+  {
+    "id": "state-013",
+    "state": "California",
+    "bill_number": "SB 53",
+    "title": "Transparency in Frontier Artificial Intelligence Act",
+    "status": "enacted",
+    "date_enacted": "2025-09-29",
+    "effective_date": "2026-01-01",
+    "summary": "First US state frontier AI safety law, enacted after the veto of SB 1047. Requires large frontier developers to publish safety frameworks and transparency reports and to report critical safety incidents to the state.",
+    "key_provisions": [
+      "Publish a frontier AI framework describing catastrophic-risk mitigations",
+      "Publish a transparency report at or before deployment of a new frontier model",
+      "Report critical safety incidents to Cal OES within 15 days, or 24 hours if imminent danger",
+      "Whistleblower protections and an anonymous internal reporting channel",
+      "Civil penalties up to USD 1 million per violation, enforced by the Attorney General",
+      "Creates the CalCompute public computing consortium"
+    ],
+    "source_url": "https://leginfo.legislature.ca.gov/faces/billTextClient.xhtml?bill_id=202520260SB53",
+    "tags": [
+      "frontier_ai",
+      "safety",
+      "transparency",
+      "incident_reporting",
+      "whistleblower"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
+  },
+  {
+    "id": "state-014",
+    "state": "California",
+    "bill_number": "SB 243",
+    "title": "Companion Chatbot Safeguards",
+    "status": "enacted",
+    "date_enacted": "2025-10-13",
+    "effective_date": "2026-01-01",
+    "summary": "Regulates companion chatbots. Requires disclosure that the user is interacting with AI, recurring reminders for minors, and protocols for responding to expressions of self-harm.",
+    "key_provisions": [
+      "Clear disclosure that the user is interacting with an AI system",
+      "Recurring reminders for known minors",
+      "Crisis and self-harm response protocols with referral to crisis services",
+      "Prohibition on sexually explicit content with known minors",
+      "Private right of action"
+    ],
+    "source_url": "https://leginfo.legislature.ca.gov/faces/billTextClient.xhtml?bill_id=202520260SB243",
+    "tags": [
+      "chatbot",
+      "disclosure",
+      "minors",
+      "mental_health"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
+  },
+  {
+    "id": "state-015",
+    "state": "Texas",
+    "bill_number": "HB 149",
+    "title": "Texas Responsible Artificial Intelligence Governance Act (TRAIGA)",
+    "status": "enacted",
+    "date_enacted": "2025-06-22",
+    "effective_date": "2026-01-01",
+    "summary": "Third US state comprehensive AI law, built on intent rather than risk tiers. Prohibits specified harmful AI uses, constrains government use of AI, and creates a regulatory sandbox. Disparate impact alone does not establish a violation.",
+    "key_provisions": [
+      "Prohibits developing or deploying AI with intent to incite self-harm or crime, or to discriminate unlawfully",
+      "Prohibits AI producing unlawful sexual deepfakes or child sexual abuse material",
+      "Bars government social scoring and biometric identification from public data without consent",
+      "Requires health care providers to disclose AI use in diagnosis or treatment",
+      "36-month regulatory sandbox administered by the Department of Information Resources",
+      "Attorney General exclusive enforcement with a 60-day cure period and no private right of action"
+    ],
+    "source_url": "https://capitol.texas.gov/BillLookup/History.aspx?LegSess=89R&Bill=HB149",
+    "tags": [
+      "comprehensive",
+      "intent_based",
+      "sandbox",
+      "government_use",
+      "healthcare"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
+  },
+  {
+    "id": "state-016",
+    "state": "New York",
+    "bill_number": "S6953B",
+    "title": "Responsible AI Safety and Education (RAISE) Act",
+    "status": "enacted",
+    "date_enacted": "2025-12-19",
+    "effective_date": "2027-01-01",
+    "summary": "Second US state frontier model safety law after California SB 53. Requires large frontier developers to publish safety protocols and to report safety incidents to the state.",
+    "key_provisions": [
+      "Large frontier developers must write and publish safety protocols",
+      "Safety incident reporting to the state within 72 hours",
+      "Creates an AI oversight function with rulemaking and annual public reporting",
+      "Attorney General civil penalties"
+    ],
+    "source_url": "https://www.nysenate.gov/legislation/bills/2025/S6953",
+    "tags": [
+      "frontier_ai",
+      "safety",
+      "incident_reporting",
+      "transparency"
+    ],
+    "verification": "secondary",
+    "last_verified": "2026-09-17"
+  },
+  {
+    "id": "state-017",
+    "state": "Connecticut",
+    "bill_number": "SB 5",
+    "title": "Connecticut Artificial Intelligence Responsibility and Transparency Act (CART Act)",
+    "status": "enacted",
+    "date_enacted": "2026-06-02",
+    "effective_date": "2026-10-01",
+    "summary": "Enacted as Public Act 26-15, one of the most comprehensive US state AI laws. Covers automated employment decisions, AI companions, frontier model safety, content provenance and online platforms used by minors, with obligations staggered from 2026-10-01 into 2028.",
+    "key_provisions": [
+      "Written notice before automated tools drive major employment decisions",
+      "Disclosure to the Department of Labor when a covered workforce reduction relates to AI use",
+      "Frontier model whistleblower protections",
+      "Companion chatbot disclosure and crisis-intervention duties",
+      "Generative AI content provenance requirements",
+      "Staggered effective dates from 2026-10-01 through 2028-01-01"
+    ],
+    "source_url": "https://www.cga.ct.gov/2026/act/pa/pdf/2026PA-00015-R00SB-00005-PA.pdf",
+    "tags": [
+      "comprehensive",
+      "employment",
+      "chatbot",
+      "frontier_ai",
+      "provenance"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
   }
 ]

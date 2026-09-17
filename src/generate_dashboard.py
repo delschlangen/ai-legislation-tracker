@@ -84,7 +84,7 @@ def generate_dashboard(data: dict, stats: dict) -> str:
 
     # Header
     lines.append("# AI Legislation Landscape Dashboard")
-    lines.append(f"\n**Last Updated:** {datetime.now().strftime('%Y-%m-%d')}")
+    lines.append(f"\n**Report generated:** {datetime.now().strftime('%Y-%m-%d')}")
     lines.append(f"\n**Total Items Tracked:** {stats['total']}")
 
     # Verification date range
@@ -112,7 +112,8 @@ def generate_dashboard(data: dict, stats: dict) -> str:
     lines.append("|-------|------|--------|--------------|")
     
     for item in data.get("us_federal_actions", []):
-        status_emoji = "✅" if item["status"] == "active" else "❌"
+        status_emoji = {"active": "✅", "rescinded": "❌",
+                        "superseded": "📦", "expired": "⌛"}.get(item["status"], "")
         lines.append(f"| {item['title'][:50]}{'...' if len(item['title']) > 50 else ''} | {item['type']} | {status_emoji} {item['status']} | {item['issuing_body']} |")
     
     # US States
@@ -122,7 +123,8 @@ def generate_dashboard(data: dict, stats: dict) -> str:
     lines.append("|-------|------|-------|--------|-----------|")
     
     for item in data.get("us_state_bills", []):
-        status_emoji = {"enacted": "✅", "vetoed": "❌", "pending": "⏳"}.get(item["status"], "")
+        status_emoji = {"enacted": "✅", "vetoed": "❌", "pending": "⏳",
+                        "superseded": "📦", "expired": "⌛"}.get(item["status"], "")
         effective = item.get("effective_date", "—")
         title_short = item['title'][:35] + ('...' if len(item['title']) > 35 else '')
         lines.append(f"| {item['state']} | {item['bill_number']} | {title_short} | {status_emoji} {item['status']} | {effective} |")
@@ -133,8 +135,10 @@ def generate_dashboard(data: dict, stats: dict) -> str:
     lines.append("|--------------|------|------|--------|")
     
     for item in data.get("international_frameworks", []):
-        status_emoji = {"enacted": "✅", "active": "✅", "pending": "⏳", "adopted": "✅"}.get(item["status"], "")
-        name_short = item['name'][:40] + ('...' if len(item['name']) > 40 else '')
+        status_emoji = {"enacted": "✅", "active": "✅", "pending": "⏳", "adopted": "✅",
+                        "superseded": "📦", "expired": "⌛"}.get(item["status"], "")
+        display_name = item.get('name') or item.get('title', 'Untitled')
+        name_short = display_name[:40] + ('...' if len(display_name) > 40 else '')
         lines.append(f"| {item['jurisdiction']} | {name_short} | {item['type']} | {status_emoji} {item['status']} |")
     
     # Key themes
@@ -157,8 +161,9 @@ def generate_dashboard(data: dict, stats: dict) -> str:
             upcoming.append((item["effective_date"], item["state"], item["title"]))
     
     for item in data.get("international_frameworks", []):
-        if item.get("full_application_date") and item.get("full_application_date") > today:
-            upcoming.append((item["full_application_date"], item["jurisdiction"], item["name"]))
+        eff = item.get("full_application_date") or item.get("effective_date") or item.get("date_effective")
+        if eff and eff > today:
+            upcoming.append((eff, item["jurisdiction"], item.get("title") or item.get("name", "Untitled")))
     
     for date, jurisdiction, title in sorted(upcoming)[:10]:
         lines.append(f"| {date} | {jurisdiction} | {title[:50]} |")

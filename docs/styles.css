@@ -364,6 +364,12 @@ tr.expanded .title-cell .bill-number {
   color: #92400e;
 }
 
+.status-badge.superseded,
+.status-badge.expired {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-600);
+}
+
 .status-badge.vetoed,
 .status-badge.rescinded {
   background: #fee2e2;
@@ -389,6 +395,11 @@ tr.expanded .status-badge {
 
 .status-dot.pending {
   background: #f59e0b;
+}
+
+.status-dot.superseded,
+.status-dot.expired {
+  background-color: var(--color-gray-400);
 }
 
 .status-dot.vetoed,
@@ -690,4 +701,16 @@ tr.expanded .expand-icon {
   .detail-row {
     display: table-row !important;
   }
+}
+
+/* Provenance note shown when an entry was checked against secondary sources
+   rather than the primary legal text. */
+.verification-note {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--color-gray-500);
+}
+
+.verification-note.unconfirmed {
+  color: var(--color-warning, #b45309);
 }

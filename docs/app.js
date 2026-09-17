@@ -282,10 +282,25 @@
               View official source
             </a>
             <p class="verified-date">Last verified: ${escapeHtml(lastVerified)}</p>
+            ${renderVerificationNote(item)}
           </div>
         </div>
       </div>
     `;
+  }
+
+  // Be explicit about how an entry was checked. "secondary" means it was
+  // confirmed against published legal analyses rather than the primary text.
+  function renderVerificationNote(item) {
+    if (item.verification === 'secondary') {
+      return '<p class="verification-note">Checked against secondary legal sources; ' +
+             'confirm against the official source before relying on it.</p>';
+    }
+    if (item.verification === 'unconfirmed') {
+      return '<p class="verification-note unconfirmed">Not yet confirmed. ' +
+             'Treat this entry as provisional.</p>';
+    }
+    return '';
   }
 
   // Bind event listeners

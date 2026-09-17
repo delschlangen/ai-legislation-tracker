@@ -7,7 +7,7 @@
     "date_issued": "2023-10-30",
     "date_rescinded": "2025-01-20",
     "issuing_body": "White House",
-    "summary": "Comprehensive AI executive order establishing safety requirements, reporting thresholds, and agency directives. Required frontier AI developers to share safety test results with government. Rescinded by subsequent administration.",
+    "summary": "Comprehensive AI executive order establishing safety requirements, reporting thresholds and agency directives. Required developers of dual-use foundation models to share safety test results with the federal government. Rescinded on 2025-01-20 and replaced by Executive Order 14179.",
     "key_provisions": [
       "Dual-use foundation model reporting requirements",
       "Compute threshold triggers (10^26 FLOP)",
@@ -15,9 +15,16 @@
       "Agency AI use case inventories",
       "AI talent immigration provisions"
     ],
-    "source_url": "https://www.whitehouse.gov/briefing-room/presidential-actions/2023/10/30/executive-order-on-the-safe-secure-and-trustworthy-development-and-use-of-artificial-intelligence/",
-    "tags": ["safety", "frontier_ai", "reporting", "compute_threshold"],
-    "last_verified": "2024-12-24"
+    "source_url": "https://www.federalregister.gov/documents/2023/11/01/2023-24283/safe-secure-and-trustworthy-development-and-use-of-artificial-intelligence",
+    "tags": [
+      "safety",
+      "frontier_ai",
+      "reporting",
+      "compute_threshold"
+    ],
+    "last_verified": "2026-09-17",
+    "superseded_by": "fed-009",
+    "verification": "secondary"
   },
   {
     "id": "fed-002",
@@ -34,17 +41,22 @@
       "Implementation guidance via Playbook"
     ],
     "source_url": "https://www.nist.gov/itl/ai-risk-management-framework",
-    "tags": ["framework", "risk_management", "voluntary", "nist"],
+    "tags": [
+      "framework",
+      "risk_management",
+      "voluntary",
+      "nist"
+    ],
     "last_verified": "2024-12-24"
   },
   {
     "id": "fed-003",
     "title": "OMB Memorandum M-24-10: AI Governance",
     "type": "guidance",
-    "status": "active",
+    "status": "superseded",
     "date_issued": "2024-03-28",
     "issuing_body": "OMB",
-    "summary": "Requires federal agencies to implement AI governance structures, designate Chief AI Officers, and establish safeguards for rights-impacting and safety-impacting AI.",
+    "summary": "Required federal agencies to implement AI governance structures, designate Chief AI Officers and apply safeguards to rights-impacting and safety-impacting AI. Superseded in April 2025 by OMB M-25-21.",
     "key_provisions": [
       "Chief AI Officer designation requirement",
       "AI use case inventories",
@@ -52,9 +64,17 @@
       "Safety-impacting AI requirements",
       "Annual compliance reporting"
     ],
-    "source_url": "https://www.whitehouse.gov/omb/briefing-room/2024/03/28/omb-releases-implementation-guidance-following-president-bidens-executive-order-on-artificial-intelligence/",
-    "tags": ["federal_agencies", "governance", "chief_ai_officer", "safeguards"],
-    "last_verified": "2024-12-24"
+    "source_url": "https://bidenwhitehouse.archives.gov/wp-content/uploads/2024/03/M-24-10-Advancing-Governance-Innovation-and-Risk-Management-for-Agency-Use-of-Artificial-Intelligence.pdf",
+    "tags": [
+      "federal_agencies",
+      "governance",
+      "chief_ai_officer",
+      "safeguards"
+    ],
+    "last_verified": "2026-09-17",
+    "date_superseded": "2025-04-03",
+    "superseded_by": "fed-011",
+    "verification": "secondary"
   },
   {
     "id": "fed-004",
@@ -63,7 +83,7 @@
     "status": "active",
     "date_issued": "2022-10-04",
     "issuing_body": "White House OSTP",
-    "summary": "Non-binding framework identifying five principles for AI systems: safe and effective systems, algorithmic discrimination protections, data privacy, notice and explanation, and human alternatives.",
+    "summary": "Non-binding framework identifying five principles for automated systems: safe and effective systems, algorithmic discrimination protections, data privacy, notice and explanation, and human alternatives. Published under the previous administration and no longer hosted on the current White House site.",
     "key_provisions": [
       "Safe and effective systems",
       "Algorithmic discrimination protections",
@@ -71,9 +91,15 @@
       "Notice and explanation",
       "Human alternatives and fallback"
     ],
-    "source_url": "https://www.whitehouse.gov/ostp/ai-bill-of-rights/",
-    "tags": ["principles", "rights", "voluntary", "ostp"],
-    "last_verified": "2024-12-24"
+    "source_url": "https://bidenwhitehouse.archives.gov/ostp/ai-bill-of-rights/",
+    "tags": [
+      "principles",
+      "rights",
+      "voluntary",
+      "ostp"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
   },
   {
     "id": "fed-005",
@@ -82,15 +108,21 @@
     "status": "active",
     "date_issued": "2024-01-01",
     "issuing_body": "SEC",
-    "summary": "Guidance on disclosure obligations related to AI risks and AI washing in public company filings.",
+    "summary": "Commission statements and enforcement posture on AI-related disclosure, including 'AI washing' in public company filings. This entry describes a supervisory posture rather than a single discrete issuance and needs confirmation against a specific SEC document.",
     "key_provisions": [
       "Material AI risk disclosure",
       "AI washing enforcement priority",
       "MD&A discussion requirements"
     ],
-    "source_url": "https://www.sec.gov",
-    "tags": ["disclosure", "securities", "ai_washing", "sec"],
-    "last_verified": "2024-12-24"
+    "source_url": "https://www.sec.gov/newsroom/speeches-statements/gensler-ai-021324",
+    "tags": [
+      "disclosure",
+      "securities",
+      "ai_washing",
+      "sec"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
   },
   {
     "id": "fed-006",
@@ -107,12 +139,17 @@
       "Commercial surveillance rulemaking"
     ],
     "source_url": "https://www.ftc.gov/business-guidance/blog/2023/02/keep-your-ai-claims-check",
-    "tags": ["enforcement", "ftc", "consumer_protection", "discrimination"],
+    "tags": [
+      "enforcement",
+      "ftc",
+      "consumer_protection",
+      "discrimination"
+    ],
     "last_verified": "2024-12-24"
   },
   {
     "id": "fed-007",
-    "title": "DoD AI Adoption Strategy",
+    "title": "DoD Data, Analytics and AI Adoption Strategy",
     "type": "strategy",
     "status": "active",
     "date_issued": "2023-11-02",
@@ -124,9 +161,15 @@
       "Workforce AI training requirements",
       "Industry partnership frameworks"
     ],
-    "source_url": "https://www.defense.gov",
-    "tags": ["defense", "adoption", "military", "dod"],
-    "last_verified": "2024-12-24"
+    "source_url": "https://media.defense.gov/2023/Nov/02/2003333300/-1/-1/1/DOD_DATA_ANALYTICS_AI_ADOPTION_STRATEGY.PDF",
+    "tags": [
+      "defense",
+      "adoption",
+      "military",
+      "dod"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
   },
   {
     "id": "fed-008",
@@ -142,8 +185,88 @@
       "Country-specific controls (China, Russia, Iran)",
       "Cloud computing restrictions"
     ],
-    "source_url": "https://www.bis.doc.gov",
-    "tags": ["export_controls", "chips", "china", "bis"],
-    "last_verified": "2024-12-24"
+    "source_url": "https://www.federalregister.gov/documents/2023/10/25/2023-23055/implementation-of-additional-export-controls-certain-advanced-computing-items-supercomputer-and",
+    "tags": [
+      "export_controls",
+      "chips",
+      "china",
+      "bis"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
+  },
+  {
+    "id": "fed-009",
+    "title": "Executive Order 14179: Removing Barriers to American Leadership in Artificial Intelligence",
+    "type": "executive_order",
+    "status": "active",
+    "date_issued": "2025-01-23",
+    "issuing_body": "White House",
+    "summary": "Revoked Executive Order 14110 and reoriented federal AI policy toward promoting innovation and American AI leadership, directing agencies to identify and revise policies that act as barriers to AI development.",
+    "key_provisions": [
+      "Revokes Executive Order 14110",
+      "Directs an action plan to sustain American AI leadership",
+      "Requires agency review of policies inconsistent with the new policy",
+      "Removes the prior safety-reporting and compute-threshold framework"
+    ],
+    "source_url": "https://www.federalregister.gov/documents/2025/01/31/2025-02172/removing-barriers-to-american-leadership-in-artificial-intelligence",
+    "tags": [
+      "executive_order",
+      "deregulation",
+      "innovation",
+      "federal"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
+  },
+  {
+    "id": "fed-010",
+    "title": "Executive Order 14365: Ensuring a National Policy Framework for Artificial Intelligence",
+    "type": "executive_order",
+    "status": "active",
+    "date_issued": "2025-12-11",
+    "issuing_body": "White House",
+    "summary": "Directs federal agencies to pursue a uniform national AI policy and to challenge state AI laws considered onerous. An executive order cannot itself preempt state law, and as of September 2026 no state AI law has been held preempted.",
+    "key_provisions": [
+      "Establishes a Department of Justice AI Litigation Task Force",
+      "Directs Commerce to evaluate burdensome state AI laws",
+      "Directs an FTC policy statement and an FCC disclosure proceeding",
+      "Ties eligibility for some federal broadband funds to state AI policy",
+      "Expressly excludes state child-safety, compute infrastructure and state procurement laws"
+    ],
+    "source_url": "https://www.federalregister.gov/executive-order/14365",
+    "tags": [
+      "executive_order",
+      "preemption",
+      "federal",
+      "state_preemption"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
+  },
+  {
+    "id": "fed-011",
+    "title": "OMB Memorandum M-25-21: Accelerating Federal Use of AI",
+    "type": "guidance",
+    "status": "active",
+    "date_issued": "2025-04-03",
+    "issuing_body": "OMB",
+    "summary": "Replaced M-24-10 as the governing policy for federal agency use of AI, retaining Chief AI Officers and AI use case inventories while shifting emphasis toward adoption and removing some of the prior memo's risk-management requirements.",
+    "key_provisions": [
+      "Supersedes OMB M-24-10",
+      "Retains Chief AI Officer designation",
+      "Retains annual AI use case inventories",
+      "Introduces a high-impact AI category with minimum practices",
+      "Emphasises accelerating federal AI adoption"
+    ],
+    "source_url": "https://www.whitehouse.gov/wp-content/uploads/2025/02/M-25-21-Accelerating-Federal-Use-of-AI-through-Innovation-Governance-and-Public-Trust.pdf",
+    "tags": [
+      "federal_agencies",
+      "governance",
+      "chief_ai_officer",
+      "omb"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
   }
 ]

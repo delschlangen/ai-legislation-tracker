@@ -2,20 +2,18 @@
   {
     "id": "intl-001",
     "jurisdiction": "European Union",
-    "name": "EU AI Act",
     "type": "regulation",
     "status": "enacted",
     "date_adopted": "2024-03-13",
-    "date_effective": "2024-08-01",
-    "full_application_date": "2026-08-01",
-    "summary": "World's first comprehensive AI regulation. Establishes risk-based framework with prohibited practices, high-risk system requirements, and transparency obligations.",
+    "full_application_date": "2028-08-02",
+    "summary": "First comprehensive horizontal AI regulation. Risk-based framework with prohibited practices, high-risk system duties, general-purpose AI model obligations and transparency rules. Amended by Regulation (EU) 2026/1744 (the Digital Omnibus on AI), which deferred the high-risk obligations.",
     "key_provisions": [
-      "Risk-based classification (unacceptable, high, limited, minimal)",
-      "Prohibited AI practices (social scoring, real-time biometric ID)",
-      "High-risk AI requirements (conformity assessment, CE marking)",
-      "General-purpose AI model obligations",
-      "Transparency requirements",
-      "AI Office establishment"
+      "Prohibited practices and AI literacy duties applicable since 2025-02-02",
+      "General-purpose AI model obligations applicable since 2025-08-02",
+      "Article 50 transparency obligations applicable since 2026-08-02",
+      "Annex III stand-alone high-risk obligations deferred to 2027-12-02",
+      "Annex I high-risk obligations embedded in regulated products deferred to 2028-08-02",
+      "Penalties up to EUR 35 million or 7 percent of worldwide annual turnover"
     ],
     "enforcement": {
       "fines_max_percentage": 7,
@@ -23,17 +21,25 @@
       "enforcing_body": "National authorities + EU AI Office"
     },
     "source_url": "https://eur-lex.europa.eu/eli/reg/2024/1689/oj",
-    "tags": ["comprehensive", "risk_based", "binding", "eu"],
-    "last_verified": "2024-12-24"
+    "tags": [
+      "comprehensive",
+      "risk_based",
+      "binding",
+      "eu"
+    ],
+    "last_verified": "2026-09-17",
+    "title": "EU AI Act",
+    "effective_date": "2024-08-01",
+    "amended_by": "intl-011",
+    "verification": "secondary"
   },
   {
     "id": "intl-002",
     "jurisdiction": "United Kingdom",
-    "name": "UK AI Regulation Framework",
     "type": "framework",
     "status": "active",
     "date_adopted": "2024-02-06",
-    "summary": "Principles-based, sector-specific approach to AI regulation. Relies on existing regulators applying cross-cutting principles.",
+    "summary": "Sector-led, non-statutory approach relying on existing regulators rather than a dedicated AI regulator. No standalone UK AI act has been enacted. The AI Safety Institute was renamed the AI Security Institute in February 2025.",
     "key_provisions": [
       "Five cross-cutting principles",
       "Sector regulator implementation",
@@ -49,17 +55,22 @@
       "Contestability and redress"
     ],
     "source_url": "https://www.gov.uk/government/publications/ai-regulation-a-pro-innovation-approach",
-    "tags": ["principles", "sector_specific", "pro_innovation", "uk"],
-    "last_verified": "2024-12-24"
+    "tags": [
+      "principles",
+      "sector_specific",
+      "pro_innovation",
+      "uk"
+    ],
+    "last_verified": "2026-09-17",
+    "title": "UK AI Regulation Framework",
+    "verification": "secondary"
   },
   {
     "id": "intl-003",
     "jurisdiction": "China",
-    "name": "Interim Measures for Generative AI Services",
     "type": "regulation",
     "status": "active",
     "date_adopted": "2023-07-13",
-    "date_effective": "2023-08-15",
     "summary": "Regulations governing generative AI services offered to the public in China. Emphasizes content control and socialist values.",
     "key_provisions": [
       "Service provider registration",
@@ -70,17 +81,22 @@
       "Algorithm filing requirements"
     ],
     "source_url": "http://www.cac.gov.cn/2023-07/13/c_1690898327029107.htm",
-    "tags": ["genai", "content", "registration", "china"],
-    "last_verified": "2024-12-24"
+    "tags": [
+      "genai",
+      "content",
+      "registration",
+      "china"
+    ],
+    "last_verified": "2024-12-24",
+    "title": "Interim Measures for Generative AI Services",
+    "effective_date": "2023-08-15"
   },
   {
     "id": "intl-004",
     "jurisdiction": "China",
-    "name": "Algorithm Recommendation Regulations",
     "type": "regulation",
     "status": "active",
     "date_adopted": "2022-01-04",
-    "date_effective": "2022-03-01",
     "summary": "Regulations on algorithmic recommendations in internet services. Requires transparency and user controls.",
     "key_provisions": [
       "Algorithm transparency requirements",
@@ -90,17 +106,23 @@
       "Algorithm registry"
     ],
     "source_url": "http://www.cac.gov.cn/2022-01/04/c_1642894606364259.htm",
-    "tags": ["algorithms", "recommendations", "transparency", "china"],
-    "last_verified": "2024-12-24"
+    "tags": [
+      "algorithms",
+      "recommendations",
+      "transparency",
+      "china"
+    ],
+    "last_verified": "2024-12-24",
+    "title": "Algorithm Recommendation Regulations",
+    "effective_date": "2022-03-01"
   },
   {
     "id": "intl-005",
     "jurisdiction": "Canada",
-    "name": "Artificial Intelligence and Data Act (AIDA)",
     "type": "proposed_legislation",
-    "status": "pending",
+    "status": "expired",
     "date_introduced": "2022-06-16",
-    "summary": "Part of Bill C-27. Would establish requirements for high-impact AI systems and prohibit certain AI practices.",
+    "summary": "Would have created a risk-based federal AI regime. Bill C-27 died on the Order Paper when Parliament was prorogued on 2025-01-06 and has not been reintroduced. Canada has no comprehensive AI statute in force.",
     "key_provisions": [
       "High-impact system definition",
       "Risk assessment requirements",
@@ -109,17 +131,24 @@
       "AI and Data Commissioner"
     ],
     "source_url": "https://www.parl.ca/legisinfo/en/bill/44-1/c-27",
-    "tags": ["proposed", "high_impact", "comprehensive", "canada"],
-    "last_verified": "2024-12-24"
+    "tags": [
+      "proposed",
+      "high_impact",
+      "comprehensive",
+      "canada"
+    ],
+    "last_verified": "2026-09-17",
+    "title": "Artificial Intelligence and Data Act (AIDA)",
+    "date_expired": "2025-01-06",
+    "verification": "secondary"
   },
   {
     "id": "intl-006",
     "jurisdiction": "Brazil",
-    "name": "AI Bill (PL 2338/2023)",
     "type": "proposed_legislation",
     "status": "pending",
     "date_introduced": "2023-05-03",
-    "summary": "Comprehensive AI bill establishing risk-based framework similar to EU AI Act.",
+    "summary": "Risk-based framework modelled on the EU AI Act. Approved by the Federal Senate on 2024-12-10 and transmitted to the Chamber of Deputies, where it remains in committee. Not yet law.",
     "key_provisions": [
       "Risk-based classification",
       "Fundamental rights protections",
@@ -128,13 +157,19 @@
       "National AI authority"
     ],
     "source_url": "https://www.camara.leg.br/propostas-legislativas/2358703",
-    "tags": ["proposed", "risk_based", "comprehensive", "brazil"],
-    "last_verified": "2024-12-24"
+    "tags": [
+      "proposed",
+      "risk_based",
+      "comprehensive",
+      "brazil"
+    ],
+    "last_verified": "2026-09-17",
+    "title": "AI Bill (PL 2338/2023)",
+    "verification": "secondary"
   },
   {
     "id": "intl-007",
     "jurisdiction": "OECD",
-    "name": "OECD AI Principles",
     "type": "principles",
     "status": "active",
     "date_adopted": "2019-05-22",
@@ -148,13 +183,18 @@
     ],
     "signatories": 46,
     "source_url": "https://oecd.ai/en/ai-principles",
-    "tags": ["principles", "international", "non_binding", "oecd"],
-    "last_verified": "2024-12-24"
+    "tags": [
+      "principles",
+      "international",
+      "non_binding",
+      "oecd"
+    ],
+    "last_verified": "2024-12-24",
+    "title": "OECD AI Principles"
   },
   {
     "id": "intl-008",
     "jurisdiction": "United Nations",
-    "name": "UN Global Digital Compact (AI Provisions)",
     "type": "resolution",
     "status": "adopted",
     "date_adopted": "2024-09-22",
@@ -166,13 +206,18 @@
       "Scientific cooperation"
     ],
     "source_url": "https://www.un.org/techenvoy/global-digital-compact",
-    "tags": ["international", "un", "capacity_building", "cooperation"],
-    "last_verified": "2024-12-24"
+    "tags": [
+      "international",
+      "un",
+      "capacity_building",
+      "cooperation"
+    ],
+    "last_verified": "2024-12-24",
+    "title": "UN Global Digital Compact (AI Provisions)"
   },
   {
     "id": "intl-009",
     "jurisdiction": "G7",
-    "name": "Hiroshima AI Process",
     "type": "framework",
     "status": "active",
     "date_adopted": "2023-12-01",
@@ -184,17 +229,22 @@
       "Interoperability commitments"
     ],
     "source_url": "https://www.mofa.go.jp/ecm/ec/page5e_000076.html",
-    "tags": ["g7", "voluntary", "principles", "frontier_ai"],
-    "last_verified": "2024-12-24"
+    "tags": [
+      "g7",
+      "voluntary",
+      "principles",
+      "frontier_ai"
+    ],
+    "last_verified": "2024-12-24",
+    "title": "Hiroshima AI Process"
   },
   {
     "id": "intl-010",
     "jurisdiction": "International",
-    "name": "Bletchley Declaration",
     "type": "declaration",
     "status": "active",
     "date_adopted": "2023-11-01",
-    "summary": "Declaration from first global AI Safety Summit. 28 countries agreeing on frontier AI risks.",
+    "summary": "First multilateral declaration on frontier AI risk, agreed at the 2023 UK AI Safety Summit. Superseded in practice by a summit series continuing through Seoul, Paris and the 2026 New Delhi AI Impact Summit.",
     "key_provisions": [
       "Frontier AI risk acknowledgment",
       "International cooperation commitment",
@@ -203,7 +253,144 @@
     ],
     "signatories": 28,
     "source_url": "https://www.gov.uk/government/publications/ai-safety-summit-2023-the-bletchley-declaration",
-    "tags": ["declaration", "safety", "frontier_ai", "international"],
-    "last_verified": "2024-12-24"
+    "tags": [
+      "declaration",
+      "safety",
+      "frontier_ai",
+      "international"
+    ],
+    "last_verified": "2026-09-17",
+    "title": "Bletchley Declaration",
+    "verification": "secondary"
+  },
+  {
+    "id": "intl-011",
+    "jurisdiction": "European Union",
+    "title": "Digital Omnibus on AI — Regulation (EU) 2026/1744",
+    "type": "regulation",
+    "status": "enacted",
+    "date_adopted": "2026-07-08",
+    "effective_date": "2026-07-27",
+    "summary": "Amends the EU AI Act using fixed calendar dates rather than a conditional trigger. Defers the high-risk obligations, adds two prohibited practices and extends simplifications for smaller providers. Entered into force six days before the original 2026-08-02 high-risk deadline.",
+    "key_provisions": [
+      "Annex III stand-alone high-risk obligations moved to 2027-12-02",
+      "Annex I embedded high-risk obligations moved to 2028-08-02",
+      "National regulatory sandboxes moved to 2027-08-02",
+      "Adds prohibitions on non-consensual intimate imagery and CSAM-generating systems from 2026-12-02",
+      "Leaves Article 5 prohibitions, GPAI duties and Article 50 transparency in place"
+    ],
+    "source_url": "https://eur-lex.europa.eu/eli/reg/2026/1744/oj/eng",
+    "tags": [
+      "eu",
+      "amendment",
+      "high_risk",
+      "comprehensive"
+    ],
+    "amends": "intl-001",
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
+  },
+  {
+    "id": "intl-012",
+    "jurisdiction": "South Korea",
+    "title": "Framework Act on the Development of Artificial Intelligence and Establishment of a Foundation for Trust",
+    "type": "regulation",
+    "status": "enacted",
+    "date_adopted": "2025-01-21",
+    "effective_date": "2026-01-22",
+    "summary": "The world's second comprehensive national AI statute after the EU AI Act. Combines promotion of the domestic AI industry with binding duties for high-impact AI and generative AI, and applies extraterritorially to providers serving the Korean market.",
+    "key_provisions": [
+      "Obligations for high-impact AI in areas such as healthcare, energy and public services",
+      "Labelling requirements for generative AI outputs",
+      "Additional duties above a training-compute threshold",
+      "Extraterritorial application with a domestic representative requirement",
+      "Grace period deferring most fines through 2026"
+    ],
+    "source_url": "https://www.law.go.kr/LSW/eng/engLsSc.do?menuId=2&query=ARTIFICIAL+INTELLIGENCE",
+    "tags": [
+      "comprehensive",
+      "high_risk",
+      "genai",
+      "asia"
+    ],
+    "verification": "secondary",
+    "last_verified": "2026-09-17"
+  },
+  {
+    "id": "intl-013",
+    "jurisdiction": "Japan",
+    "title": "Act on Promotion of Research, Development and Utilization of AI-Related Technologies",
+    "type": "regulation",
+    "status": "enacted",
+    "date_adopted": "2025-05-28",
+    "effective_date": "2025-06-04",
+    "summary": "Japan's first AI-specific statute. Promotion-oriented rather than punitive: it sets national coordination machinery and duties to cooperate, but imposes no penalties on developers or deployers.",
+    "key_provisions": [
+      "Establishes an AI Strategy Headquarters led by the Prime Minister",
+      "Requires a national AI Basic Plan",
+      "Sets cooperation duties for businesses and research institutions",
+      "Contains no penalty provisions"
+    ],
+    "source_url": "https://www.japaneselawtranslation.go.jp/en/laws/",
+    "tags": [
+      "promotion",
+      "voluntary",
+      "asia",
+      "national_strategy"
+    ],
+    "verification": "secondary",
+    "last_verified": "2026-09-17"
+  },
+  {
+    "id": "intl-014",
+    "jurisdiction": "Council of Europe",
+    "title": "Framework Convention on Artificial Intelligence and Human Rights, Democracy and the Rule of Law (CETS 225)",
+    "type": "treaty",
+    "status": "pending",
+    "date_adopted": "2024-05-17",
+    "date_introduced": "2024-09-05",
+    "summary": "The first binding international treaty on AI, opened for signature on 2024-09-05. Signatories include the European Union, the United Kingdom and the United States. Not yet in force as of September 2026, pending the required ratifications.",
+    "key_provisions": [
+      "Binding obligations to protect human rights, democracy and the rule of law in the AI lifecycle",
+      "Open to non-member states of the Council of Europe",
+      "Requires risk and impact management frameworks",
+      "Enters into force after five ratifications including three Council of Europe member states"
+    ],
+    "source_url": "https://www.coe.int/en/web/conventions/full-list?module=treaty-detail&treatynum=225",
+    "tags": [
+      "treaty",
+      "human_rights",
+      "international",
+      "binding"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
+  },
+  {
+    "id": "intl-015",
+    "jurisdiction": "China",
+    "title": "Measures for Labeling AI-Generated Synthetic Content",
+    "type": "regulation",
+    "status": "active",
+    "date_adopted": "2025-03-14",
+    "effective_date": "2025-09-01",
+    "summary": "Requires both visible labels and embedded metadata on AI-generated text, images, audio, video and virtual scenes, backed by mandatory national standard GB 45438-2025. Places duties on generating services, distribution platforms and app stores.",
+    "key_provisions": [
+      "Explicit visible labelling of AI-generated content",
+      "Implicit labelling embedded in file metadata",
+      "Platform duties to verify and preserve labels",
+      "User declaration obligations for synthetic content",
+      "Backed by mandatory national standard GB 45438-2025"
+    ],
+    "source_url": "https://www.cac.gov.cn/2025-03/14/c_1743654684782215.htm",
+    "tags": [
+      "china",
+      "genai",
+      "labeling",
+      "transparency",
+      "provenance"
+    ],
+    "last_verified": "2026-09-17",
+    "verification": "secondary"
   }
 ]

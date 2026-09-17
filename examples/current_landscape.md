@@ -1,48 +1,61 @@
 # AI Legislation Landscape Dashboard
 
-**Last Updated:** 2025-12-25
+**Report generated:** 2026-09-17
 
-**Total Items Tracked:** 28
+**Total Items Tracked:** 43
+
+**Data Verified:** 2024-12-24 to 2026-09-17
+
 
 ## Overview
 
 | Category | Count |
 |----------|-------|
-| US Federal Actions | 8 |
-| US State Bills | 10 |
-| International Frameworks | 10 |
+| US Federal Actions | 11 |
+| US State Bills | 17 |
+| International Frameworks | 15 |
 
 ## US Federal Actions
 
-**Active:** 7 | **Rescinded:** 1
+**Active:** 9 | **Rescinded:** 1
 
 | Title | Type | Status | Issuing Body |
 |-------|------|--------|--------------|
 | Executive Order 14110 on Safe, Secure, and Trustwo... | executive_order | ❌ rescinded | White House |
 | NIST AI Risk Management Framework 1.0 | framework | ✅ active | NIST |
-| OMB Memorandum M-24-10: AI Governance | guidance | ✅ active | OMB |
+| OMB Memorandum M-24-10: AI Governance | guidance | 📦 superseded | OMB |
 | Blueprint for an AI Bill of Rights | guidance | ✅ active | White House OSTP |
 | SEC AI-Related Disclosure Guidance | guidance | ✅ active | SEC |
 | FTC AI and Algorithm Enforcement | enforcement_priority | ✅ active | FTC |
-| DoD AI Adoption Strategy | strategy | ✅ active | Department of Defense |
+| DoD Data, Analytics and AI Adoption Strategy | strategy | ✅ active | Department of Defense |
 | Commerce Department AI Export Controls | regulation | ✅ active | Bureau of Industry and Security |
+| Executive Order 14179: Removing Barriers to Americ... | executive_order | ✅ active | White House |
+| Executive Order 14365: Ensuring a National Policy ... | executive_order | ✅ active | White House |
+| OMB Memorandum M-25-21: Accelerating Federal Use o... | guidance | ✅ active | OMB |
 
 ## US State Legislation
 
-**Enacted:** 9 | **Vetoed:** 1 | **Pending:** 0
+**Enacted:** 15 | **Vetoed:** 1 | **Pending:** 0
 
 | State | Bill | Title | Status | Effective |
 |-------|------|-------|--------|-----------|
-| Colorado | SB 24-205 | Consumer Protections for Artificial... | ✅ enacted | 2026-02-01 |
+| Colorado | SB 24-205 | Consumer Protections for Artificial... | 📦 superseded | — |
 | California | SB 1047 | Safe and Secure Innovation for Fron... | ❌ vetoed | — |
 | California | AB 2013 | AI Training Data Transparency | ✅ enacted | 2026-01-01 |
 | California | AB 2885 | AI Definition Standardization | ✅ enacted | 2025-01-01 |
-| Illinois | HB 3773 | AI Video Interview Act (Amendment) | ✅ enacted | 2020-01-01 |
+| Illinois | HB 2557 | Artificial Intelligence Video Inter... | ✅ enacted | 2020-01-01 |
 | New York City | Local Law 144 | Automated Employment Decision Tools | ✅ enacted | 2023-07-05 |
 | Texas | HB 2060 | AI Advisory Council | ✅ enacted | 2023-09-01 |
 | Utah | SB 149 | AI Policy Act | ✅ enacted | 2024-05-01 |
 | Tennessee | HB 2959 | ELVIS Act (AI Voice Protection) | ✅ enacted | 2024-07-01 |
 | Connecticut | SB 1103 | AI Inventory and Assessment | ✅ enacted | 2023-10-01 |
+| Colorado | SB 26-189 | Automated Decision-Making Technolog... | ✅ enacted | 2027-01-01 |
+| Illinois | HB 3773 | Illinois Human Rights Act Amendment... | ✅ enacted | 2026-01-01 |
+| California | SB 53 | Transparency in Frontier Artificial... | ✅ enacted | 2026-01-01 |
+| California | SB 243 | Companion Chatbot Safeguards | ✅ enacted | 2026-01-01 |
+| Texas | HB 149 | Texas Responsible Artificial Intell... | ✅ enacted | 2026-01-01 |
+| New York | S6953B | Responsible AI Safety and Education... | ✅ enacted | 2027-01-01 |
+| Connecticut | SB 5 | Connecticut Artificial Intelligence... | ✅ enacted | 2026-10-01 |
 
 ## International Frameworks
 
@@ -52,35 +65,41 @@
 | United Kingdom | UK AI Regulation Framework | framework | ✅ active |
 | China | Interim Measures for Generative AI Servi... | regulation | ✅ active |
 | China | Algorithm Recommendation Regulations | regulation | ✅ active |
-| Canada | Artificial Intelligence and Data Act (AI... | proposed_legislation | ⏳ pending |
+| Canada | Artificial Intelligence and Data Act (AI... | proposed_legislation | ⌛ expired |
 | Brazil | AI Bill (PL 2338/2023) | proposed_legislation | ⏳ pending |
 | OECD | OECD AI Principles | principles | ✅ active |
 | United Nations | UN Global Digital Compact (AI Provisions... | resolution | ✅ adopted |
 | G7 | Hiroshima AI Process | framework | ✅ active |
 | International | Bletchley Declaration | declaration | ✅ active |
+| European Union | Digital Omnibus on AI — Regulation (EU) ... | regulation | ✅ enacted |
+| South Korea | Framework Act on the Development of Arti... | regulation | ✅ enacted |
+| Japan | Act on Promotion of Research, Developmen... | regulation | ✅ enacted |
+| Council of Europe | Framework Convention on Artificial Intel... | treaty | ⏳ pending |
+| China | Measures for Labeling AI-Generated Synth... | regulation | ✅ active |
 
 ## Key Themes (by tag frequency)
 
 | Tag | Occurrences |
 |-----|-------------|
-| `comprehensive` | 4 |
-| `frontier_ai` | 4 |
+| `comprehensive` | 9 |
+| `frontier_ai` | 7 |
+| `transparency` | 6 |
+| `genai` | 5 |
+| `safety` | 5 |
 | `principles` | 4 |
-| `safety` | 3 |
-| `disclosure` | 3 |
-| `genai` | 3 |
-| `china` | 3 |
-| `international` | 3 |
-| `voluntary` | 3 |
-| `discrimination` | 2 |
+| `china` | 4 |
+| `international` | 4 |
+| `voluntary` | 4 |
+| `disclosure` | 4 |
 
 ## Upcoming Effective Dates
 
 | Date | Jurisdiction | Item |
 |------|--------------|------|
-| 2026-01-01 | California | AI Training Data Transparency |
-| 2026-02-01 | Colorado | Consumer Protections for Artificial Intelligence |
-| 2026-08-01 | European Union | EU AI Act |
+| 2026-10-01 | Connecticut | Connecticut Artificial Intelligence Responsibility |
+| 2027-01-01 | Colorado | Automated Decision-Making Technology in Consequent |
+| 2027-01-01 | New York | Responsible AI Safety and Education (RAISE) Act |
+| 2028-08-02 | European Union | EU AI Act |
 
 ---
 *Generated by generate_dashboard.py*
