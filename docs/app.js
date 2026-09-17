@@ -22,6 +22,10 @@
   const noResults = document.getElementById('no-results');
   const tagFiltersContainer = document.getElementById('tag-filters');
   const resetFiltersBtn = document.getElementById('reset-filters');
+  const dataCurrency = document.getElementById('data-currency');
+  const statItems = document.getElementById('stat-items');
+  const statJurisdictions = document.getElementById('stat-jurisdictions');
+  const statVerified = document.getElementById('stat-verified');
 
   // Initialize
   function init() {
@@ -30,9 +34,47 @@
 
     totalCount.textContent = allData.length;
 
+    renderDataStats();
     renderTagFilters();
     renderTable();
     bindEvents();
+  }
+
+  // Derive the header/footer stats from the data itself, so they can never
+  // drift out of date the way the old hardcoded values did.
+  function renderDataStats() {
+    const jurisdictions = new Set(
+      allData.map(item => item.state || item.jurisdiction || item.issuing_body).filter(Boolean)
+    );
+
+    const verifiedDates = allData.map(item => item.last_verified).filter(Boolean).sort();
+    const oldest = verifiedDates[0];
+    const newest = verifiedDates[verifiedDates.length - 1];
+
+    if (statItems) statItems.textContent = allData.length;
+    if (statJurisdictions) statJurisdictions.textContent = jurisdictions.size;
+
+    if (statVerified) {
+      statVerified.textContent = !newest ? 'unknown'
+        : oldest === newest ? newest
+        : `${oldest} to ${newest}`;
+    }
+
+    if (dataCurrency) {
+      dataCurrency.textContent = newest
+        ? `Data verified as of ${formatVerifiedDate(newest)}`
+        : 'Verification date unknown';
+    }
+  }
+
+  // "2026-09-17" -> "September 2026"
+  function formatVerifiedDate(iso) {
+    const parts = String(iso).split('-');
+    if (parts.length < 2) return iso;
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'];
+    const month = months[parseInt(parts[1], 10) - 1];
+    return month ? `${month} ${parts[0]}` : iso;
   }
 
   // Render tag filter buttons
@@ -72,6 +114,8 @@
       const jurisdictionType = item.jurisdiction_type;
       const jurisdiction = getJurisdictionDisplay(item);
 
+      const status = item.status || 'unknown';
+
       return `
         <tr data-id="${item.id}" class="data-row">
           <td>
@@ -82,9 +126,9 @@
             ${billNumber ? `<span class="bill-number">${escapeHtml(billNumber)}</span>` : ''}
           </td>
           <td>
-            <span class="status-badge ${item.status}">
-              <span class="status-dot ${item.status}"></span>
-              ${capitalizeFirst(item.status)}
+            <span class="status-badge ${status}">
+              <span class="status-dot ${status}"></span>
+              ${capitalizeFirst(status)}
             </span>
           </td>
           <td>${effectiveDate}</td>
@@ -268,15 +312,9 @@
         }
       }
 
-      // Status filter
+      // Status filter — every status now has its own button, so match exactly
       if (activeFilters.status !== 'all') {
-        // Handle 'adopted' status as equivalent to 'enacted' for filtering
-        const itemStatus = item.status.toLowerCase();
-        const filterStatus = activeFilters.status.toLowerCase();
-
-        if (filterStatus === 'enacted' && itemStatus !== 'enacted' && itemStatus !== 'adopted') {
-          return false;
-        } else if (filterStatus !== 'enacted' && itemStatus !== filterStatus) {
+        if ((item.status || '').toLowerCase() !== activeFilters.status.toLowerCase()) {
           return false;
         }
       }
@@ -295,6 +333,11 @@
           item.title || '',
           item.name || '',
           item.summary || '',
+          item.state || '',
+          item.jurisdiction || '',
+          item.issuing_body || '',
+          item.bill_number || '',
+          item.type || '',
           ...(item.key_provisions || []),
           ...(item.tags || [])
         ].join(' ').toLowerCase();
@@ -344,6 +387,7 @@
 
   // Utility: Capitalize first letter
   function capitalizeFirst(str) {
+    if (!str) return '';
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
 
