@@ -36,18 +36,42 @@
     { file: 'international_frameworks.json', jurisdiction_type: 'international' }
   ];
 
-  function dataBaseUrl() {
-    const host = location.hostname;
+  // Where data/*.json can be reached from. Order matters: a same-origin copy is
+  // preferred, and the repository is the fallback.
+  //
+  // Do NOT infer this from the hostname. This site is reachable at a
+  // github.io address, at a custom domain, and from a local server, and the
+  // correct answer differs in each case. GitHub Pages serves docs/ as the web
+  // root, so ../data is unreachable there but works when the repository root is
+  // served. Probe instead of guessing.
+  const DATA_BASES = [
+    '../data',
+    'https://raw.githubusercontent.com/delschlangen/ai-legislation-tracker/main/data'
+  ];
 
-    // Served from the repository root (local preview): data/ is one level up.
-    if (!host.endsWith('github.io')) return '../data';
+  let resolvedBase = null;
 
-    // On GitHub Pages this site is served out of docs/, which cannot reach
-    // ../data. Read the canonical JSON from the repository instead. Owner and
-    // repo are derived from the URL so a fork reads its own data, not ours.
-    const owner = host.split('.')[0];
-    const repo = location.pathname.split('/').filter(Boolean)[0] || 'ai-legislation-tracker';
-    return `https://raw.githubusercontent.com/${owner}/${repo}/main/data`;
+  async function dataBaseUrl() {
+    if (resolvedBase) return resolvedBase;
+
+    const probe = DATA_FILES[0].file;
+    const attempts = [];
+
+    for (const base of DATA_BASES) {
+      try {
+        // HEAD, so probing does not download a file the real load fetches again.
+        const response = await fetch(`${base}/${probe}`, { method: 'HEAD', cache: 'no-cache' });
+        if (response.ok) {
+          resolvedBase = base;
+          return base;
+        }
+        attempts.push(`${base} -> HTTP ${response.status}`);
+      } catch (error) {
+        attempts.push(`${base} -> ${error.message || error}`);
+      }
+    }
+
+    throw new Error(`Could not reach the data from any known location (${attempts.join('; ')})`);
   }
 
   async function loadOneFile(source, base) {
@@ -74,7 +98,7 @@
   // Load each file independently. One malformed file degrades to a warning and
   // the rest of the dataset still renders, rather than blanking the whole page.
   async function loadLegislation() {
-    const base = dataBaseUrl();
+    const base = await dataBaseUrl();
     const settled = await Promise.allSettled(
       DATA_FILES.map(source => loadOneFile(source, base))
     );
@@ -109,6 +133,8 @@
 
   function showLoadError(error) {
     if (dataCurrency) dataCurrency.textContent = 'Could not load data';
+    const counter = document.getElementById('results-count');
+    if (counter) counter.style.display = 'none';
     if (tableBody) tableBody.innerHTML = '';
     if (noResults) {
       noResults.style.display = 'block';
