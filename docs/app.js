@@ -27,9 +27,90 @@
   const statJurisdictions = document.getElementById('stat-jurisdictions');
   const statVerified = document.getElementById('stat-verified');
 
+  // data/*.json is the single source of truth for this project. The site reads
+  // it directly rather than keeping a second hand-maintained copy, so a record
+  // added to the JSON always shows up here.
+  const DATA_FILES = [
+    { file: 'us_federal_actions.json', jurisdiction_type: 'federal' },
+    { file: 'us_state_bills.json', jurisdiction_type: 'state' },
+    { file: 'international_frameworks.json', jurisdiction_type: 'international' }
+  ];
+
+  function dataBaseUrl() {
+    const host = location.hostname;
+
+    // Served from the repository root (local preview): data/ is one level up.
+    if (!host.endsWith('github.io')) return '../data';
+
+    // On GitHub Pages this site is served out of docs/, which cannot reach
+    // ../data. Read the canonical JSON from the repository instead. Owner and
+    // repo are derived from the URL so a fork reads its own data, not ours.
+    const owner = host.split('.')[0];
+    const repo = location.pathname.split('/').filter(Boolean)[0] || 'ai-legislation-tracker';
+    return `https://raw.githubusercontent.com/${owner}/${repo}/main/data`;
+  }
+
+  async function loadLegislation() {
+    const base = dataBaseUrl();
+
+    const groups = await Promise.all(DATA_FILES.map(async source => {
+      const response = await fetch(`${base}/${source.file}`, { cache: 'no-cache' });
+      if (!response.ok) {
+        throw new Error(`${source.file}: HTTP ${response.status}`);
+      }
+      const records = await response.json();
+      if (!Array.isArray(records)) {
+        throw new Error(`${source.file}: expected an array of records`);
+      }
+      // jurisdiction_type is derived from which file a record came from; it is
+      // what the jurisdiction filter and the badge styling key on.
+      return records.map(record => ({
+        ...record,
+        jurisdiction_type: source.jurisdiction_type,
+        // Federal records carry issuing_body but no jurisdiction; give every
+        // record one so search and display behave the same across all three files.
+        jurisdiction: record.jurisdiction || record.state ||
+          (source.jurisdiction_type === 'federal' ? 'US Federal' : '')
+      }));
+    }));
+
+    return groups.flat();
+  }
+
+  function getTagCounts() {
+    const counts = {};
+    allData.forEach(item => {
+      (item.tags || []).forEach(tag => {
+        counts[tag] = (counts[tag] || 0) + 1;
+      });
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  }
+
+  function showLoadError(error) {
+    if (dataCurrency) dataCurrency.textContent = 'Could not load data';
+    if (tableBody) tableBody.innerHTML = '';
+    if (noResults) {
+      noResults.style.display = 'block';
+      noResults.innerHTML = `
+        <p><strong>Could not load the legislation data.</strong></p>
+        <p>${escapeHtml(error.message || String(error))}</p>
+        <p>The dataset is still available directly on
+          <a href="https://github.com/delschlangen/ai-legislation-tracker/tree/main/data"
+             target="_blank" rel="noopener">GitHub</a>.</p>`;
+    }
+  }
+
   // Initialize
-  function init() {
-    allData = getAllLegislation();
+  async function init() {
+    try {
+      allData = await loadLegislation();
+    } catch (error) {
+      console.error('Failed to load legislation data:', error);
+      showLoadError(error);
+      return;
+    }
+
     filteredData = [...allData];
 
     totalCount.textContent = allData.length;
@@ -43,9 +124,7 @@
   // Derive the header/footer stats from the data itself, so they can never
   // drift out of date the way the old hardcoded values did.
   function renderDataStats() {
-    const jurisdictions = new Set(
-      allData.map(item => item.state || item.jurisdiction || item.issuing_body).filter(Boolean)
-    );
+    const jurisdictions = new Set(allData.map(getJurisdictionDisplay).filter(Boolean));
 
     const verifiedDates = allData.map(item => item.last_verified).filter(Boolean).sort();
     const oldest = verifiedDates[0];
@@ -109,7 +188,9 @@
 
     tableBody.innerHTML = filteredData.map(item => {
       const title = item.title || item.name;
-      const billNumber = item.bill_number || item.type || '';
+      // State bills show a bill number; federal and international records fall
+      // back to their type, which needs prettifying ("executive_order" -> "Executive Order").
+      const billNumber = item.bill_number || (item.type ? formatTag(item.type) : '');
       const effectiveDate = item.effective_date || item.date_effective || item.full_application_date || '—';
       const jurisdictionType = item.jurisdiction_type;
       const jurisdiction = getJurisdictionDisplay(item);
