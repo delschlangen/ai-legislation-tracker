@@ -1,6 +1,6 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Legislation%20Tracked-28-blue?style=for-the-badge" alt="Legislation Tracked"/>
-  <img src="https://img.shields.io/badge/Jurisdictions-21-green?style=for-the-badge" alt="Jurisdictions"/>
+  <img src="https://img.shields.io/badge/Legislation%20Tracked-44-blue?style=for-the-badge" alt="Legislation Tracked"/>
+  <img src="https://img.shields.io/badge/Jurisdictions-22-green?style=for-the-badge" alt="Jurisdictions"/>
   <img src="https://img.shields.io/badge/Python-3.7+-yellow?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
   <img src="https://img.shields.io/badge/License-MIT-purple?style=for-the-badge" alt="License"/>
   <a href="https://delschlangen.github.io/ai-legislation-tracker/">
@@ -20,233 +20,181 @@
 
 <p align="center">
   <a href="#data-currency">Data Currency</a> •
+  <a href="#what-makes-this-different">What's Different</a> •
   <a href="#quick-reference">Quick Reference</a> •
   <a href="#getting-started">Getting Started</a> •
-  <a href="#whats-tracked">Coverage</a> •
-  <a href="#query-examples">Query</a> •
-  <a href="#contributing">Contribute</a> •
-  <a href="#live-demo">Live Demo</a>
+  <a href="#use-the-data">Use the Data</a> •
+  <a href="#contributing">Contribute</a>
 </p>
 
 ---
 
 ## Why This Exists
 
-AI governance is fragmenting fast. EU AI Act enforcement begins 2026. Colorado's SB 205 is the first comprehensive US state law. EO 14110 was rescinded. China has multiple active GenAI regulations. Keeping track requires **structured data**, not news alerts.
+AI governance is fragmenting fast, and it does not hold still. The EU AI Act's high-risk obligations were pushed from 2026 to 2027. Colorado's law — the first comprehensive US state AI statute — was delayed, enforcement-stayed, then repealed and replaced before it ever took effect. Canada's AIDA died at prorogation. Keeping track requires **structured data with a history**, not news alerts.
 
 This repo provides:
-- **Machine-readable JSON datasets** with standardized schemas
+- **Machine-readable JSON datasets** with a consistent schema and permanent record ids
+- **Supersession tracking** — what replaced what, and when
 - **CLI tools** for querying across jurisdictions
-- **Dashboard generation** for at-a-glance status reports
+- **A browser interface** with no install and no account
 - **Zero dependencies** — pure Python standard library
 
 ---
 
 ## Data Currency
 
-> **This dataset reflects AI legislation status as of December 2024.**
+> **Last review: September 2026. 44 entries across 22 jurisdictions.**
 
-All 28 entries were verified against official government sources on **2024-12-24**. Each entry includes a `last_verified` field indicating when it was last checked.
+Each entry carries its own `last_verified` date and a `verification` field saying how it was checked:
 
-**Important:** Legislation changes frequently. Always verify current status with official sources before making compliance decisions.
+| `verification` | Meaning |
+|:---|:---|
+| `primary` | Confirmed against the official legislature, agency or gazette text |
+| `secondary` | Confirmed against multiple independent published legal analyses, not the primary text |
+| `unconfirmed` | Provisional. Corroboration was thin. Treat with caution |
+| *(absent)* | As originally recorded; not re-checked since |
+
+**This is a research and tracking tool, not legal advice.** Always confirm against the official source before making a compliance decision. Every entry links to one.
 
 | Resource | Description |
 |:---------|:------------|
-| [CITATION.md](CITATION.md) | How to cite this dataset (BibTeX, APA, Chicago, Bluebook) |
-| [MAINTENANCE.md](MAINTENANCE.md) | Update schedule, verification methodology, how to report corrections |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to add new legislation or submit updates |
+| [CITATION.md](CITATION.md) | How to cite this dataset |
+| [MAINTENANCE.md](MAINTENANCE.md) | Review cadence, verification method, status vocabulary |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to add or correct an entry |
+
+---
+
+## What Makes This Different
+
+Most AI law trackers are web pages or PDFs published by law firms and membership bodies. They tell you what a law says **today**. They are excellent, and they are not reusable — you cannot query them, diff them, or cite a stable identifier.
+
+This project is built around two things those cannot offer:
+
+**1. The data is yours.** MIT licensed, plain JSON, fetchable from a stable URL. Load it into a notebook, a spreadsheet, a compliance tool or a retrieval index without asking anyone.
+
+**2. Records have a history.** Ids are permanent. `state-001` means Colorado SB 24-205 forever, including now that it has been repealed — the record stays, its status becomes `superseded`, and `superseded_by` points at the statute that replaced it. A citation written in 2024 still resolves, and tells you what changed underneath it. Every change is a git commit with a source link.
+
+This dataset deliberately tracks **notable frameworks and instruments with operative legal effect**, not every introduced bill. Depth and accuracy over volume.
 
 ---
 
 ## Quick Reference
 
-### At a Glance (December 2025)
+### At a glance
 
-| Category | Total | Enacted/Active | Pending | Vetoed/Rescinded |
-|:---------|:-----:|:--------------:|:-------:|:----------------:|
-| US Federal | 8 | 7 | — | 1 |
-| US State | 10 | 9 | — | 1 |
-| International | 10 | 8 | 2 | — |
-| **Total** | **28** | **24** | **2** | **2** |
+| Category | Total | In force / active | Pending | Superseded, expired, vetoed or rescinded |
+|:---------|:-----:|:-----------------:|:-------:|:----------------------------------------:|
+| US Federal | 12 | 10 | — | 2 |
+| US State | 17 | 15 | — | 2 |
+| International | 15 | 12 | 2 | 1 |
+| **Total** | **44** | **37** | **2** | **5** |
 
-### Key Legislation You Should Know
+### Key legislation you should know
 
-| What | Where | Status | Why It Matters |
+| What | Where | Status | Why it matters |
 |:-----|:------|:------:|:---------------|
-| **EU AI Act** | EU | Enacted | First comprehensive AI regulation globally. Risk-based framework with fines up to €35M or 7% revenue. |
-| **Colorado SB 205** | CO | Enacted | First comprehensive US state AI law. Covers high-risk AI discrimination. Effective Feb 2026. |
-| **EO 14110** | US Federal | Rescinded | Was the main US federal AI policy. Rescinded Jan 2025. |
-| **NIST AI RMF** | US Federal | Active | Voluntary risk management framework. De facto US standard. |
-| **NYC Local Law 144** | NYC | Active | Requires bias audits for hiring AI. In effect now. |
+| **EU AI Act** | EU | Enacted | First comprehensive AI regulation. Amended by the Digital Omnibus: Annex III high-risk duties now apply from Dec 2027, Annex I from Aug 2028. |
+| **Colorado SB 26-189** | CO | Enacted | Replaced the repealed Colorado AI Act with a narrower transparency regime. Effective Jan 2027. |
+| **California SB 53** | CA | Enacted | First US state frontier AI safety law. In force since Jan 2026. |
+| **Texas HB 149 (TRAIGA)** | TX | Enacted | Third state comprehensive AI law, built on intent rather than risk tiers. |
+| **Connecticut CART Act** | CT | Enacted | Broadest US state AI law to date. First obligations bite Oct 2026. |
+| **TAKE IT DOWN Act** | US Federal | Enacted | First federal statute placing AI duties on private platforms. |
+| **South Korea AI Framework Act** | KR | Enacted | World's second comprehensive national AI statute. In force since Jan 2026. |
+
+### Upcoming effective dates
+
+| Date | Jurisdiction | Legislation | What happens |
+|:-----|:-------------|:------------|:-------------|
+| **2026-10-01** | Connecticut | CART Act | First obligations begin, including AI-related layoff disclosure |
+| **2027-01-01** | Colorado | SB 26-189 | Replacement AI law takes effect |
+| **2027-01-01** | New York | RAISE Act | Frontier model safety duties begin |
+| **2027-12-02** | European Union | EU AI Act | Annex III stand-alone high-risk obligations apply |
+| **2028-08-02** | European Union | EU AI Act | Annex I embedded high-risk obligations apply |
+
+Run `python3 src/generate_dashboard.py` for the current version of this table, generated from the data.
 
 ---
 
 ## Getting Started
 
 ```bash
-# Clone the repository
 git clone https://github.com/delschlangen/ai-legislation-tracker.git
 cd ai-legislation-tracker
 
-# Generate a full dashboard report
-python src/generate_dashboard.py
+# Full dashboard report
+python3 src/generate_dashboard.py
 
-# Query legislation by topic
-python src/query_legislation.py --tag employment
+# Query by topic, status or jurisdiction
+python3 src/query_legislation.py --tag employment
+python3 src/query_legislation.py --status superseded
+python3 src/query_legislation.py --jurisdiction Colorado
+python3 src/query_legislation.py --search "frontier"
+python3 src/query_legislation.py --list-tags
 
-# Search across all fields
-python src/query_legislation.py --search "frontier"
-
-# List all available tags
-python src/query_legislation.py --list-tags
-
-# Get counts only
-python src/query_legislation.py --tag comprehensive --count
+# Check the data is well formed
+python3 validate.py
 ```
 
-**Requirements:** Python 3.7+ (no external dependencies)
+**Requirements:** Python 3.7+. No external dependencies.
 
 ---
 
-## What's Tracked
+## Use the Data
 
-### US Federal Actions (8 items)
-
-| Title | Type | Status | Agency |
-|:------|:-----|:------:|:-------|
-| Executive Order 14110 | Executive Order | Rescinded | White House |
-| NIST AI Risk Management Framework 1.0 | Framework | Active | NIST |
-| OMB M-24-10: AI Governance | Guidance | Active | OMB |
-| Blueprint for an AI Bill of Rights | Guidance | Active | OSTP |
-| SEC AI-Related Disclosure Guidance | Guidance | Active | SEC |
-| FTC AI and Algorithm Enforcement | Enforcement | Active | FTC |
-| DoD AI Adoption Strategy | Strategy | Active | DoD |
-| Commerce AI Export Controls | Regulation | Active | BIS |
-
-### US State Legislation (10 items)
-
-| State | Bill | Title | Status | Effective |
-|:------|:-----|:------|:------:|:---------:|
-| Colorado | SB 24-205 | Consumer Protections for AI | Enacted | 2026-02-01 |
-| California | SB 1047 | Frontier AI Safety | Vetoed | — |
-| California | AB 2013 | AI Training Data Transparency | Enacted | 2026-01-01 |
-| California | AB 2885 | AI Definition Standardization | Enacted | 2025-01-01 |
-| Illinois | HB 3773 | AI Video Interview Act | Enacted | 2020-01-01 |
-| NYC | Local Law 144 | Automated Employment Decision Tools | Enacted | 2023-07-05 |
-| Texas | HB 2060 | AI Advisory Council | Enacted | 2023-09-01 |
-| Utah | SB 149 | AI Policy Act | Enacted | 2024-05-01 |
-| Tennessee | HB 2959 | ELVIS Act (AI Voice Protection) | Enacted | 2024-07-01 |
-| Connecticut | SB 1103 | AI Inventory and Assessment | Enacted | 2023-10-01 |
-
-### International Frameworks (10 items)
-
-| Jurisdiction | Name | Type | Status |
-|:-------------|:-----|:-----|:------:|
-| European Union | EU AI Act | Regulation | Enacted |
-| United Kingdom | UK AI Regulation Framework | Framework | Active |
-| China | Interim Measures for GenAI Services | Regulation | Active |
-| China | Algorithm Recommendation Regulations | Regulation | Active |
-| Canada | AIDA (Bill C-27) | Proposed | Pending |
-| Brazil | AI Bill (PL 2338/2023) | Proposed | Pending |
-| OECD | OECD AI Principles | Principles | Active |
-| United Nations | Global Digital Compact | Resolution | Adopted |
-| G7 | Hiroshima AI Process | Framework | Active |
-| International | Bletchley Declaration | Declaration | Active |
-
----
-
-## Upcoming Deadlines
-
-| Date | Jurisdiction | Legislation | What Happens |
-|:-----|:-------------|:------------|:-------------|
-| **2025-01-01** | California | AB 2885 | AI definition standardization takes effect |
-| **2026-01-01** | California | AB 2013 | Training data transparency requirements begin |
-| **2026-02-01** | Colorado | SB 24-205 | First comprehensive state AI law takes effect |
-| **2026-08-01** | European Union | EU AI Act | Full application of all provisions |
-
----
-
-## Query Examples
-
-### Find Employment AI Laws
-```bash
-python src/query_legislation.py --tag employment
-```
-Returns: Illinois HB 3773, NYC Local Law 144
-
-### Find Enacted Legislation Only
-```bash
-python src/query_legislation.py --status enacted
-```
-
-### Search for Frontier AI Mentions
-```bash
-python src/query_legislation.py --search "frontier"
-```
-Returns: California SB 1047, EO 14110, Hiroshima AI Process, Bletchley Declaration
-
-### Filter by State
-```bash
-python src/query_legislation.py --jurisdiction California
-```
-
-### Generate Full Dashboard
-```bash
-python src/generate_dashboard.py output.md
-```
-
----
-
-## Sample Output
+The three JSON files are the whole dataset and are stable URLs:
 
 ```
-📋 Colorado Consumer Protections for Artificial Intelligence
-================================================================
-📍 Jurisdiction: Colorado
-📊 Status: ✅ enacted
-📅 Effective: 2026-02-01
-
-📝 Summary:
-   First comprehensive state AI regulation in the US. Requires deployers
-   and developers of high-risk AI systems to use reasonable care to avoid
-   algorithmic discrimination.
-
-🔑 Key Provisions:
-   • High-risk AI system definition
-   • Developer duties (documentation, disclosure)
-   • Deployer duties (risk management, impact assessments)
-   • Consumer notification and opt-out rights
-   • Attorney General enforcement
-
-🏷️  Tags: comprehensive, high_risk, discrimination, first_state
+https://raw.githubusercontent.com/delschlangen/ai-legislation-tracker/main/data/us_federal_actions.json
+https://raw.githubusercontent.com/delschlangen/ai-legislation-tracker/main/data/us_state_bills.json
+https://raw.githubusercontent.com/delschlangen/ai-legislation-tracker/main/data/international_frameworks.json
 ```
 
----
+```python
+import json, urllib.request
 
-## Data Structure
+BASE = "https://raw.githubusercontent.com/delschlangen/ai-legislation-tracker/main/data"
+state = json.load(urllib.request.urlopen(f"{BASE}/us_state_bills.json"))
 
-All legislation entries follow a consistent JSON schema:
+for law in state:
+    if law["status"] == "enacted":
+        print(law["bill_number"], "-", law["title"])
+```
+
+### Record schema
 
 ```json
 {
-  "id": "state-001",
-  "state": "Colorado",
-  "bill_number": "SB 24-205",
-  "title": "Consumer Protections for Artificial Intelligence",
+  "id": "state-013",
+  "state": "California",
+  "bill_number": "SB 53",
+  "title": "Transparency in Frontier Artificial Intelligence Act",
   "status": "enacted",
-  "date_enacted": "2024-05-17",
-  "effective_date": "2026-02-01",
-  "summary": "First comprehensive state AI regulation...",
-  "key_provisions": [
-    "High-risk AI system definition",
-    "Developer duties (documentation, disclosure)",
-    "Deployer duties (risk management, impact assessments)"
-  ],
-  "source_url": "https://leg.colorado.gov/bills/sb24-205",
-  "tags": ["comprehensive", "high_risk", "discrimination"],
-  "last_verified": "2024-12-24"
+  "date_enacted": "2025-09-29",
+  "effective_date": "2026-01-01",
+  "summary": "First US state frontier AI safety law...",
+  "key_provisions": ["Publish a frontier AI framework...", "..."],
+  "source_url": "https://leginfo.legislature.ca.gov/...",
+  "tags": ["frontier_ai", "safety", "transparency"],
+  "last_verified": "2026-09-17",
+  "verification": "secondary"
 }
 ```
+
+| Field | Required | Notes |
+|:------|:--------:|:------|
+| `id` | Yes | Permanent. Never reused or renumbered |
+| `title` | Yes | Official name |
+| `status` | Yes | `enacted`, `active`, `adopted`, `pending`, `vetoed`, `rescinded`, `superseded`, `expired` |
+| `summary` | Yes | One to three sentences |
+| `key_provisions` | Yes | Array of the main obligations |
+| `source_url` | Yes | A specific document, never a bare agency homepage |
+| `tags` | Yes | Lowercase with underscores |
+| `last_verified` | Yes | `YYYY-MM-DD`, or `needs_verification` |
+| `verification` | No | `primary`, `secondary` or `unconfirmed` |
+| `effective_date` | If enacted | When obligations begin |
+| `superseded_by` / `supersedes` | If applicable | The id of the related record |
+| `amends` / `amended_by` | If applicable | The id of the related record |
 
 ---
 
@@ -254,97 +202,51 @@ All legislation entries follow a consistent JSON schema:
 
 ```
 ai-legislation-tracker/
-├── data/
-│   ├── us_federal_actions.json      # Federal executive orders, guidance, frameworks
-│   ├── us_state_bills.json          # State legislation across 10 jurisdictions
-│   └── international_frameworks.json # EU, UK, China, OECD, UN, G7, etc.
+├── data/                            # The dataset — the single source of truth
+│   ├── us_federal_actions.json
+│   ├── us_state_bills.json
+│   └── international_frameworks.json
+├── docs/                            # GitHub Pages site; reads data/ at runtime
+│   ├── index.html
+│   ├── app.js
+│   └── styles.css
 ├── src/
-│   ├── generate_dashboard.py        # Creates markdown summary reports
-│   └── query_legislation.py         # CLI tool for filtering and searching
-├── examples/
-│   └── current_landscape.md         # Sample generated dashboard
-├── CITATION.md                      # How to cite this dataset
-├── CONTRIBUTING.md                  # Contribution guidelines
-├── MAINTENANCE.md                   # Update schedule and verification info
-├── README.md
-└── LICENSE
+│   ├── generate_dashboard.py        # Markdown summary report
+│   └── query_legislation.py         # CLI filtering and search
+├── .github/
+│   ├── ISSUE_TEMPLATE/              # Forms for reporting or suggesting entries
+│   └── workflows/validate.yml       # Read-only data check on pull requests
+├── examples/current_landscape.md    # Sample generated dashboard
+├── validate.py                      # Data validator (read-only)
+├── CITATION.md · CONTRIBUTING.md · MAINTENANCE.md · LICENSE
+└── README.md
 ```
-
----
-
-## Top Tags by Frequency
-
-| Tag | Count | Description |
-|:----|:-----:|:------------|
-| `comprehensive` | 4 | Broad AI regulation covering multiple sectors |
-| `frontier_ai` | 4 | Focused on advanced/frontier AI systems |
-| `principles` | 4 | Non-binding guiding principles |
-| `safety` | 3 | Safety testing and requirements |
-| `disclosure` | 3 | Transparency and disclosure requirements |
-| `genai` | 3 | Generative AI specific rules |
-| `china` | 3 | Chinese regulatory items |
-| `international` | 3 | Multi-national agreements |
-| `voluntary` | 3 | Non-binding/voluntary frameworks |
-| `discrimination` | 2 | Algorithmic bias and discrimination |
 
 ---
 
 ## Contributing
 
-### Adding New Legislation
+**You do not need to know Git.** If you spot something wrong, open an issue:
 
-1. **Add entry** to appropriate JSON file in `data/`
-2. **Follow existing schema** — check similar entries for field structure
-3. **Include `source_url`** — link to official government source
-4. **Add relevant tags** — use existing tags when applicable
-5. **Verify** by running `python src/generate_dashboard.py`
-6. **Submit PR** with brief description
+- [Report an incorrect or out-of-date entry](https://github.com/delschlangen/ai-legislation-tracker/issues/new?template=stale-entry.yml)
+- [Suggest a law to add](https://github.com/delschlangen/ai-legislation-tracker/issues/new?template=new-law.yml)
 
-### Schema Requirements
+Corrections are the most valuable contribution here. A tracker that is confidently wrong is worse than one that is visibly incomplete.
 
-| Field | Required | Description |
-|:------|:--------:|:------------|
-| `id` | Yes | Unique identifier (e.g., `state-011`) |
-| `title` / `name` | Yes | Official name |
-| `status` | Yes | `enacted`, `active`, `pending`, `vetoed`, `rescinded` |
-| `summary` | Yes | 1-3 sentence description |
-| `key_provisions` | Yes | Array of key points |
-| `source_url` | Yes | Official source link |
-| `tags` | Yes | Relevant topic tags |
-| `effective_date` | If enacted | When it takes effect |
-| `last_verified` | Yes | Date entry was last verified (YYYY-MM-DD) |
-
----
-
-## Disclaimer
-
-This is a **research and tracking tool**, not legal advice. Legislation changes frequently. Always verify current status with official government sources before making compliance decisions.
+If you would rather edit the data directly, see [CONTRIBUTING.md](CONTRIBUTING.md) for the schema and the submission checklist. Run `python3 validate.py` before opening a pull request — the same check runs automatically and will tell you what is wrong.
 
 ---
 
 ## Roadmap
 
-- [ ] Add RSS/webhook integration for legislative tracking services
-- [ ] Include bill text links where available
-- [ ] Create jurisdiction comparison tool
-- [ ] Add timeline visualization
-- [ ] Automate updates via official APIs
-- [ ] Add notification system for effective date approaches
-
----
-
-## Live Demo
-
-**Use this tool directly in your browser:**
-
-### **[https://delschlangen.github.io/ai-legislation-tracker](https://delschlangen.github.io/ai-legislation-tracker)**
-
-No installation or dependencies required. The web interface provides:
-- Searchable table of all 28 legislation items
-- Filter by jurisdiction, status, and tags
-- Full-text search across titles, summaries, and provisions
-- Expandable rows with complete details and source links
-- Mobile-responsive design
+- [x] ~~Track supersession and repeal, not just current status~~
+- [x] ~~Single source of truth for the website and the dataset~~
+- [x] ~~Read-only validation on pull requests~~
+- [x] ~~Issue forms for non-technical contributors~~
+- [ ] Re-verify every entry against primary sources and move `verification` to `primary`
+- [ ] CSV export alongside JSON
+- [ ] Publish a JSON Schema file
+- [ ] Broaden state coverage, prioritising laws with operative obligations
 
 ---
 

@@ -9,13 +9,13 @@ When referencing this dataset in academic papers, policy reports, or other publi
 ## BibTeX
 
 ```bibtex
-@misc{schlangen2024ailegislation,
+@misc{schlangen2026ailegislation,
   author       = {Schlangen, Del},
   title        = {{AI Legislation Tracker}: A Curated Dataset of Global AI Laws and Governance Frameworks},
-  year         = {2024},
+  year         = {2026},
   publisher    = {GitHub},
   howpublished = {\url{https://github.com/delschlangen/ai-legislation-tracker}},
-  note         = {Dataset tracking US federal, US state, and international AI legislation. Data current as of December 2024.}
+  note         = {Dataset tracking US federal, US state, and international AI legislation. Data current as of September 2026.}
 }
 ```
 
@@ -25,19 +25,19 @@ When referencing this dataset in academic papers, policy reports, or other publi
 
 ### APA (7th Edition)
 
-Schlangen, D. (2024). *AI Legislation Tracker: A curated dataset of global AI laws and governance frameworks* [Data set]. GitHub. https://github.com/delschlangen/ai-legislation-tracker
+Schlangen, D. (2026). *AI Legislation Tracker: A curated dataset of global AI laws and governance frameworks* [Data set]. GitHub. https://github.com/delschlangen/ai-legislation-tracker
 
 ### Chicago (17th Edition)
 
-Schlangen, Del. "AI Legislation Tracker: A Curated Dataset of Global AI Laws and Governance Frameworks." GitHub, 2024. https://github.com/delschlangen/ai-legislation-tracker.
+Schlangen, Del. "AI Legislation Tracker: A Curated Dataset of Global AI Laws and Governance Frameworks." GitHub, 2026. https://github.com/delschlangen/ai-legislation-tracker.
 
 ### Bluebook (Legal Citation)
 
-Del Schlangen, *AI Legislation Tracker: A Curated Dataset of Global AI Laws and Governance Frameworks*, GitHub (2024), https://github.com/delschlangen/ai-legislation-tracker.
+Del Schlangen, *AI Legislation Tracker: A Curated Dataset of Global AI Laws and Governance Frameworks*, GitHub (2026), https://github.com/delschlangen/ai-legislation-tracker.
 
 ### IEEE
 
-D. Schlangen, "AI Legislation Tracker: A Curated Dataset of Global AI Laws and Governance Frameworks," GitHub, 2024. [Online]. Available: https://github.com/delschlangen/ai-legislation-tracker
+D. Schlangen, "AI Legislation Tracker: A Curated Dataset of Global AI Laws and Governance Frameworks," GitHub, 2026. [Online]. Available: https://github.com/delschlangen/ai-legislation-tracker
 
 ---
 
@@ -47,7 +47,7 @@ D. Schlangen, "AI Legislation Tracker: A Curated Dataset of Global AI Laws and G
 
 1. **Legislation changes frequently.** Bills may be amended, enacted, vetoed, or rescinded between dataset updates.
 
-2. **Verification dates vary.** Each entry includes a `last_verified` field indicating when that specific item was last checked against official sources.
+2. **Verification dates vary by entry.** Each record carries `last_verified` (when it was checked) and may carry `verification` (how it was checked: `primary`, `secondary` or `unconfirmed`). Cite the entry's own dates rather than a single date for the dataset.
 
 3. **Not comprehensive.** This dataset tracks selected significant legislation and does not claim to include every AI-related law globally.
 
@@ -55,7 +55,7 @@ D. Schlangen, "AI Legislation Tracker: A Curated Dataset of Global AI Laws and G
 
 When citing, we recommend including the access date:
 
-> Schlangen, D. (2024). *AI Legislation Tracker* [Data set]. GitHub. https://github.com/delschlangen/ai-legislation-tracker (accessed January 15, 2025).
+> Schlangen, D. (2026). *AI Legislation Tracker* [Data set]. GitHub. https://github.com/delschlangen/ai-legislation-tracker (accessed September 17, 2026).
 
 ---
 
@@ -65,6 +65,18 @@ When referencing specific legislation from this dataset, cite the primary source
 
 Example:
 > Colorado SB 24-205, Consumer Protections for Artificial Intelligence (2024). Available at: https://leg.colorado.gov/bills/sb24-205
+
+---
+
+## Citing a Specific Version
+
+This dataset changes as the law does. For anything that needs to be reproducible, cite a commit rather than the branch:
+
+```
+https://github.com/delschlangen/ai-legislation-tracker/blob/<commit-sha>/data/us_state_bills.json
+```
+
+Record ids are permanent and are never reused, so a citation to an entry stays resolvable even after the law behind it is repealed. Colorado `state-001` still resolves today, and its record now shows that SB 24-205 was superseded by SB 26-189 before it ever took effect.
 
 ---
 

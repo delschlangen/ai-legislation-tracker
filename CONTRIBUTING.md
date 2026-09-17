@@ -2,6 +2,19 @@
 
 Thank you for your interest in helping track AI legislation worldwide. This guide will help you contribute effectively.
 
+## The Easiest Way to Help
+
+**You do not need to know Git or JSON.** If you have spotted something wrong, open an issue:
+
+- [Report an incorrect or out-of-date entry](https://github.com/delschlangen/ai-legislation-tracker/issues/new?template=stale-entry.yml)
+- [Suggest a law to add](https://github.com/delschlangen/ai-legislation-tracker/issues/new?template=new-law.yml)
+
+Corrections matter more than additions here. A tracker that is confidently wrong is worse than one that is visibly incomplete.
+
+The rest of this guide is for editing the data directly.
+
+---
+
 ## Ways to Contribute
 
 | Contribution Type | Difficulty | Impact |
@@ -46,7 +59,9 @@ For state legislation:
     "Third key requirement or provision"
   ],
   "source_url": "https://official-government-source.gov/bill",
-  "tags": ["relevant", "topic", "tags"]
+  "tags": ["relevant", "topic", "tags"],
+  "last_verified": "2026-09-17",
+  "verification": "primary"
 }
 ```
 
@@ -65,7 +80,9 @@ For federal actions:
     "Second key requirement"
   ],
   "source_url": "https://official-source.gov",
-  "tags": ["relevant", "tags"]
+  "tags": ["relevant", "tags"],
+  "last_verified": "2026-09-17",
+  "verification": "primary"
 }
 ```
 
@@ -85,7 +102,9 @@ For international:
     "Second key provision"
   ],
   "source_url": "https://official-source.gov",
-  "tags": ["relevant", "tags"]
+  "tags": ["relevant", "tags"],
+  "last_verified": "2026-09-17",
+  "verification": "primary"
 }
 ```
 
@@ -99,7 +118,11 @@ For international:
 | `summary` | Yes | 1-3 sentences, factual, neutral tone |
 | `key_provisions` | Yes | Array of 3-6 main requirements |
 | `source_url` | Yes | Link to official government source |
-| `tags` | Yes | 2-5 relevant topic tags |
+| `tags` | Yes | 2-5 relevant topic tags, lowercase with underscores |
+| `last_verified` | Yes | `YYYY-MM-DD` date you checked it, or `needs_verification` |
+| `verification` | No | `primary`, `secondary` or `unconfirmed` — how you checked it |
+| `effective_date` | If enacted | When obligations begin |
+| `superseded_by` / `supersedes` | If applicable | The id of the related record |
 
 ### Step 4: Valid Status Values
 
@@ -111,6 +134,8 @@ For international:
 | `vetoed` | Passed legislature but vetoed |
 | `rescinded` | Was active but later revoked |
 | `adopted` | International agreements, resolutions |
+| `superseded` | Replaced by a later instrument. Set `superseded_by` to its id |
+| `expired` | Died without being enacted, or lapsed. For example a bill that died at prorogation |
 
 ### Step 5: Use Existing Tags When Possible
 
@@ -187,18 +212,42 @@ Before submitting:
 
 ---
 
+## Superseded and Repealed Law
+
+**Never delete a record and never reuse an id.** When a law is replaced:
+
+1. Set the old record's `status` to `superseded`, `expired` or `rescinded`
+2. Add `date_superseded` and `superseded_by` pointing at the successor's id
+3. Add `supersedes` on the new record pointing back
+4. Rewrite the old summary to say what happened
+
+Colorado `state-001` is the worked example: SB 24-205 was delayed, enforcement-stayed and then repealed before it ever took effect, so it is marked `superseded` and points at `state-011`. Anyone who cited it in 2024 can still resolve that id and see what changed.
+
+---
+
 ## Testing Your Changes
 
 ```bash
-# Verify JSON is valid and dashboard generates
-python src/generate_dashboard.py
+# Run this first. It checks structure, required fields, dates,
+# duplicate ids, bare-domain URLs and cross-references.
+python3 validate.py
 
-# Verify your entry appears in queries
-python src/query_legislation.py --search "your entry title"
+# Confirm your entry appears in queries
+python3 src/query_legislation.py --search "your entry title"
+
+# Confirm the dashboard still generates
+python3 src/generate_dashboard.py
 
 # Check tag assignment
-python src/query_legislation.py --list-tags
+python3 src/query_legislation.py --list-tags
 ```
+
+`validate.py` runs automatically on every pull request. It only reads files and
+reports what is wrong; it never edits or commits anything. If it fails, the
+message names the record and the problem.
+
+The website reads `data/*.json` directly, so there is no second copy to update.
+Your entry appears on the site as soon as the change is on `main`.
 
 ---
 
