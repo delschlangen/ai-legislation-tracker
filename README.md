@@ -134,6 +134,9 @@ python3 src/query_legislation.py --list-tags
 
 # Check the data is well formed
 python3 validate.py
+
+# Export everything to one CSV for a spreadsheet
+python3 src/export_csv.py
 ```
 
 **Requirements:** Python 3.7+. No external dependencies.
@@ -160,6 +163,8 @@ for law in state:
     if law["status"] == "enacted":
         print(law["bill_number"], "-", law["title"])
 ```
+
+Prefer a spreadsheet? `python3 src/export_csv.py` flattens all three files into one CSV. It is generated on demand rather than committed, so there is never a stale second copy of the data in the repository.
 
 ### Record schema
 
@@ -212,7 +217,8 @@ ai-legislation-tracker/
 │   └── styles.css
 ├── src/
 │   ├── generate_dashboard.py        # Markdown summary report
-│   └── query_legislation.py         # CLI filtering and search
+│   ├── query_legislation.py         # CLI filtering and search
+│   └── export_csv.py                # Flatten the dataset to CSV on demand
 ├── .github/
 │   ├── ISSUE_TEMPLATE/              # Forms for reporting or suggesting entries
 │   └── workflows/validate.yml       # Read-only data check on pull requests
@@ -243,8 +249,8 @@ If you would rather edit the data directly, see [CONTRIBUTING.md](CONTRIBUTING.m
 - [x] ~~Single source of truth for the website and the dataset~~
 - [x] ~~Read-only validation on pull requests~~
 - [x] ~~Issue forms for non-technical contributors~~
+- [x] ~~CSV export for spreadsheet users~~
 - [ ] Re-verify every entry against primary sources and move `verification` to `primary`
-- [ ] CSV export alongside JSON
 - [ ] Publish a JSON Schema file
 - [ ] Broaden state coverage, prioritising laws with operative obligations
 

@@ -22,3 +22,4 @@ Thumbs.db
 scratch/
 notes.md
 .env
+*.csv
