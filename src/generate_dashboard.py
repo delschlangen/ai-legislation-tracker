@@ -6,62 +6,103 @@ Generates a markdown dashboard summarizing the AI legislation landscape
 from the JSON data files.
 
 Usage:
-    python generate_dashboard.py [output.md]
+    python3 src/generate_dashboard.py              # print to the terminal
+    python3 src/generate_dashboard.py report.md    # write to a file
 """
 
+import argparse
 import json
+import re
 import sys
-from pathlib import Path
-from datetime import datetime
 from collections import Counter
+from datetime import datetime
+from pathlib import Path
+
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+# One map for every table, so a status never prints with a blank glyph in one
+# place and a symbol in another.
+STATUS_EMOJI = {
+    "enacted": "✅", "active": "✅", "adopted": "✅",
+    "pending": "⏳",
+    "vetoed": "❌", "rescinded": "❌",
+    "superseded": "📦", "expired": "⌛",
+}
 
 
 def load_data(data_dir: Path) -> dict:
-    """Load all JSON data files."""
+    """Load all JSON data files, keyed by file name without the extension."""
     data = {}
-    
-    for json_file in data_dir.glob("*.json"):
-        with open(json_file) as f:
+    for json_file in sorted(data_dir.glob("*.json")):
+        with open(json_file, encoding="utf-8") as f:
             data[json_file.stem] = json.load(f)
-    
     return data
+
+
+def title_of(item: dict) -> str:
+    return str(item.get("title") or item.get("name") or "Untitled")
+
+
+def status_of(item: dict) -> str:
+    return str(item.get("status") or "unknown")
+
+
+def status_cell(item: dict) -> str:
+    status = status_of(item)
+    emoji = STATUS_EMOJI.get(status, "")
+    return f"{emoji} {status}".strip()
+
+
+def shorten(text: str, limit: int) -> str:
+    return text[:limit] + ("..." if len(text) > limit else "")
+
+
+def md_cell(text) -> str:
+    """Make a value safe to place in a markdown table cell."""
+    return str(text).replace("|", "\\|").replace("\n", " ")
+
+
+def is_iso_date(value) -> bool:
+    return isinstance(value, str) and bool(DATE_RE.match(value))
+
+
+def format_status_counts(items: list) -> str:
+    """'**Active:** 9 | **Rescinded:** 1', covering every status actually present."""
+    counts = Counter(status_of(i) for i in items)
+    ordered = sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))
+    return " | ".join(f"**{status.title()}:** {n}" for status, n in ordered)
 
 
 def generate_summary_stats(data: dict) -> dict:
     """Calculate summary statistics."""
+    federal = data.get("us_federal_actions", [])
+    states = data.get("us_state_bills", [])
+    international = data.get("international_frameworks", [])
+
     stats = {
-        "federal_actions": len(data.get("us_federal_actions", [])),
-        "state_bills": len(data.get("us_state_bills", [])),
-        "international": len(data.get("international_frameworks", [])),
-        "total": 0
+        "federal_actions": len(federal),
+        "state_bills": len(states),
+        "international": len(international),
     }
     stats["total"] = stats["federal_actions"] + stats["state_bills"] + stats["international"]
-
-    # Status breakdown for state bills
-    state_bills = data.get("us_state_bills", [])
-    stats["state_enacted"] = sum(1 for b in state_bills if b.get("status") == "enacted")
-    stats["state_vetoed"] = sum(1 for b in state_bills if b.get("status") == "vetoed")
-    stats["state_pending"] = sum(1 for b in state_bills if b.get("status") == "pending")
-
-    # Federal status
-    federal = data.get("us_federal_actions", [])
-    stats["federal_active"] = sum(1 for f in federal if f.get("status") == "active")
-    stats["federal_rescinded"] = sum(1 for f in federal if f.get("status") == "rescinded")
 
     # Tag frequency
     all_tags = []
     for dataset in data.values():
         for item in dataset:
-            all_tags.extend(item.get("tags", []))
+            tags = item.get("tags", [])
+            if isinstance(tags, list):
+                all_tags.extend(t for t in tags if isinstance(t, str))
     stats["top_tags"] = Counter(all_tags).most_common(10)
 
-    # Verification date range
+    # Verification date range. Only real dates count; the needs_verification
+    # sentinel is tallied separately.
     verification_dates = []
     needs_verification_count = 0
     for dataset in data.values():
         for item in dataset:
             last_verified = item.get("last_verified", "")
-            if last_verified and last_verified != "needs_verification":
+            if is_iso_date(last_verified):
                 verification_dates.append(last_verified)
             elif last_verified == "needs_verification":
                 needs_verification_count += 1
@@ -77,9 +118,27 @@ def generate_summary_stats(data: dict) -> dict:
     return stats
 
 
+def upcoming_effective_dates(data: dict, today: str) -> list:
+    """Records whose effective date is still in the future, soonest first."""
+    upcoming = []
+    for filename, jurisdiction_of in (
+        ("us_federal_actions", lambda i: "US Federal"),
+        ("us_state_bills", lambda i: i.get("state") or "—"),
+        ("international_frameworks", lambda i: i.get("jurisdiction") or "—"),
+    ):
+        for item in data.get(filename, []):
+            when = item.get("full_application_date") or item.get("effective_date")
+            if is_iso_date(when) and when > today:
+                upcoming.append((when, jurisdiction_of(item), title_of(item)))
+    return sorted(upcoming)[:10]
+
+
 def generate_dashboard(data: dict, stats: dict) -> str:
     """Generate the markdown dashboard."""
-    
+    federal = data.get("us_federal_actions", [])
+    states = data.get("us_state_bills", [])
+    international = data.get("international_frameworks", [])
+
     lines = []
 
     # Header
@@ -96,7 +155,7 @@ def generate_dashboard(data: dict, stats: dict) -> str:
     if stats.get("needs_verification_count", 0) > 0:
         lines.append(f" ({stats['needs_verification_count']} entries need verification)")
     lines.append("\n")
-    
+
     # Summary stats
     lines.append("## Overview\n")
     lines.append("| Category | Count |")
@@ -104,107 +163,94 @@ def generate_dashboard(data: dict, stats: dict) -> str:
     lines.append(f"| US Federal Actions | {stats['federal_actions']} |")
     lines.append(f"| US State Bills | {stats['state_bills']} |")
     lines.append(f"| International Frameworks | {stats['international']} |")
-    
+
     # US Federal
     lines.append("\n## US Federal Actions\n")
-    lines.append(f"**Active:** {stats['federal_active']} | **Rescinded:** {stats['federal_rescinded']}\n")
+    lines.append(f"{format_status_counts(federal)}\n")
     lines.append("| Title | Type | Status | Issuing Body |")
     lines.append("|-------|------|--------|--------------|")
-    
-    for item in data.get("us_federal_actions", []):
-        status_emoji = {"active": "✅", "rescinded": "❌",
-                        "superseded": "📦", "expired": "⌛"}.get(item["status"], "")
-        lines.append(f"| {item['title'][:50]}{'...' if len(item['title']) > 50 else ''} | {item['type']} | {status_emoji} {item['status']} | {item['issuing_body']} |")
-    
+    for item in federal:
+        lines.append(
+            f"| {md_cell(shorten(title_of(item), 50))} | {md_cell(item.get('type', '—'))} "
+            f"| {status_cell(item)} | {md_cell(item.get('issuing_body', '—'))} |")
+
     # US States
     lines.append("\n## US State Legislation\n")
-    lines.append(f"**Enacted:** {stats['state_enacted']} | **Vetoed:** {stats['state_vetoed']} | **Pending:** {stats['state_pending']}\n")
+    lines.append(f"{format_status_counts(states)}\n")
     lines.append("| State | Bill | Title | Status | Effective |")
     lines.append("|-------|------|-------|--------|-----------|")
-    
-    for item in data.get("us_state_bills", []):
-        status_emoji = {"enacted": "✅", "vetoed": "❌", "pending": "⏳",
-                        "superseded": "📦", "expired": "⌛"}.get(item["status"], "")
-        effective = item.get("effective_date", "—")
-        title_short = item['title'][:35] + ('...' if len(item['title']) > 35 else '')
-        lines.append(f"| {item['state']} | {item['bill_number']} | {title_short} | {status_emoji} {item['status']} | {effective} |")
-    
+    for item in states:
+        lines.append(
+            f"| {md_cell(item.get('state', '—'))} | {md_cell(item.get('bill_number', '—'))} "
+            f"| {md_cell(shorten(title_of(item), 35))} | {status_cell(item)} "
+            f"| {md_cell(item.get('effective_date', '—'))} |")
+
     # International
     lines.append("\n## International Frameworks\n")
+    lines.append(f"{format_status_counts(international)}\n")
     lines.append("| Jurisdiction | Name | Type | Status |")
     lines.append("|--------------|------|------|--------|")
-    
-    for item in data.get("international_frameworks", []):
-        status_emoji = {"enacted": "✅", "active": "✅", "pending": "⏳", "adopted": "✅",
-                        "superseded": "📦", "expired": "⌛"}.get(item["status"], "")
-        display_name = item.get('name') or item.get('title', 'Untitled')
-        name_short = display_name[:40] + ('...' if len(display_name) > 40 else '')
-        lines.append(f"| {item['jurisdiction']} | {name_short} | {item['type']} | {status_emoji} {item['status']} |")
-    
+    for item in international:
+        lines.append(
+            f"| {md_cell(item.get('jurisdiction', '—'))} | {md_cell(shorten(title_of(item), 40))} "
+            f"| {md_cell(item.get('type', '—'))} | {status_cell(item)} |")
+
     # Key themes
     lines.append("\n## Key Themes (by tag frequency)\n")
     lines.append("| Tag | Occurrences |")
     lines.append("|-----|-------------|")
     for tag, count in stats["top_tags"]:
         lines.append(f"| `{tag}` | {count} |")
-    
+
     # Timeline of key dates
     lines.append("\n## Upcoming Effective Dates\n")
     lines.append("| Date | Jurisdiction | Item |")
     lines.append("|------|--------------|------|")
-    
-    upcoming = []
     today = datetime.now().strftime("%Y-%m-%d")
-    
-    for item in data.get("us_state_bills", []):
-        if item.get("effective_date") and item.get("effective_date") > today:
-            upcoming.append((item["effective_date"], item["state"], item["title"]))
-    
-    for item in data.get("international_frameworks", []):
-        eff = item.get("full_application_date") or item.get("effective_date") or item.get("date_effective")
-        if eff and eff > today:
-            upcoming.append((eff, item["jurisdiction"], item.get("title") or item.get("name", "Untitled")))
-    
-    for date, jurisdiction, title in sorted(upcoming)[:10]:
-        lines.append(f"| {date} | {jurisdiction} | {title[:50]} |")
-    
+    for date, jurisdiction, title in upcoming_effective_dates(data, today):
+        lines.append(f"| {date} | {md_cell(jurisdiction)} | {md_cell(title[:50])} |")
+
     # Footer
     lines.append("\n---")
     lines.append("*Generated by generate_dashboard.py*")
-    
+
     return "\n".join(lines)
 
 
 def main():
-    script_dir = Path(__file__).parent
-    data_dir = script_dir.parent / "data"
-    
+    parser = argparse.ArgumentParser(description="Generate a markdown dashboard from data/*.json.")
+    parser.add_argument("output", nargs="?", help="write to this file instead of the terminal")
+    args = parser.parse_args()
+
+    # The report contains emoji. Without this, a console using a legacy code page
+    # (common on Windows) raises UnicodeEncodeError instead of printing.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    data_dir = Path(__file__).parent.parent / "data"
+
     if not data_dir.exists():
-        print(f"ERROR: Data directory not found at {data_dir}")
-        sys.exit(1)
-    
-    # Load data
+        print(f"ERROR: Data directory not found at {data_dir}", file=sys.stderr)
+        return 1
+
     data = load_data(data_dir)
-    
+
     if not data:
-        print("ERROR: No data files found")
-        sys.exit(1)
-    
-    # Calculate stats
+        print("ERROR: No data files found", file=sys.stderr)
+        return 1
+
     stats = generate_summary_stats(data)
-    
-    # Generate dashboard
     dashboard = generate_dashboard(data, stats)
-    
-    # Output
-    if len(sys.argv) > 1:
-        output_path = Path(sys.argv[1])
-        with open(output_path, "w") as f:
+
+    if args.output:
+        output_path = Path(args.output)
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(dashboard)
         print(f"Dashboard written to {output_path}")
     else:
         print(dashboard)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

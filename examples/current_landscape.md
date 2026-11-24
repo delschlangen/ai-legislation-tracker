@@ -1,8 +1,8 @@
 # AI Legislation Landscape Dashboard
 
-**Report generated:** 2026-09-17
+**Report generated:** 2026-11-24
 
-**Total Items Tracked:** 43
+**Total Items Tracked:** 44
 
 **Data Verified:** 2024-12-24 to 2026-09-17
 
@@ -11,13 +11,13 @@
 
 | Category | Count |
 |----------|-------|
-| US Federal Actions | 11 |
+| US Federal Actions | 12 |
 | US State Bills | 17 |
 | International Frameworks | 15 |
 
 ## US Federal Actions
 
-**Active:** 9 | **Rescinded:** 1
+**Active:** 9 | **Enacted:** 1 | **Rescinded:** 1 | **Superseded:** 1
 
 | Title | Type | Status | Issuing Body |
 |-------|------|--------|--------------|
@@ -32,10 +32,11 @@
 | Executive Order 14179: Removing Barriers to Americ... | executive_order | ✅ active | White House |
 | Executive Order 14365: Ensuring a National Policy ... | executive_order | ✅ active | White House |
 | OMB Memorandum M-25-21: Accelerating Federal Use o... | guidance | ✅ active | OMB |
+| TAKE IT DOWN Act (Public Law 119-12) | statute | ✅ enacted | United States Congress |
 
 ## US State Legislation
 
-**Enacted:** 15 | **Vetoed:** 1 | **Pending:** 0
+**Enacted:** 15 | **Superseded:** 1 | **Vetoed:** 1
 
 | State | Bill | Title | Status | Effective |
 |-------|------|-------|--------|-----------|
@@ -58,6 +59,8 @@
 | Connecticut | SB 5 | Connecticut Artificial Intelligence... | ✅ enacted | 2026-10-01 |
 
 ## International Frameworks
+
+**Active:** 7 | **Enacted:** 4 | **Pending:** 2 | **Adopted:** 1 | **Expired:** 1
 
 | Jurisdiction | Name | Type | Status |
 |--------------|------|------|--------|
@@ -96,7 +99,6 @@
 
 | Date | Jurisdiction | Item |
 |------|--------------|------|
-| 2026-10-01 | Connecticut | Connecticut Artificial Intelligence Responsibility |
 | 2027-01-01 | Colorado | Automated Decision-Making Technology in Consequent |
 | 2027-01-01 | New York | Responsible AI Safety and Education (RAISE) Act |
 | 2028-08-02 | European Union | EU AI Act |
