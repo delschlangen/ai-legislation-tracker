@@ -202,6 +202,7 @@
     "status": "active",
     "date_issued": "2025-01-23",
     "issuing_body": "White House",
+    "supersedes": "fed-001",
     "summary": "Revoked Executive Order 14110 and reoriented federal AI policy toward promoting innovation and American AI leadership, directing agencies to identify and revise policies that act as barriers to AI development.",
     "key_provisions": [
       "Revokes Executive Order 14110",
@@ -251,6 +252,7 @@
     "status": "active",
     "date_issued": "2025-04-03",
     "issuing_body": "OMB",
+    "supersedes": "fed-003",
     "summary": "Replaced M-24-10 as the governing policy for federal agency use of AI, retaining Chief AI Officers and AI use case inventories while shifting emphasis toward adoption and removing some of the prior memo's risk-management requirements.",
     "key_provisions": [
       "Supersedes OMB M-24-10",
