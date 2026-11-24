@@ -23,6 +23,7 @@ Earlier versions of this file promised quarterly reviews and one-week turnaround
 
 | Review | Date | Scope |
 |:-------|:-----|:------|
+| Targeted update | 2026-11-24 | 3 entries added (Illinois SB 315, California AI Transparency Act, EO 14409) and 1 corrected (New York RAISE Act), all checked against published legal analyses and official bill pages. **Not a full review:** every other entry keeps its earlier `last_verified` date |
 | Full dataset review | 2026-09-17 | 30 of 44 entries corrected or added; schema extended for supersession |
 | Full dataset review | 2024-12-24 | Original 28 entries verified |
 

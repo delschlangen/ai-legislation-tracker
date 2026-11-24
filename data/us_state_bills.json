@@ -414,12 +414,13 @@
     "status": "enacted",
     "date_enacted": "2025-12-19",
     "effective_date": "2027-01-01",
-    "summary": "Second US state frontier model safety law after California SB 53. Requires large frontier developers to publish safety protocols and to report safety incidents to the state.",
+    "summary": "Second US state frontier model safety law after California SB 53. Requires large frontier developers to publish safety protocols and to report safety incidents to a new oversight office in the Department of Financial Services. A chapter amendment signed 2026-03-27 aligned it more closely with SB 53.",
     "key_provisions": [
       "Large frontier developers must write and publish safety protocols",
-      "Safety incident reporting to the state within 72 hours",
-      "Creates an AI oversight function with rulemaking and annual public reporting",
-      "Attorney General civil penalties"
+      "Large frontier developer is now defined by annual revenue, matching California SB 53, not by compute",
+      "Critical safety incidents reported within 72 hours to the new oversight office (DIGIT) in the Department of Financial Services",
+      "Quarterly catastrophic-risk assessments filed with that office",
+      "Attorney General civil penalties, reduced by the amendment to USD 1 million for a first violation and USD 3 million for later ones"
     ],
     "source_url": "https://www.nysenate.gov/legislation/bills/2025/S6953",
     "tags": [
@@ -429,7 +430,7 @@
       "transparency"
     ],
     "verification": "secondary",
-    "last_verified": "2026-09-17"
+    "last_verified": "2026-11-24"
   },
   {
     "id": "state-017",
@@ -457,6 +458,61 @@
       "provenance"
     ],
     "last_verified": "2026-09-17",
+    "verification": "secondary"
+  },
+  {
+    "id": "state-018",
+    "state": "Illinois",
+    "bill_number": "SB 315",
+    "title": "Artificial Intelligence Safety Measures Act",
+    "status": "enacted",
+    "date_enacted": "2026-07-06",
+    "effective_date": "2027-01-01",
+    "summary": "Third US state frontier AI safety law, after California SB 53 and New York's RAISE Act, and the first to require independent third-party audits of frontier developers. Signed as Public Act 104-0538.",
+    "key_provisions": [
+      "Applies to developers of frontier models, defined as foundation models trained with more than 10^26 operations",
+      "Heavier duties for large frontier developers, those with more than USD 500 million in annual revenue",
+      "Developers must evaluate and mitigate catastrophic risks",
+      "Critical safety incidents must be reported within 72 hours",
+      "Independent third-party audits of large frontier developers",
+      "Extends Illinois whistleblower protections to disclosures about violations of the Act",
+      "Declares regulation of frontier models an exclusive state function, preempting local rules"
+    ],
+    "source_url": "https://www.ilga.gov/Legislation/BillStatus?DocNum=315&DocTypeID=SB&GA=104&GAID=18&SessionID=114",
+    "tags": [
+      "frontier_ai",
+      "safety",
+      "incident_reporting",
+      "whistleblower"
+    ],
+    "last_verified": "2026-11-24",
+    "verification": "secondary"
+  },
+  {
+    "id": "state-019",
+    "state": "California",
+    "bill_number": "SB 942, as amended by AB 853",
+    "title": "California AI Transparency Act",
+    "status": "enacted",
+    "date_enacted": "2024-09-19",
+    "effective_date": "2026-08-02",
+    "summary": "Requires providers of generative AI systems to mark AI-generated image, video and audio content and to offer a free detection tool. AB 853, signed 2025-10-13, delayed the start from 2026-01-01 to 2026-08-02 and added duties for large online platforms, generative AI hosting platforms and capture-device makers on later dates. A further amending bill, SB 1000, was pending in mid-2026; its outcome was not confirmed.",
+    "key_provisions": [
+      "Covered generative AI providers must include latent disclosures in AI-generated image, video and audio content",
+      "Providers must offer a manifest (visible) disclosure option",
+      "Providers must make a free, publicly accessible AI detection tool available",
+      "From 2027-01-01, large online platforms must detect and display provenance data, and hosting platforms may not knowingly offer non-compliant generative AI systems",
+      "From 2028-01-01, makers of devices that capture images or audio must offer a latent disclosure option",
+      "Civil penalty of USD 5,000 per violation, enforced by the Attorney General, city attorneys and county counsel"
+    ],
+    "source_url": "https://leginfo.legislature.ca.gov/faces/billTextClient.xhtml?bill_id=202320240SB942",
+    "tags": [
+      "provenance",
+      "labeling",
+      "disclosure",
+      "genai"
+    ],
+    "last_verified": "2026-11-24",
     "verification": "secondary"
   }
 ]

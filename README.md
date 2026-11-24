@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Legislation%20Tracked-44-blue?style=for-the-badge" alt="Legislation Tracked"/>
+  <img src="https://img.shields.io/badge/Legislation%20Tracked-47-blue?style=for-the-badge" alt="Legislation Tracked"/>
   <img src="https://img.shields.io/badge/Jurisdictions-22-green?style=for-the-badge" alt="Jurisdictions"/>
   <img src="https://img.shields.io/badge/Python-3.7+-yellow?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
   <a href="LICENSE">
@@ -49,7 +49,9 @@ This repo provides:
 
 ## Data Currency
 
-> **Last review: September 2026. 44 entries across 22 jurisdictions.**
+> **Last full review: September 2026. 47 entries across 22 jurisdictions.**
+>
+> A targeted update on 2026-11-24 added three entries and corrected one. Every other entry was last checked in September 2026 or earlier.
 
 Each entry carries its own `last_verified` date and a `verification` field saying how it was checked:
 
@@ -90,10 +92,10 @@ This dataset deliberately tracks **notable frameworks and instruments with opera
 
 | Category | Total | In force / active | Pending | Superseded, expired, vetoed or rescinded |
 |:---------|:-----:|:-----------------:|:-------:|:----------------------------------------:|
-| US Federal | 12 | 10 | — | 2 |
-| US State | 17 | 15 | — | 2 |
+| US Federal | 13 | 11 | — | 2 |
+| US State | 19 | 17 | — | 2 |
 | International | 15 | 12 | 2 | 1 |
-| **Total** | **44** | **37** | **2** | **5** |
+| **Total** | **47** | **40** | **2** | **5** |
 
 ### Key legislation you should know
 
@@ -113,6 +115,8 @@ This dataset deliberately tracks **notable frameworks and instruments with opera
 |:-----|:-------------|:------------|:-------------|
 | **2027-01-01** | Colorado | SB 26-189 | Replacement AI law takes effect |
 | **2027-01-01** | New York | RAISE Act | Frontier model safety duties begin |
+| **2027-01-01** | Illinois | SB 315 | Frontier AI safety duties and third-party audits begin |
+| **2027-01-01** | California | AI Transparency Act | Large online platform and hosting platform duties begin |
 | **2027-12-02** | European Union | EU AI Act | Annex III stand-alone high-risk obligations apply |
 | **2028-08-02** | European Union | EU AI Act | Annex I embedded high-risk obligations apply |
 

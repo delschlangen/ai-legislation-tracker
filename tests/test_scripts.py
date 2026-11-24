@@ -107,8 +107,8 @@ class DashboardTests(unittest.TestCase):
     def test_committed_example_matches_the_data(self):
         example = (ROOT / "examples" / "current_landscape.md").read_text(encoding="utf-8")
         total = sum(len(r) for r in load_records().values())
-        self.assertIn(
-            f"**Total Items Tracked:** {total}", example,
+        self.assertTrue(
+            f"**Total Items Tracked:** {total}" in example,
             "examples/current_landscape.md is stale. Regenerate it: "
             "python3 src/generate_dashboard.py examples/current_landscape.md")
 
