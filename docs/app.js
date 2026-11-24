@@ -234,10 +234,14 @@
         : `${oldest} to ${newest}`;
     }
 
+    // Show the span, not just the newest date. A few recently updated entries
+    // must not make the whole dataset look as fresh as they are.
     if (dataCurrency) {
-      dataCurrency.textContent = newest
-        ? `Data verified as of ${formatVerifiedDate(newest)}`
-        : 'Verification date unknown';
+      const oldestMonth = oldest && formatVerifiedDate(oldest);
+      const newestMonth = newest && formatVerifiedDate(newest);
+      dataCurrency.textContent = !newest ? 'Verification date unknown'
+        : oldestMonth === newestMonth ? `Data verified as of ${newestMonth}`
+        : `Entries last verified ${oldestMonth} to ${newestMonth}`;
     }
   }
 
