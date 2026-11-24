@@ -46,13 +46,18 @@ Every entry may carry a `verification` field recording **how** it was last check
 ### Checking status
 
 ```bash
-# Entries nobody has ever verified
+# Entries nobody has ever verified (none today, so this returns nothing)
 python3 src/query_legislation.py --search "needs_verification"
+
+# Entries confirmed only against secondary sources, still waiting for a primary check
+# (search also matches the word anywhere in a record, so skim the results)
+python3 src/query_legislation.py --search "secondary"
 
 # Verification date range and full status breakdown
 python3 src/generate_dashboard.py
 
-# Structural problems: duplicate ids, missing fields, bad dates, bare-domain URLs
+# Structural problems: duplicate ids, missing fields, bad dates, bare-domain URLs,
+# one-way supersession links
 python3 validate.py
 ```
 
@@ -87,7 +92,7 @@ Then set `last_verified` to the date of the check and `verification` to the meth
 
 1. Set the old record's `status` to `superseded`, `expired` or `rescinded`
 2. Add `date_superseded` and `superseded_by` pointing at the successor's id
-3. Create the successor as a new record with `supersedes` pointing back
+3. Create the successor as a new record with `supersedes` pointing back. The validator fails a link recorded on only one side
 4. Update the old record's summary to explain what happened
 
 This is deliberate. A citation to `state-001` written in 2024 still resolves today and now tells the reader that Colorado SB 24-205 was repealed before it ever took effect. Deleting the record would break that.

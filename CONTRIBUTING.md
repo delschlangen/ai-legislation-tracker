@@ -35,16 +35,18 @@ The rest of this guide is for editing the data directly.
 
 | File | Use For |
 |:-----|:--------|
-| `data/us_federal_actions.json` | Executive orders, agency guidance, federal regulations |
+| `data/us_federal_actions.json` | Executive orders, agency guidance, federal regulations, federal statutes |
 | `data/us_state_bills.json` | State legislation, local ordinances (e.g., NYC) |
 | `data/international_frameworks.json` | Non-US laws, multi-national agreements, principles |
 
 ### Step 2: Copy an Existing Entry as Template
 
+Give the new record the next unused id in its file: the highest existing number plus one (`state-018` if the last state record is `state-017`). The `NNN` in the templates below is a placeholder and `validate.py` rejects it until you replace it. Never reuse or renumber an id.
+
 For state legislation:
 ```json
 {
-  "id": "state-011",
+  "id": "state-NNN",
   "state": "Virginia",
   "bill_number": "HB 1234",
   "title": "Official Bill Title Here",
@@ -58,7 +60,7 @@ For state legislation:
     "Second key requirement or provision",
     "Third key requirement or provision"
   ],
-  "source_url": "https://official-government-source.gov/bill",
+  "source_url": "https://official-government-source.gov/path/to/the/bill",
   "tags": ["relevant", "topic", "tags"],
   "last_verified": "2026-09-17",
   "verification": "primary"
@@ -68,7 +70,7 @@ For state legislation:
 For federal actions:
 ```json
 {
-  "id": "fed-009",
+  "id": "fed-NNN",
   "title": "Official Title Here",
   "type": "executive_order",
   "status": "active",
@@ -77,9 +79,10 @@ For federal actions:
   "summary": "One to three sentences describing the action.",
   "key_provisions": [
     "First key requirement",
-    "Second key requirement"
+    "Second key requirement",
+    "Third key requirement"
   ],
-  "source_url": "https://official-source.gov",
+  "source_url": "https://official-source.gov/path/to/the/document",
   "tags": ["relevant", "tags"],
   "last_verified": "2026-09-17",
   "verification": "primary"
@@ -89,19 +92,20 @@ For federal actions:
 For international:
 ```json
 {
-  "id": "intl-011",
+  "id": "intl-NNN",
   "jurisdiction": "Country or Organization",
-  "name": "Official Name Here",
+  "title": "Official Name Here",
   "type": "regulation",
   "status": "enacted",
   "date_adopted": "2025-01-15",
-  "date_effective": "2025-07-01",
+  "effective_date": "2025-07-01",
   "summary": "One to three sentences describing the framework.",
   "key_provisions": [
     "First key provision",
-    "Second key provision"
+    "Second key provision",
+    "Third key provision"
   ],
-  "source_url": "https://official-source.gov",
+  "source_url": "https://official-source.gov/path/to/the/document",
   "tags": ["relevant", "tags"],
   "last_verified": "2026-09-17",
   "verification": "primary"
@@ -112,8 +116,8 @@ For international:
 
 | Field | Required | Notes |
 |:------|:--------:|:------|
-| `id` | Yes | Unique ID like `state-011`, `fed-009`, `intl-011` |
-| `title` or `name` | Yes | Official name of legislation |
+| `id` | Yes | Unique and permanent. `fed-`, `state-` or `intl-` plus at least three digits, matching the file |
+| `title` | Yes | Official name of legislation. The older `name` field is retired |
 | `status` | Yes | See status values below |
 | `summary` | Yes | 1-3 sentences, factual, neutral tone |
 | `key_provisions` | Yes | Array of 3-6 main requirements |
@@ -122,7 +126,18 @@ For international:
 | `last_verified` | Yes | `YYYY-MM-DD` date you checked it, or `needs_verification` |
 | `verification` | No | `primary`, `secondary` or `unconfirmed` — how you checked it |
 | `effective_date` | If enacted | When obligations begin |
-| `superseded_by` / `supersedes` | If applicable | The id of the related record |
+| `superseded_by` / `supersedes` | If applicable | The id of the related record. Set both sides: the validator fails a one-way link |
+| `amends` / `amended_by` | If applicable | The id of the related record. Also set on both sides |
+
+A few fields are required per file as well:
+
+| File | Also required |
+|:-----|:--------------|
+| `us_federal_actions.json` | `type`, `issuing_body`, `date_issued` |
+| `us_state_bills.json` | `state`, `bill_number` |
+| `international_frameworks.json` | `jurisdiction`, `type` |
+
+A record with status `superseded` must have `superseded_by`, and one with status `vetoed` must have `veto_reason`. Dates must be zero-padded (`2026-01-05`, not `2026-1-5`), and `tags` and `key_provisions` must be lists.
 
 ### Step 4: Valid Status Values
 
@@ -189,7 +204,7 @@ Before submitting:
 - [ ] `summary` is factual and neutral (no advocacy)
 - [ ] `key_provisions` has 3-6 items
 - [ ] Tags use existing tags where applicable
-- [ ] Run `python src/generate_dashboard.py` to verify no errors
+- [ ] Run `python3 validate.py` and fix everything it reports
 
 ---
 
@@ -218,7 +233,7 @@ Before submitting:
 
 1. Set the old record's `status` to `superseded`, `expired` or `rescinded`
 2. Add `date_superseded` and `superseded_by` pointing at the successor's id
-3. Add `supersedes` on the new record pointing back
+3. Add `supersedes` on the new record pointing back. `validate.py` fails if either side is missing
 4. Rewrite the old summary to say what happened
 
 Colorado `state-001` is the worked example: SB 24-205 was delayed, enforcement-stayed and then repealed before it ever took effect, so it is marked `superseded` and points at `state-011`. Anyone who cited it in 2024 can still resolve that id and see what changed.
@@ -228,11 +243,11 @@ Colorado `state-001` is the worked example: SB 24-205 was delayed, enforcement-s
 ## Testing Your Changes
 
 ```bash
-# Run this first. It checks structure, required fields, dates,
-# duplicate ids, bare-domain URLs and cross-references.
+# Run this first. It checks structure, field types, required fields, dates,
+# duplicate ids, bare-domain URLs and that every supersession link is mutual.
 python3 validate.py
 
-# Confirm your entry appears in queries
+# Confirm your entry appears in queries (id, bill number and title all work)
 python3 src/query_legislation.py --search "your entry title"
 
 # Confirm the dashboard still generates
@@ -240,11 +255,14 @@ python3 src/generate_dashboard.py
 
 # Check tag assignment
 python3 src/query_legislation.py --list-tags
+
+# Only if you changed code in src/ or validate.py
+python3 -m unittest discover -s tests
 ```
 
-`validate.py` runs automatically on every pull request. It only reads files and
-reports what is wrong; it never edits or commits anything. If it fails, the
-message names the record and the problem.
+`validate.py` and the tests run automatically on every pull request. They only read
+files and report what is wrong; they never edit or commit anything. If one fails,
+the message names the record and the problem.
 
 The website reads `data/*.json` directly, so there is no second copy to update.
 Your entry appears on the site as soon as the change is on `main`.
@@ -256,7 +274,7 @@ Your entry appears on the site as soon as the change is on `main`.
 1. Fork the repository
 2. Create a branch: `git checkout -b add-virginia-hb1234`
 3. Make your changes
-4. Test with `python src/generate_dashboard.py`
+4. Run `python3 validate.py` and fix anything it reports
 5. Commit: `git commit -m "Add Virginia HB 1234: AI Transparency Requirements"`
 6. Push and open a Pull Request
 

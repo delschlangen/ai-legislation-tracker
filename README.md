@@ -103,7 +103,7 @@ This dataset deliberately tracks **notable frameworks and instruments with opera
 | **Colorado SB 26-189** | CO | Enacted | Replaced the repealed Colorado AI Act with a narrower transparency regime. Effective Jan 2027. |
 | **California SB 53** | CA | Enacted | First US state frontier AI safety law. In force since Jan 2026. |
 | **Texas HB 149 (TRAIGA)** | TX | Enacted | Third state comprehensive AI law, built on intent rather than risk tiers. |
-| **Connecticut CART Act** | CT | Enacted | Broadest US state AI law to date. First obligations bite Oct 2026. |
+| **Connecticut CART Act** | CT | Enacted | Broadest US state AI law to date. First obligations were scheduled for Oct 2026. |
 | **TAKE IT DOWN Act** | US Federal | Enacted | First federal statute placing AI duties on private platforms. |
 | **South Korea AI Framework Act** | KR | Enacted | World's second comprehensive national AI statute. In force since Jan 2026. |
 
@@ -111,7 +111,6 @@ This dataset deliberately tracks **notable frameworks and instruments with opera
 
 | Date | Jurisdiction | Legislation | What happens |
 |:-----|:-------------|:------------|:-------------|
-| **2026-10-01** | Connecticut | CART Act | First obligations begin, including AI-related layoff disclosure |
 | **2027-01-01** | Colorado | SB 26-189 | Replacement AI law takes effect |
 | **2027-01-01** | New York | RAISE Act | Frontier model safety duties begin |
 | **2027-12-02** | European Union | EU AI Act | Annex III stand-alone high-risk obligations apply |
@@ -139,6 +138,9 @@ python3 src/query_legislation.py --list-tags
 
 # Check the data is well formed
 python3 validate.py
+
+# Run the test suite (standard library only)
+python3 -m unittest discover -s tests
 
 # Export everything to one CSV for a spreadsheet
 python3 src/export_csv.py
@@ -193,7 +195,7 @@ Prefer a spreadsheet? `python3 src/export_csv.py` flattens all three files into 
 
 | Field | Required | Notes |
 |:------|:--------:|:------|
-| `id` | Yes | Permanent. Never reused or renumbered |
+| `id` | Yes | Permanent. Never reused or renumbered. `fed-`, `state-` or `intl-` plus digits |
 | `title` | Yes | Official name |
 | `status` | Yes | `enacted`, `active`, `adopted`, `pending`, `vetoed`, `rescinded`, `superseded`, `expired` |
 | `summary` | Yes | One to three sentences |
@@ -203,8 +205,8 @@ Prefer a spreadsheet? `python3 src/export_csv.py` flattens all three files into 
 | `last_verified` | Yes | `YYYY-MM-DD`, or `needs_verification` |
 | `verification` | No | `primary`, `secondary` or `unconfirmed` |
 | `effective_date` | If enacted | When obligations begin |
-| `superseded_by` / `supersedes` | If applicable | The id of the related record |
-| `amends` / `amended_by` | If applicable | The id of the related record |
+| `superseded_by` / `supersedes` | If applicable | The id of the related record. Recorded on both sides |
+| `amends` / `amended_by` | If applicable | The id of the related record. Recorded on both sides |
 
 ---
 
@@ -226,10 +228,12 @@ ai-legislation-tracker/
 │   └── export_csv.py                # Flatten the dataset to CSV on demand
 ├── .github/
 │   ├── ISSUE_TEMPLATE/              # Forms for reporting or suggesting entries
-│   └── workflows/validate.yml       # Read-only data check on pull requests
+│   └── workflows/validate.yml       # Read-only data check and tests on pull requests
 ├── examples/current_landscape.md    # Sample generated dashboard
+├── tests/                           # Standard-library unittest suite (run by CI)
 ├── validate.py                      # Data validator (read-only)
 ├── CITATION.cff                     # Machine-readable citation metadata (GitHub "Cite this repository")
+├── CLAUDE.md                        # Conventions for AI-assisted contributions
 ├── CITATION.md · CONTRIBUTING.md · MAINTENANCE.md · LICENSE
 └── README.md
 ```
