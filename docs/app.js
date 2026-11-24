@@ -198,6 +198,7 @@
     renderTagFilters();
     renderTable();
     bindEvents();
+    openRowFromHash();
   }
 
   // Surface a partial load rather than quietly showing an incomplete dataset.
@@ -218,7 +219,9 @@
   function renderDataStats() {
     const jurisdictions = new Set(allData.map(getJurisdictionDisplay).filter(Boolean));
 
-    const verifiedDates = allData.map(item => item.last_verified).filter(Boolean).sort();
+    // Only real dates count. The "needs_verification" sentinel would otherwise
+    // sort after every date and be shown as the newest one.
+    const verifiedDates = allData.map(item => item.last_verified).filter(isIsoDate).sort();
     const oldest = verifiedDates[0];
     const newest = verifiedDates[verifiedDates.length - 1];
 
@@ -253,8 +256,8 @@
     const topTags = getTagCounts();
 
     tagFiltersContainer.innerHTML = topTags.map(([tag, count]) => `
-      <button class="filter-btn" data-filter="${tag}">
-        ${formatTag(tag)} <span style="opacity: 0.7">(${count})</span>
+      <button type="button" class="filter-btn" data-filter="${escapeHtml(tag)}" aria-pressed="false">
+        ${escapeHtml(formatTag(tag))} <span style="opacity: 0.7">(${count})</span>
       </button>
     `).join('');
   }
@@ -279,40 +282,49 @@
     visibleCount.textContent = filteredData.length;
 
     tableBody.innerHTML = filteredData.map(item => {
-      const title = item.title || item.name;
+      const title = item.title || item.name || 'Untitled';
       // State bills show a bill number; federal and international records fall
       // back to their type, which needs prettifying ("executive_order" -> "Executive Order").
       const billNumber = item.bill_number || (item.type ? formatTag(item.type) : '');
-      const effectiveDate = item.effective_date || item.date_effective || item.full_application_date || '—';
-      const jurisdictionType = item.jurisdiction_type;
-      const jurisdiction = getJurisdictionDisplay(item);
+      const rawEffectiveDate = item.effective_date || item.date_effective || item.full_application_date;
+      const effectiveDate = rawEffectiveDate || '—';
+      const jurisdiction = getJurisdictionDisplay(item) || '';
+      const id = escapeHtml(item.id);
 
-      const status = item.status || 'unknown';
+      // Every value that comes from the data is escaped before it is placed in
+      // markup, so a record can never inject HTML. Values used as CSS classes
+      // are reduced to a safe token instead.
+      const statusClass = cssToken(item.status || 'unknown');
+      const statusLabel = capitalizeFirst(String(item.status || 'unknown'));
 
+      // The title is a real <button> so the row can be opened from the keyboard
+      // and announced as expandable. Clicking anywhere on the row still works.
       return `
-        <tr data-id="${item.id}" class="data-row">
-          <td>
-            <span class="jurisdiction-badge ${jurisdictionType}">${jurisdiction}</span>
+        <tr data-id="${id}" class="data-row" role="row">
+          <td role="cell">
+            <span class="jurisdiction-badge ${cssToken(item.jurisdiction_type)}">${escapeHtml(jurisdiction)}</span>
           </td>
-          <td class="title-cell">
-            ${escapeHtml(title)}
-            ${billNumber ? `<span class="bill-number">${escapeHtml(billNumber)}</span>` : ''}
+          <td class="title-cell" role="cell">
+            <button type="button" class="row-toggle" aria-expanded="false" aria-controls="detail-${id}">
+              ${escapeHtml(title)}
+              ${billNumber ? `<span class="bill-number">${escapeHtml(billNumber)}</span>` : ''}
+            </button>
           </td>
-          <td>
-            <span class="status-badge ${status}">
-              <span class="status-dot ${status}"></span>
-              ${capitalizeFirst(status)}
+          <td role="cell">
+            <span class="status-badge ${statusClass}">
+              <span class="status-dot ${statusClass}" aria-hidden="true"></span>
+              ${escapeHtml(statusLabel)}
             </span>
           </td>
-          <td>${effectiveDate}</td>
-          <td>
-            <svg class="expand-icon" viewBox="0 0 20 20" width="20" height="20">
+          <td role="cell" class="effective-cell${rawEffectiveDate ? '' : ' is-empty'}">${escapeHtml(effectiveDate)}</td>
+          <td role="cell">
+            <svg class="expand-icon" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false">
               <path fill="currentColor" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
             </svg>
           </td>
         </tr>
-        <tr class="detail-row" data-detail-for="${item.id}">
-          <td colspan="5">
+        <tr class="detail-row" id="detail-${id}" data-detail-for="${id}" role="row">
+          <td colspan="5" role="cell">
             ${renderDetailContent(item)}
           </td>
         </tr>
@@ -339,7 +351,7 @@
     const provisions = item.key_provisions || [];
     const tags = item.tags || [];
     const summary = item.summary || 'No summary available.';
-    const sourceUrl = item.source_url || '#';
+    const sourceUrl = safeUrl(item.source_url);
     const lastVerified = item.last_verified || 'Unknown';
 
     return `
@@ -366,8 +378,8 @@
 
           <div class="detail-section">
             <h4>Official Source</h4>
-            <a href="${escapeHtml(sourceUrl)}" class="source-link" target="_blank" rel="noopener">
-              <svg viewBox="0 0 20 20" width="16" height="16">
+            <a href="${escapeHtml(sourceUrl)}" class="source-link" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false">
                 <path fill="currentColor" d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
                 <path fill="currentColor" d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
               </svg>
@@ -447,13 +459,13 @@
       const btn = e.target.closest('.filter-btn');
       if (btn) {
         const isActive = btn.classList.contains('active');
-        // Remove active from all tag buttons
-        tagFiltersContainer.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        // Only one tag can be active at a time.
+        tagFiltersContainer.querySelectorAll('.filter-btn').forEach(b => setPressed(b, false));
 
         if (isActive) {
           activeFilters.tag = null;
         } else {
-          btn.classList.add('active');
+          setPressed(btn, true);
           activeFilters.tag = btn.dataset.filter;
         }
         applyFilters();
@@ -462,40 +474,92 @@
 
     // Reset filters
     resetFiltersBtn.addEventListener('click', resetFilters);
+
+    // A link like #state-001 opens that record. Record ids are permanent, so
+    // this link keeps working for as long as the record does.
+    window.addEventListener('hashchange', openRowFromHash);
   }
 
-  // Bind row click events (called after render)
+  // Bind row click events (called after render). A keyboard press on the title
+  // button fires a click that bubbles up to the row, so this one handler serves both.
   function bindRowEvents() {
     tableBody.querySelectorAll('.data-row').forEach(row => {
       row.addEventListener('click', () => toggleRowExpansion(row));
     });
   }
 
+  function findRow(id) {
+    return Array.from(tableBody.querySelectorAll('.data-row')).find(r => r.dataset.id === id) || null;
+  }
+
+  function findDetail(id) {
+    return Array.from(tableBody.querySelectorAll('.detail-row')).find(r => r.dataset.detailFor === id) || null;
+  }
+
+  // Open or close one row, keeping the CSS state and the accessibility state together.
+  function setExpanded(id, expanded) {
+    const row = findRow(id);
+    const detail = findDetail(id);
+    if (!row || !detail) return;
+    row.classList.toggle('expanded', expanded);
+    detail.classList.toggle('visible', expanded);
+    const toggle = row.querySelector('.row-toggle');
+    if (toggle) toggle.setAttribute('aria-expanded', String(expanded));
+  }
+
   // Toggle row expansion
   function toggleRowExpansion(row) {
     const id = row.dataset.id;
-    const detailRow = document.querySelector(`[data-detail-for="${id}"]`);
 
     // If clicking the same row, collapse it
     if (expandedRow === id) {
-      row.classList.remove('expanded');
-      detailRow.classList.remove('visible');
+      setExpanded(id, false);
       expandedRow = null;
+      updateHash(null);
       return;
     }
 
-    // Collapse any previously expanded row
-    if (expandedRow) {
-      const prevRow = document.querySelector(`[data-id="${expandedRow}"]`);
-      const prevDetail = document.querySelector(`[data-detail-for="${expandedRow}"]`);
-      if (prevRow) prevRow.classList.remove('expanded');
-      if (prevDetail) prevDetail.classList.remove('visible');
-    }
-
-    // Expand the clicked row
-    row.classList.add('expanded');
-    detailRow.classList.add('visible');
+    // Collapse any previously expanded row, then expand this one
+    if (expandedRow) setExpanded(expandedRow, false);
+    setExpanded(id, true);
     expandedRow = id;
+    updateHash(id);
+  }
+
+  // Keep the address bar pointing at the open record so it can be shared.
+  function updateHash(id) {
+    try {
+      const url = id
+        ? `#${encodeURIComponent(id)}`
+        : window.location.pathname + window.location.search;
+      window.history.replaceState(null, '', url);
+    } catch (error) {
+      // Some contexts (file://, sandboxed frames) refuse this. Sharing is a bonus.
+    }
+  }
+
+  // Open the record named by the URL fragment, if there is one.
+  function openRowFromHash() {
+    let id = '';
+    try {
+      id = decodeURIComponent(window.location.hash.slice(1));
+    } catch (error) {
+      return;
+    }
+    if (!id || !allData.some(item => item.id === id)) return;
+
+    let row = findRow(id);
+    if (!row) {
+      // The record exists but the current filters hide it.
+      resetFilters();
+      row = findRow(id);
+    }
+    if (!row) return;
+
+    if (expandedRow !== id) toggleRowExpansion(row);
+    row.scrollIntoView({ block: 'center' });
+    const toggle = row.querySelector('.row-toggle');
+    if (toggle) toggle.focus({ preventScroll: true });
   }
 
   // Handle search input
@@ -504,17 +568,23 @@
     applyFilters();
   }
 
+  // The visual state and the accessible state of a filter button always change together.
+  function setPressed(btn, pressed) {
+    btn.classList.toggle('active', pressed);
+    btn.setAttribute('aria-pressed', String(pressed));
+  }
+
   // Set active button in a filter group
   function setActiveButton(container, activeBtn) {
     container.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.classList.remove('active');
+      setPressed(btn, btn === activeBtn);
     });
-    activeBtn.classList.add('active');
   }
 
   // Apply all active filters
   function applyFilters() {
     expandedRow = null;
+    if (window.location.hash) updateHash(null);
 
     filteredData = allData.filter(item => {
       // Jurisdiction filter
@@ -549,7 +619,9 @@
           item.jurisdiction || '',
           item.issuing_body || '',
           item.bill_number || '',
+          item.id || '',
           item.type || '',
+          item.verification || '',
           ...(item.key_provisions || []),
           ...(item.tags || [])
         ].join(' ').toLowerCase();
@@ -579,22 +651,44 @@
 
     document.querySelectorAll('.filter-buttons').forEach(group => {
       group.querySelectorAll('.filter-btn').forEach((btn, index) => {
-        btn.classList.toggle('active', index === 0);
+        setPressed(btn, index === 0);
       });
     });
 
     tagFiltersContainer.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.classList.remove('active');
+      setPressed(btn, false);
     });
 
     applyFilters();
   }
 
-  // Utility: Escape HTML
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+  // Utility: Escape text for safe use as HTML content or inside a quoted
+  // attribute. (Setting textContent and reading innerHTML escapes < > & but NOT
+  // quotes, which is not enough once the value lands inside an attribute.)
+  function escapeHtml(value) {
+    return String(value === null || value === undefined ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // Utility: Reduce a value to something safe to use as a CSS class name.
+  function cssToken(value) {
+    return String(value === null || value === undefined ? '' : value)
+      .toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  }
+
+  // Utility: Only http(s) links are ever rendered as a link target. A
+  // "javascript:" URL in a data file would otherwise run when clicked.
+  function safeUrl(value) {
+    return typeof value === 'string' && /^https?:\/\//i.test(value.trim()) ? value.trim() : '#';
+  }
+
+  // Utility: a zero-padded calendar date, "2026-09-17"
+  function isIsoDate(value) {
+    return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
   }
 
   // Utility: Capitalize first letter
