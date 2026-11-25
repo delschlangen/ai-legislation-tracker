@@ -105,8 +105,33 @@ def federal_register_target(record):
 
 
 def disposition_notes(doc):
-    """The Federal Register has used two names for the notes field."""
-    return " ".join(str(doc.get(k) or "") for k in ("executive_order_notes", "disposition_notes")).strip()
+    """The Federal Register has used two names for the notes field, and often
+    returns both with the same text. Read one, so nothing is counted twice."""
+    for key in ("executive_order_notes", "disposition_notes"):
+        if doc.get(key):
+            return str(doc[key]).strip()
+    return ""
+
+
+def find_executive_order(number, fetch, timeout):
+    """The document number for an executive order, looked up by its EO number.
+
+    The API has no filter on the EO number itself, so search the full text for
+    the number among presidential documents and keep only an exact match on
+    executive_order_number. Returns None when nothing matches."""
+    searches = [
+        [("conditions[term]", number), ("conditions[type][]", "PRESDOCU"),
+         ("conditions[presidential_document_type]", "executive_order")],
+        [("conditions[term]", number), ("conditions[type][]", "PRESDOCU")],
+    ]
+    for conditions in searches:
+        query = urlencode(conditions + [("fields[]", "executive_order_number"),
+                                        ("fields[]", "document_number"), ("per_page", "50")])
+        found = fetch(f"{FR_API}/documents.json?{query}", timeout=timeout)
+        for doc in found.get("results") or []:
+            if str(doc.get("executive_order_number")) == str(number) and doc.get("document_number"):
+                return doc["document_number"]
+    return None
 
 
 def check_federal_register(record, fetch, timeout):
@@ -115,17 +140,11 @@ def check_federal_register(record, fetch, timeout):
         if kind == "document":
             doc = fetch(f"{FR_API}/documents/{value}.json", timeout=timeout)
         else:
-            query = urlencode([("conditions[type][]", "PRESDOCU"),
-                               ("conditions[presidential_document_type][]", "executive_order"),
-                               ("conditions[executive_order_numbers][]", value),
-                               ("per_page", "5")])
-            found = fetch(f"{FR_API}/documents.json?{query}", timeout=timeout)
-            matches = [d for d in found.get("results") or []
-                       if str(d.get("executive_order_number")) == value]
-            if not matches:
+            document_number = find_executive_order(value, fetch, timeout)
+            if not document_number:
                 return result(record, "Federal Register",
                               error=f"no Federal Register document found for Executive Order {value}")
-            doc = fetch(f"{FR_API}/documents/{matches[0]['document_number']}.json", timeout=timeout)
+            doc = fetch(f"{FR_API}/documents/{document_number}.json", timeout=timeout)
     except FetchError as exc:
         return result(record, "Federal Register", error=str(exc))
 
@@ -137,7 +156,8 @@ def check_federal_register(record, fetch, timeout):
         findings.append(f"Signed {signing} according to the Federal Register; the record says date_issued {record.get('date_issued')}")
 
     notes = disposition_notes(doc)
-    for verb, target in DISPOSITION.findall(notes):
+    dispositions = DISPOSITION.findall(notes)
+    for verb, target in dispositions:
         verb_l = verb.lower()
         if verb_l in ("revoked by", "superseded by") and status not in ("rescinded", "superseded"):
             findings.append(f"Federal Register notes say \"{verb} {target.strip()}\", but the record's status is {status}")
@@ -147,8 +167,8 @@ def check_federal_register(record, fetch, timeout):
     eo = f"EO {doc['executive_order_number']}, " if doc.get("executive_order_number") else ""
     summary = f"{eo}{doc.get('type') or 'document'} {doc.get('document_number')}, " \
               f"{'signed ' + signing if signing else 'published ' + str(published)}"
-    if notes:
-        summary += f". Notes: {notes[:200]}"
+    if dispositions:
+        summary += ". " + "; ".join(f"{verb} {target.strip()}" for verb, target in dispositions)
     return result(record, "Federal Register", upstream_url=doc.get("html_url"), summary=summary, findings=findings)
 
 
@@ -197,7 +217,7 @@ def check_congress(record, fetch, timeout, api_key):
         findings.append(f"Action on {latest.get('actionDate')} is newer than the last check "
                         f"({record.get('last_verified')}): {latest.get('text')}")
 
-    summary = f"Latest action {latest.get('actionDate')}: {latest.get('text')}"
+    summary = f"Latest action {latest.get('actionDate')}: {str(latest.get('text') or '').rstrip('.')}"
     if laws:
         summary += f". Public Law {', '.join(laws)}"
     human_url = f"https://www.congress.gov/bill/{ordinal(congress)}-congress/{CONGRESS_SLUGS[bill_type]}/{number}"

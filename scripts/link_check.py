@@ -82,6 +82,12 @@ def check_url(url, timeout=20, opener=urllib.request.urlopen, retries=1, pause=2
             if isinstance(reason, socket.gaierror):
                 result.update(outcome="broken", detail="host not found")
                 return result
+            if "CERTIFICATE_VERIFY_FAILED" in str(reason):
+                # Usually a server that omits an intermediate certificate.
+                # Browsers fill the gap; Python does not. Verification stays on.
+                result.update(outcome="unreachable",
+                              detail="the site's certificate chain is incomplete; browsers usually still open it")
+                return result
             result.update(outcome="unreachable", detail=str(reason))
         except (socket.timeout, TimeoutError):
             result.update(outcome="unreachable", detail="timed out")

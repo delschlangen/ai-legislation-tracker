@@ -200,6 +200,13 @@ class LinkCheckTests(unittest.TestCase):
         self.assertEqual(result["outcome"], "unreachable")
         self.assertEqual(len(calls), 2)
 
+    def test_incomplete_certificate_chain_is_explained(self):
+        def bad_cert(request):
+            raise urllib.error.URLError("[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed")
+        result = self.check({"HEAD": bad_cert})
+        self.assertEqual(result["outcome"], "unreachable")
+        self.assertIn("certificate chain is incomplete", result["detail"])
+
     def test_redirect_to_another_site_is_moved(self):
         result = self.check({"HEAD": lambda r: FakeResponse("https://archive.example/doc")})
         self.assertEqual(result["outcome"], "moved")
@@ -287,13 +294,37 @@ class FederalRegisterTests(unittest.TestCase):
         record = rec(id="fed-010", status="active", date_issued="2025-12-11",
                      source_url="https://www.federalregister.gov/executive-order/14365")
         fetch = fake_fetch([
-            ("documents.json?", {"results": [{"executive_order_number": 14365, "document_number": "2025-23092"}]}),
+            ("documents.json?", {"results": [
+                {"executive_order_number": 14179, "document_number": "2025-02172"},
+                {"executive_order_number": 14365, "document_number": "2025-23092"}]}),
             ("documents/2025-23092.json", {"document_number": "2025-23092", "executive_order_number": 14365,
                                            "signing_date": "2025-12-11"}),
         ])
         out = upstream.check_federal_register(record, fetch, 20)
         self.assertIsNone(out["error"])
         self.assertEqual(out["findings"], [])
+
+    def test_unmatched_executive_order_is_an_error_not_a_guess(self):
+        record = rec(id="fed-010", status="active", source_url="https://www.federalregister.gov/executive-order/14365")
+        fetch = fake_fetch([("documents.json?", {"results": [{"executive_order_number": 14179, "document_number": "x"}]})])
+        out = upstream.check_federal_register(record, fetch, 20)
+        self.assertIn("no Federal Register document found", out["error"])
+
+    def test_notes_in_both_fields_are_counted_once(self):
+        notes = "Amended by: EO 15000, March 1, 2026"
+        fetch = fake_fetch([("documents/2023-24283.json", {
+            "document_number": "2023-24283", "executive_order_number": 14110, "signing_date": "2023-10-30",
+            "executive_order_notes": notes, "disposition_notes": notes})])
+        out = upstream.check_federal_register(self.record, fetch, 20)
+        self.assertEqual(len(out["findings"]), 1)
+
+    def test_see_also_lists_stay_out_of_the_summary(self):
+        fetch = fake_fetch([("documents/2023-24283.json", {
+            "document_number": "2023-24283", "executive_order_number": 14110, "signing_date": "2023-10-30",
+            "executive_order_notes": "See: EO 12250, November 2, 1980; EO 12333\r\nRevoked by: EO 14148, January 20, 2025"})])
+        out = upstream.check_federal_register(dict(self.record, status="rescinded"), fetch, 20)
+        self.assertIn("Revoked by EO 14148", out["summary"])
+        self.assertNotIn("12250", out["summary"])
 
     def test_errors_are_reported_not_raised(self):
         fetch = fake_fetch([("documents/2023-24283.json", upstream.FetchError("HTTP 500", 500))])
