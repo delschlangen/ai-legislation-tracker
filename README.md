@@ -71,7 +71,7 @@ Each entry carries its own `last_verified` date and a `verification` field sayin
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to add or correct an entry |
 | [Change log](data/meta/changelog.json) | What was added or corrected, and when |
 
-**The dataset checks itself every week.** A scheduled job opens a GitHub issue titled "Maintenance report" listing stale entries, dates that just passed, broken source links, and anything the Federal Register, Congress.gov or Open States report as newer than the record. It never edits the data: every change is still made, and verified, by a person. See [MAINTENANCE.md](MAINTENANCE.md#automated-maintenance-report).
+**The dataset checks itself every week.** A scheduled job opens a GitHub issue titled "Maintenance report" listing stale entries, dates that just passed, broken source links, and anything the Federal Register or Congress.gov report as newer than the record. It needs no API keys or setup, and it never edits the data: every change is still made, and verified, by a person. See [MAINTENANCE.md](MAINTENANCE.md#automated-maintenance-report).
 
 ---
 
@@ -259,7 +259,7 @@ ai-legislation-tracker/
 ├── scripts/                         # Weekly maintenance report (read-only)
 │   ├── maintenance_report.py        # Stale entries, passed dates, README dates
 │   ├── link_check.py                # Do the source links still answer?
-│   └── upstream_check.py            # Federal Register, Congress.gov, Open States
+│   └── upstream_check.py            # Federal Register and Congress.gov, no keys
 ├── .github/
 │   ├── ISSUE_TEMPLATE/              # Forms for reporting or suggesting entries
 │   └── workflows/

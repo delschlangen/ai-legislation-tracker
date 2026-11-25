@@ -27,7 +27,7 @@ Every Monday a GitHub Actions workflow builds a checklist and posts it as one is
 
 | Section | What it means | What to do |
 |:--------|:--------------|:-----------|
-| Changes reported by official sources | The Federal Register, Congress.gov or Open States shows something newer than, or different from, the record | Read the official source. Update the record if the law really changed |
+| Changes reported by official sources | The Federal Register or Congress.gov shows something newer than, or different from, the record | Read the official source. Update the record if the law really changed |
 | Stale entries | Not verified in the last 183 days | Re-check the entry, then update `last_verified` and `verification` |
 | Dates that just passed | An effective date or phase arrived in the last 60 days | Confirm the law took effect as recorded and was not delayed or enjoined |
 | README dates now in the past | A row in the README's hand-written upcoming table has passed | Remove or update the row |
@@ -38,24 +38,14 @@ Every Monday a GitHub Actions workflow builds a checklist and posts it as one is
 
 ### What is checked upstream
 
-| Source | Records | Key |
-|:-------|:--------|:----|
-| Federal Register | Executive orders and rules whose `source_url` is on federalregister.gov. Checks the signing date and the "Revoked by", "Superseded by" and "Amended by" notes | None needed |
-| Congress.gov | Federal bills whose `source_url` is on congress.gov. Checks public-law status and any action newer than the last check | Optional. Without one it uses api.data.gov's shared `DEMO_KEY`, which is rate-limited |
-| Open States | State bills. The session is worked out from the official URL, or from the record's dates where the URL does not say | Required. State bills are skipped without one |
+| Source | Records | What it checks |
+|:-------|:--------|:---------------|
+| Federal Register | Executive orders and rules whose `source_url` is on federalregister.gov | The signing date, and the "Revoked by", "Superseded by" and "Amended by" notes |
+| Congress.gov | Federal bills whose `source_url` is on congress.gov | Public-law status, and any action newer than the last check |
 
-Agency guidance, city law and international law have no comparable single API. The report lists them as not checked automatically, and they stay on the twice-yearly review.
+**No setup and no API keys.** The Federal Register needs no key. Congress.gov is queried with api.data.gov's public `DEMO_KEY`, which needs no account. It is rate-limited; if a week's run hits the limit, the report says so and the next week tries again.
 
-### Adding API keys
-
-Both keys are free. Add each one as a repository secret: **Settings → Secrets and variables → Actions → New repository secret**.
-
-| Secret name | Where to get it |
-|:------------|:----------------|
-| `CONGRESS_GOV_API_KEY` | Sign up at [api.congress.gov](https://api.congress.gov/) |
-| `OPENSTATES_API_KEY` | Request one through the [Open States API documentation](https://docs.openstates.org/api-v3/) |
-
-The workflow reads them only in its read-only report job, and sends each only to its own service.
+**State bills are not checked against an official source.** Every free source of state bill data needs a personal API key, and the state legislature sites refuse automated requests. State records are still covered by the stale-entry and passed-date checks, which is what catches a law that changed. Agency guidance, city law and international law are likewise listed as not checked automatically, and stay on the twice-yearly review.
 
 ### Running it now
 

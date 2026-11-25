@@ -364,76 +364,36 @@ class CongressTests(unittest.TestCase):
         out = upstream.check_congress(dict(self.record, status="pending"), fetch, 20, "key")
         self.assertIn("Became Public Law 119-12", out["findings"][0])
 
-    def test_rate_limit_hint_with_demo_key(self):
+    def test_rate_limit_is_reported_without_asking_for_a_key(self):
         fetch = fake_fetch([("/bill/", upstream.FetchError("HTTP 429", 429))])
-        out = upstream.check_congress(self.record, fetch, 20, "DEMO_KEY")
-        self.assertIn("CONGRESS_GOV_API_KEY", out["error"])
-
-
-class OpenStatesTests(unittest.TestCase):
-    def test_sessions_are_worked_out_for_every_tracked_state_bill(self):
-        records = real_records()
-        expected = {
-            "state-005": ("Illinois", "101st", "HB 2557"),
-            "state-007": ("Texas", "88", "HB 2060"),
-            "state-008": ("Utah", "2024", "SB 149"),
-            "state-009": ("Tennessee", "113", "HB 2959"),
-            "state-010": ("Connecticut", "2023", "SB 1103"),
-            "state-001": ("Colorado", "2024A", "SB 24-205"),
-            "state-012": ("Illinois", "103rd", "HB 3773"),
-            "state-013": ("California", "20252026", "SB 53"),
-            "state-015": ("Texas", "89", "HB 149"),
-            "state-016": ("New York", "2025-2026", "S 6953"),
-            "state-017": ("Connecticut", "2026", "SB 5"),
-            "state-018": ("Illinois", "104th", "SB 315"),
-            "state-019": ("California", "20232024", "SB 942"),
-        }
-        for rid, want in expected.items():
-            got = upstream.openstates_target(records[rid])
-            self.assertIsNotNone(got, rid)
-            self.assertEqual(got[:3], want, rid)
-        # New York City local law is not in Open States.
-        self.assertIsNone(upstream.openstates_target(records["state-006"]))
-
-    def test_identifier_normalisation(self):
-        self.assertEqual(upstream.normalise_identifier("S6953B"), "S 6953")
-        self.assertEqual(upstream.normalise_identifier("SB 942, as amended by AB 853"), "SB 942")
-        self.assertEqual(upstream.normalise_identifier("SB 24-205"), "SB 24-205")
-        self.assertIsNone(upstream.normalise_identifier("Local Law 144"))
-
-    def test_new_action_is_reported(self):
-        record = dict(real_records()["state-018"], last_verified="2026-09-17")
-        fetch = fake_fetch([("v3.openstates.org/bills", {"results": [{
-            "latest_action_date": "2026-11-20T00:00:00+00:00", "latest_action_description": "Amendatory veto",
-            "openstates_url": "https://openstates.org/il/bills/104th/SB315/"}]})])
-        out = upstream.check_openstates(record, fetch, 20, "key")
-        self.assertIn("2026-11-20", out["findings"][0])
-        url, headers = fetch.calls[0]
-        self.assertIn("session=104th", url)
-        self.assertEqual(headers.get("X-API-KEY"), "key")
-
-    def test_not_found_points_at_the_mapping(self):
-        fetch = fake_fetch([("v3.openstates.org/bills", {"results": []})])
-        out = upstream.check_openstates(real_records()["state-013"], fetch, 20, "key")
-        self.assertIn("Check the session mapping", out["error"])
+        out = upstream.check_congress(self.record, fetch, 20)
+        self.assertIn("tried again next week", out["error"])
+        self.assertNotIn("API_KEY", out["error"])
 
 
 class OrchestrationTests(unittest.TestCase):
-    def test_without_an_openstates_key_state_bills_are_skipped(self):
+    def test_state_bills_are_skipped_and_never_contacted(self):
         records = [real_records()["state-013"], real_records()["intl-002"]]
-        results = upstream.check_all(records, fetch=fake_fetch([]), environ={}, pause=0)
-        self.assertIn("OPENSTATES_API_KEY", results[0]["skipped"])
+        fetch = fake_fetch([])
+        results = upstream.check_all(records, fetch=fetch, pause=0)
+        self.assertIn("no free official API", results[0]["skipped"])
         self.assertEqual(results[1]["skipped"], "no official API covers this source")
+        self.assertEqual(fetch.calls, [])
 
-    def test_congress_falls_back_to_demo_key(self):
+    def test_congress_uses_the_public_demo_key(self):
         fetch = fake_fetch([("/bill/119/s/146", {"bill": {"latestAction": {"actionDate": "2025-05-19", "text": "x"},
                                                           "laws": [{"number": "119-12"}]}})])
-        upstream.check_all([real_records()["fed-012"]], fetch=fetch, environ={}, pause=0)
+        upstream.check_all([real_records()["fed-012"]], fetch=fetch, pause=0)
         self.assertEqual(fetch.calls[0][1]["X-Api-Key"], "DEMO_KEY")
+
+    def test_nothing_reads_an_api_key_from_the_environment(self):
+        source = (ROOT / "scripts" / "upstream_check.py").read_text(encoding="utf-8")
+        self.assertNotIn("environ", source)
+        self.assertNotIn("OPENSTATES", source)
 
     def test_every_record_gets_exactly_one_result(self):
         records = list(real_records().values())
-        results = upstream.check_all(records, fetch=fake_fetch([]), environ={}, pause=0)
+        results = upstream.check_all(records, fetch=fake_fetch([]), pause=0)
         self.assertEqual(sorted(r["id"] for r in results), sorted(r["id"] for r in records))
 
     def test_report_lists_findings_first_and_counts_them(self):

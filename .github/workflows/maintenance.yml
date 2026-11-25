@@ -11,9 +11,8 @@
 # - The "report" job only reads. Only the "publish" job may write, and only to
 #   issues. It does not run on pull requests, so a PR can test the report but
 #   cannot post anything.
-# - Secrets are optional. Without CONGRESS_GOV_API_KEY it uses api.data.gov's
-#   shared DEMO_KEY; without OPENSTATES_API_KEY it skips state bills. See
-#   MAINTENANCE.md for how to add them.
+# - It needs no secrets and no setup. Congress.gov is queried with
+#   api.data.gov's public DEMO_KEY; the Federal Register needs no key.
 #
 # GitHub pauses scheduled workflows in a repository with no activity for 60
 # days. If the report stops arriving, re-enable it from the Actions tab.
@@ -47,9 +46,6 @@ jobs:
           python-version: '3.12'
 
       - name: Build the report
-        env:
-          CONGRESS_GOV_API_KEY: ${{ secrets.CONGRESS_GOV_API_KEY }}
-          OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }}
         run: >
           python3 scripts/maintenance_report.py --links --upstream
           --output report.md --attention-file attention.txt
