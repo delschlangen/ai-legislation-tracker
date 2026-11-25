@@ -17,6 +17,57 @@ Earlier versions of this file promised quarterly reviews and one-week turnaround
 
 **The dataset tells you its own age.** Every entry carries `last_verified`. The site shows the range, and `python3 src/generate_dashboard.py` prints it. Trust that field over anything written in prose.
 
+**A weekly report keeps the cadence honest.** Between reviews, the [automated maintenance report](#automated-maintenance-report) lists what has gone stale or changed upstream, so nothing waits six months unnoticed.
+
+---
+
+## Automated Maintenance Report
+
+Every Monday a GitHub Actions workflow builds a checklist and posts it as one issue titled **Maintenance report**. It updates that same issue each week rather than opening new ones, and adds a comment only when there is more to do than the week before.
+
+| Section | What it means | What to do |
+|:--------|:--------------|:-----------|
+| Changes reported by official sources | The Federal Register, Congress.gov or Open States shows something newer than, or different from, the record | Read the official source. Update the record if the law really changed |
+| Stale entries | Not verified in the last 183 days | Re-check the entry, then update `last_verified` and `verification` |
+| Dates that just passed | An effective date or phase arrived in the last 60 days | Confirm the law took effect as recorded and was not delayed or enjoined |
+| README dates now in the past | A row in the README's hand-written upcoming table has passed | Remove or update the row |
+| Broken source links | The official page returns 404 or 410, or the host is gone | Find the current URL for the same document |
+| Could not check automatically | The site refused an automated request or timed out | Usually bot protection. Open the link in a browser if in doubt |
+
+**It never edits the data.** An API knows a bill had an action. It does not know that a court enjoined the law or a different bill delayed it, and it cannot judge what counts as AI law. So the report says "look at this", and a person decides. A record's `last_verified` date moves only when someone actually checked it.
+
+### What is checked upstream
+
+| Source | Records | Key |
+|:-------|:--------|:----|
+| Federal Register | Executive orders and rules whose `source_url` is on federalregister.gov. Checks the signing date and the "Revoked by", "Superseded by" and "Amended by" notes | None needed |
+| Congress.gov | Federal bills whose `source_url` is on congress.gov. Checks public-law status and any action newer than the last check | Optional. Without one it uses api.data.gov's shared `DEMO_KEY`, which is rate-limited |
+| Open States | State bills. The session is worked out from the official URL, or from the record's dates where the URL does not say | Required. State bills are skipped without one |
+
+Agency guidance, city law and international law have no comparable single API. The report lists them as not checked automatically, and they stay on the twice-yearly review.
+
+### Adding API keys
+
+Both keys are free. Add each one as a repository secret: **Settings → Secrets and variables → Actions → New repository secret**.
+
+| Secret name | Where to get it |
+|:------------|:----------------|
+| `CONGRESS_GOV_API_KEY` | Sign up at [api.congress.gov](https://api.congress.gov/) |
+| `OPENSTATES_API_KEY` | Request one through the [Open States API documentation](https://docs.openstates.org/api-v3/) |
+
+The workflow reads them only in its read-only report job, and sends each only to its own service.
+
+### Running it now
+
+Open the **Actions** tab, choose **Maintenance report**, then **Run workflow**. The report also appears on the run's summary page. GitHub pauses scheduled workflows in a repository with no activity for 60 days; if the issue stops updating, re-enable the workflow from the same page.
+
+To build the offline parts locally:
+
+```bash
+python3 scripts/maintenance_report.py                     # stale entries, dates, README
+python3 scripts/maintenance_report.py --links --upstream  # also links and official APIs
+```
+
 ---
 
 ## Review History
@@ -57,9 +108,12 @@ python3 src/query_legislation.py --search "secondary"
 # Verification date range and full status breakdown
 python3 src/generate_dashboard.py
 
-# Structural problems: duplicate ids, missing fields, bad dates, bare-domain URLs,
-# one-way supersession links
+# Structural problems: duplicate ids, missing or misspelled fields, bad dates,
+# bare-domain URLs, one-way supersession links, a malformed change log
 python3 validate.py
+
+# Everything the weekly report would flag, offline
+python3 scripts/maintenance_report.py
 ```
 
 ---
@@ -98,6 +152,23 @@ Then set `last_verified` to the date of the check and `verification` to the meth
 
 This is deliberate. A citation to `state-001` written in 2024 still resolves today and now tells the reader that Colorado SB 24-205 was repealed before it ever took effect. Deleting the record would break that.
 
+## Handling Enjoined Law
+
+When a court blocks enforcement of a law, set its `status` to `enjoined`, add `injunction` naming the court, the case and the date, and add `date_enjoined`. If the injunction is lifted, set the status back and keep the history in the summary. The site shows an enjoined law with its own status and filter button.
+
+## Phased Laws
+
+A law that applies in stages keeps its first stage in `effective_date`, and lists every stage in `milestones`, oldest first:
+
+```json
+"milestones": [
+  {"date": "2026-08-02", "description": "Provider disclosure duties begin"},
+  {"date": "2027-01-01", "description": "Platform duties begin"}
+]
+```
+
+The site's "Coming up" list, each record's key dates, the dashboard and the weekly report all read these, so no upcoming-date table has to be kept by hand.
+
 ---
 
 ## Reporting a Problem
@@ -114,9 +185,10 @@ Include the entry id or title, what is wrong, what it should say, and an officia
 ## Updating an Entry
 
 1. Edit the relevant file in `data/`
-2. Update `last_verified` and `verification`
-3. Run `python3 validate.py`
-4. Open a pull request
+2. Update `last_verified` and `verification`, if you actually re-checked the entry
+3. Add an entry at the top of `data/meta/changelog.json` saying what changed. The site shows the latest ones under "Recently changed"
+4. Run `python3 validate.py`
+5. Open a pull request
 
 The website reads `data/*.json` directly, so there is no second copy to keep in sync. The same validator runs automatically on pull requests; it only reads files and reports problems, and never changes anything.
 

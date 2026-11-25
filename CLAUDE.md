@@ -13,15 +13,18 @@ This is a research tool, not legal advice. Never write copy that implies otherwi
 | Path | Purpose |
 |:-----|:--------|
 | `data/*.json` | The dataset. **The single source of truth.** Three files, each a JSON list of records |
-| `validate.py` | Read-only data validator. Run by CI |
+| `data/meta/changelog.json` | Hand-written log of what changed and when, newest first. The site shows it as "Recently changed" |
+| `schema/legislation.schema.json` | JSON Schema for the data. Lists every allowed field |
+| `validate.py` | Read-only data validator. Run by CI. Must agree with the schema |
 | `src/query_legislation.py` | CLI filtering and search |
 | `src/generate_dashboard.py` | Markdown summary report |
 | `src/export_csv.py` | Flattens the data to CSV on demand (never committed) |
+| `scripts/` | The weekly maintenance report: `maintenance_report.py`, `link_check.py`, `upstream_check.py` |
 | `tests/` | Standard-library `unittest` suite |
 | `docs/` | GitHub Pages site: `index.html`, `app.js`, `styles.css`. No build step |
 | `examples/current_landscape.md` | A committed copy of generated dashboard output |
 | `CITATION.cff`, `CITATION.md` | Citation metadata. The `.cff` powers GitHub's "Cite this repository" |
-| `.github/` | Issue forms and the read-only validation workflow |
+| `.github/` | Issue forms, the read-only validation workflow, and the weekly maintenance workflow |
 
 The three data files are `us_federal_actions.json` (ids `fed-NNN`), `us_state_bills.json` (`state-NNN`) and `international_frameworks.json` (`intl-NNN`).
 
@@ -33,6 +36,7 @@ python3 -m unittest discover -s tests    # tests; run after any edit to src/, va
 python3 src/query_legislation.py --search "colorado"
 python3 src/generate_dashboard.py [out.md]
 python3 src/export_csv.py [out.csv | -]
+python3 scripts/maintenance_report.py    # what the weekly report would flag, offline
 ```
 
 To try the site locally, serve the **repository root** (not `docs/`), because the site fetches `../data/*.json`:
@@ -46,11 +50,15 @@ python3 -m http.server 8000     # then open http://localhost:8000/docs/
 - **Never delete a record. Never reuse or renumber an id.** Ids are permanent so citations keep resolving. A replaced law gets status `superseded`, `expired` or `rescinded` and points at its successor.
 - **Supersession and amendment links are mutual.** If `fed-001` has `superseded_by: fed-009`, then `fed-009` needs `supersedes: fed-001`. The same holds for `amends` and `amended_by`. The validator fails a one-way link.
 - **New records get the next unused id in their file** (highest number plus one). The file decides the prefix.
-- **Use `title`, not `name`.** The `name` field was retired.
+- **Use `title`, not `name`.** The `name` and `date_effective` fields were retired.
+- **Every field must be in the schema.** The validator rejects any field not in `KNOWN_FIELDS`, which catches misspellings. A genuinely new field goes in `KNOWN_FIELDS` in `validate.py`, in `schema/legislation.schema.json`, and in `COLUMNS` in `src/export_csv.py`. `tests/test_schema.py` fails if the schema and validator disagree.
+- **Phased laws use `milestones`**, a list of `{"date", "description"}`, oldest first, with the first stage also in `effective_date`. Only record a stage you have a source for.
+- **A law blocked by a court is `enjoined`** and needs `injunction` (court, case, date) and `date_enjoined`.
+- **Log every data change** with an entry at the top of `data/meta/changelog.json`: `date`, `summary`, and the ids in `added` or `updated`. The validator checks that ids exist and dates run newest first. Do not log purely structural edits that change no fact.
 - **Dates are `YYYY-MM-DD`, zero-padded.** Only `last_verified` may instead be the literal `needs_verification`.
 - **`source_url` must be a specific document**, never a bare agency homepage. Prefer the official legislature, agency or gazette. News is never the citation.
 - **Tags are lowercase with underscores.** Reuse existing tags (`python3 src/query_legislation.py --list-tags`) instead of inventing synonyms.
-- Per-file required fields, and the status rules (`superseded` needs `superseded_by`, `vetoed` needs `veto_reason`), are enforced by `validate.py`. Read it rather than guessing.
+- Per-file required fields, and the status rules (`superseded` needs `superseded_by`, `vetoed` needs `veto_reason`, `enjoined` needs `injunction`), are enforced by `validate.py`. Read it rather than guessing.
 
 ### Verification is a claim. Do not make it falsely.
 
@@ -73,6 +81,9 @@ Adding or removing a record changes counts that are written by hand. Update all 
 2. `examples/current_landscape.md`, by regenerating it: `python3 src/generate_dashboard.py examples/current_landscape.md`
 3. `MAINTENANCE.md` review history, if you did a review pass
 4. `CITATION.md` and `CITATION.cff` (`date-released`, "data current as of") after a review pass
+5. `data/meta/changelog.json`, for any change of fact
+
+The README's "Upcoming effective dates" table is also hand-written. The weekly maintenance report flags rows once they pass; the site computes the same dates itself.
 
 If a record gains a field the CSV does not know, add it to `COLUMNS` in `src/export_csv.py`. A test fails otherwise, so a field is never silently dropped.
 
@@ -82,7 +93,10 @@ If a record gains a field the CSV does not know, add it to `COLUMNS` in `src/exp
 - **Python 3.7+ syntax.** No walrus operator, `match`, dict union (`|`) or `str.removeprefix`. CI runs 3.7 (pinned to ubuntu-22.04, the last image with a 3.7 build) and 3.12, so the floor is tested for real.
 - **Read files and write output as UTF-8** (`encoding="utf-8"`, and `sys.stdout.reconfigure` for emoji output). Without it the tools crash on Windows consoles.
 - **Tools must not crash on odd data.** Use `.get()` for optional fields. The validator is the gatekeeper, but the tools should still degrade gracefully.
-- **CI is read-only.** The workflow must not need secrets, fetch external data, or edit and commit files. Keep it that way.
+- **CI is read-only.** `validate.yml` must not need secrets, fetch external data, or edit and commit files. Keep it that way.
+- **The maintenance workflow is the one exception, and a narrow one.** `maintenance.yml` fetches official APIs and source links, and may read two optional secrets (`CONGRESS_GOV_API_KEY`, `OPENSTATES_API_KEY`). Only its `publish` job has a write permission, `issues: write`, and it never runs on pull requests. It must never edit data or commit. Pass untrusted text (API responses, record content) to `gh` as files, never through `${{ }}` in a `run:` line.
+- **Automation reports; people edit.** No script may change a record or bump `last_verified`. An API can say a bill had an action; only a person reading the source can say what the law now is.
+- **The maintenance scripts take an injectable `fetch` or `opener`.** Tests must not touch the network. Add a fake response to `tests/test_maintenance.py` for any new upstream check.
 - Keep the three CLIs consistent. A filter or search that works on the site should work in `query_legislation.py`, across all three files, which use different field names (`state` vs `jurisdiction` vs `issuing_body`).
 
 ## Rules for the website (`docs/`)
@@ -91,6 +105,8 @@ If a record gains a field the CSV does not know, add it to `COLUMNS` in `src/exp
 - **Everything that comes from the data and goes into HTML is escaped** with `escapeHtml`. Values used as CSS classes go through `cssToken`, and links through `safeUrl` (http and https only). Do not interpolate a data field into a template string unescaped.
 - **Keep it keyboard accessible.** Each row's title is a real `<button>` with `aria-expanded`. Filter buttons carry `aria-pressed`. Keep the two states changing together (`setPressed`, `setExpanded`).
 - **Record ids are deep links:** `/docs/#state-001` opens that record. Do not break this.
+- **The view is in the address bar.** Filters and sort live in the query string (`jurisdiction`, `status`, `tag`, `q`, `in_force`, `sort`), the open record in the fragment. `readUrlState` must ignore anything it does not recognise.
+- **Nothing date-dependent is hand-written on the site.** "Coming up", "Not yet in force", "Next stage" and "In force today" are computed from the data and the reader's date. "In force" means status `enacted`, `active` or `adopted` with no effective date still to come; the CLI and dashboard use the same rule.
 - Below 640px the table becomes stacked cards. Explicit `role` attributes keep table semantics, so keep them when editing the row template.
 - Text on coloured backgrounds must stay at 4.5:1 contrast or better.
 

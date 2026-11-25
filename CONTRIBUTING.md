@@ -125,7 +125,9 @@ For international:
 | `tags` | Yes | 2-5 relevant topic tags, lowercase with underscores |
 | `last_verified` | Yes | `YYYY-MM-DD` date you checked it, or `needs_verification` |
 | `verification` | No | `primary`, `secondary` or `unconfirmed` — how you checked it |
-| `effective_date` | If enacted | When obligations begin |
+| `effective_date` | If enacted | When obligations begin. For a law that applies in stages, the first stage |
+| `milestones` | If phased | Every stage, oldest first: `[{"date": "2027-01-01", "description": "Platform duties begin"}]` |
+| `injunction` / `date_enjoined` | If enjoined | The court, case and date of the order blocking enforcement |
 | `superseded_by` / `supersedes` | If applicable | The id of the related record. Set both sides: the validator fails a one-way link |
 | `amends` / `amended_by` | If applicable | The id of the related record. Also set on both sides |
 
@@ -137,7 +139,7 @@ A few fields are required per file as well:
 | `us_state_bills.json` | `state`, `bill_number` |
 | `international_frameworks.json` | `jurisdiction`, `type` |
 
-A record with status `superseded` must have `superseded_by`, and one with status `vetoed` must have `veto_reason`. Dates must be zero-padded (`2026-01-05`, not `2026-1-5`), and `tags` and `key_provisions` must be lists.
+A record with status `superseded` must have `superseded_by`, one with status `vetoed` must have `veto_reason`, and one with status `enjoined` must have `injunction`. Any field not in [`schema/legislation.schema.json`](schema/legislation.schema.json) is rejected, which catches misspellings such as `efective_date`. Dates must be zero-padded (`2026-01-05`, not `2026-1-5`), and `tags` and `key_provisions` must be lists.
 
 ### Step 4: Valid Status Values
 
@@ -151,6 +153,7 @@ A record with status `superseded` must have `superseded_by`, and one with status
 | `adopted` | International agreements, resolutions |
 | `superseded` | Replaced by a later instrument. Set `superseded_by` to its id |
 | `expired` | Died without being enacted, or lapsed. For example a bill that died at prorogation |
+| `enjoined` | A court has blocked enforcement. Set `injunction` and `date_enjoined` |
 
 ### Step 5: Use Existing Tags When Possible
 
@@ -178,12 +181,19 @@ A record with status `superseded` must have `superseded_by`, and one with status
 
 ## Updating Existing Entries
 
-When legislation status changes (enacted, vetoed, rescinded):
+When legislation status changes (enacted, vetoed, rescinded, enjoined):
 
 1. Update the `status` field
-2. Add relevant date field (`date_enacted`, `date_vetoed`, `date_rescinded`)
-3. If vetoed, add `veto_reason` field with brief explanation
+2. Add relevant date field (`date_enacted`, `date_vetoed`, `date_rescinded`, `date_enjoined`)
+3. If vetoed, add `veto_reason`. If enjoined, add `injunction`
 4. Update `summary` if needed
+5. Add an entry at the top of `data/meta/changelog.json`:
+
+```json
+{"date": "2026-12-01", "summary": "Recorded the veto of Example HB 1.", "updated": ["state-020"]}
+```
+
+Use `added` instead of `updated` for a new record. The site shows the latest entries under "Recently changed".
 
 Example:
 ```json
@@ -204,6 +214,7 @@ Before submitting:
 - [ ] `summary` is factual and neutral (no advocacy)
 - [ ] `key_provisions` has 3-6 items
 - [ ] Tags use existing tags where applicable
+- [ ] An entry at the top of `data/meta/changelog.json` says what you added or changed
 - [ ] Run `python3 validate.py` and fix everything it reports
 
 ---

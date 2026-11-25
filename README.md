@@ -69,6 +69,9 @@ Each entry carries its own `last_verified` date and a `verification` field sayin
 | [CITATION.md](CITATION.md) | How to cite this dataset |
 | [MAINTENANCE.md](MAINTENANCE.md) | Review cadence, verification method, status vocabulary |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to add or correct an entry |
+| [Change log](data/meta/changelog.json) | What was added or corrected, and when |
+
+**The dataset checks itself every week.** A scheduled job opens a GitHub issue titled "Maintenance report" listing stale entries, dates that just passed, broken source links, and anything the Federal Register, Congress.gov or Open States report as newer than the record. It never edits the data: every change is still made, and verified, by a person. See [MAINTENANCE.md](MAINTENANCE.md#automated-maintenance-report).
 
 ---
 
@@ -120,7 +123,7 @@ This dataset deliberately tracks **notable frameworks and instruments with opera
 | **2027-12-02** | European Union | EU AI Act | Annex III stand-alone high-risk obligations apply |
 | **2028-08-02** | European Union | EU AI Act | Annex I embedded high-risk obligations apply |
 
-Run `python3 src/generate_dashboard.py` for the current version of this table, generated from the data.
+This table is written by hand. The [live site](https://delschlangen.github.io/ai-legislation-tracker/) shows the same dates computed from the data, including each stage of phased laws, and `python3 src/generate_dashboard.py` prints them. The weekly maintenance report flags any row here once its date has passed.
 
 ---
 
@@ -138,6 +141,7 @@ python3 src/query_legislation.py --tag employment
 python3 src/query_legislation.py --status superseded
 python3 src/query_legislation.py --jurisdiction Colorado
 python3 src/query_legislation.py --search "frontier"
+python3 src/query_legislation.py --in-force --jurisdiction California
 python3 src/query_legislation.py --list-tags
 
 # Check the data is well formed
@@ -148,6 +152,9 @@ python3 -m unittest discover -s tests
 
 # Export everything to one CSV for a spreadsheet
 python3 src/export_csv.py
+
+# The weekly maintenance report, offline parts only
+python3 scripts/maintenance_report.py
 ```
 
 **Requirements:** Python 3.7+. No external dependencies.
@@ -177,6 +184,19 @@ for law in state:
 
 Prefer a spreadsheet? `python3 src/export_csv.py` flattens all three files into one CSV. It is generated on demand rather than committed, so there is never a stale second copy of the data in the repository.
 
+Validating your own copy or a fork? [`schema/legislation.schema.json`](schema/legislation.schema.json) is a JSON Schema (draft 2020-12) for all three files. Use `#/$defs/federalFile`, `#/$defs/stateFile` or `#/$defs/internationalFile` for one file. It lists every field a record may carry, so a misspelled field fails validation. `validate.py` enforces the same rules, and a test fails if the two disagree.
+
+### Using the site
+
+The [live site](https://delschlangen.github.io/ai-legislation-tracker/) needs no install. Beyond search and filters:
+
+- **Coming up** lists the next effective dates and phased obligations, computed from the data each time the page loads.
+- **Recently changed** shows the latest entries in the change log.
+- **In force today** narrows the list to laws and policies that apply now. A law that is enacted but not yet effective is marked "Not yet in force".
+- **Sort by** effective date, jurisdiction, name or status.
+- **Every view is a link.** Filters and sort order live in the address bar, so a copied URL reproduces what you see. Adding `#state-001` opens that record.
+- **Each record** shows its key dates, its full line of succession and any amendments, with links to each.
+
 ### Record schema
 
 ```json
@@ -201,16 +221,20 @@ Prefer a spreadsheet? `python3 src/export_csv.py` flattens all three files into 
 |:------|:--------:|:------|
 | `id` | Yes | Permanent. Never reused or renumbered. `fed-`, `state-` or `intl-` plus digits |
 | `title` | Yes | Official name |
-| `status` | Yes | `enacted`, `active`, `adopted`, `pending`, `vetoed`, `rescinded`, `superseded`, `expired` |
+| `status` | Yes | `enacted`, `active`, `adopted`, `pending`, `vetoed`, `rescinded`, `superseded`, `expired`, `enjoined` |
 | `summary` | Yes | One to three sentences |
 | `key_provisions` | Yes | Array of the main obligations |
 | `source_url` | Yes | A specific document, never a bare agency homepage |
 | `tags` | Yes | Lowercase with underscores |
 | `last_verified` | Yes | `YYYY-MM-DD`, or `needs_verification` |
 | `verification` | No | `primary`, `secondary` or `unconfirmed` |
-| `effective_date` | If enacted | When obligations begin |
+| `effective_date` | If enacted | When obligations begin. For a phased law, the first stage |
+| `milestones` | No | Phased dates, oldest first: a list of `{"date", "description"}` |
+| `injunction` | If enjoined | The court action blocking enforcement: court, case and date |
 | `superseded_by` / `supersedes` | If applicable | The id of the related record. Recorded on both sides |
 | `amends` / `amended_by` | If applicable | The id of the related record. Recorded on both sides |
+
+The full vocabulary, including per-file fields such as `state`, `bill_number`, `jurisdiction` and `issuing_body`, is in [`schema/legislation.schema.json`](schema/legislation.schema.json).
 
 ---
 
@@ -221,7 +245,9 @@ ai-legislation-tracker/
 ├── data/                            # The dataset — the single source of truth
 │   ├── us_federal_actions.json
 │   ├── us_state_bills.json
-│   └── international_frameworks.json
+│   ├── international_frameworks.json
+│   └── meta/changelog.json          # What changed and when; shown on the site
+├── schema/legislation.schema.json   # JSON Schema for the three data files
 ├── docs/                            # GitHub Pages site; reads data/ at runtime
 │   ├── index.html
 │   ├── app.js
@@ -230,9 +256,15 @@ ai-legislation-tracker/
 │   ├── generate_dashboard.py        # Markdown summary report
 │   ├── query_legislation.py         # CLI filtering and search
 │   └── export_csv.py                # Flatten the dataset to CSV on demand
+├── scripts/                         # Weekly maintenance report (read-only)
+│   ├── maintenance_report.py        # Stale entries, passed dates, README dates
+│   ├── link_check.py                # Do the source links still answer?
+│   └── upstream_check.py            # Federal Register, Congress.gov, Open States
 ├── .github/
 │   ├── ISSUE_TEMPLATE/              # Forms for reporting or suggesting entries
-│   └── workflows/validate.yml       # Read-only data check and tests on pull requests
+│   └── workflows/
+│       ├── validate.yml             # Read-only data check and tests on pull requests
+│       └── maintenance.yml          # Weekly report, posted as a GitHub issue
 ├── examples/current_landscape.md    # Sample generated dashboard
 ├── tests/                           # Standard-library unittest suite (run by CI)
 ├── validate.py                      # Data validator (read-only)
@@ -264,8 +296,10 @@ If you would rather edit the data directly, see [CONTRIBUTING.md](CONTRIBUTING.m
 - [x] ~~Read-only validation on pull requests~~
 - [x] ~~Issue forms for non-technical contributors~~
 - [x] ~~CSV export for spreadsheet users~~
+- [x] ~~Publish a JSON Schema file~~
+- [x] ~~Weekly automated report: stale entries, broken links, upstream changes~~
+- [x] ~~Phased dates, an `enjoined` status, and a change log~~
 - [ ] Re-verify every entry against primary sources and move `verification` to `primary`
-- [ ] Publish a JSON Schema file
 - [ ] Broaden state coverage, prioritising laws with operative obligations
 
 ---
