@@ -127,7 +127,10 @@ def generate_summary_stats(data: dict) -> dict:
 def key_dates(item: dict) -> list:
     """(date, what happens) for every dated stage of a record."""
     dates = []
-    for milestone in item.get("milestones") or []:
+    # Tolerate a malformed value: the validator reports it, and a report that
+    # crashed instead would hide everything else.
+    milestones = item.get("milestones")
+    for milestone in (milestones if isinstance(milestones, list) else []):
         if isinstance(milestone, dict) and is_iso_date(milestone.get("date")):
             dates.append((milestone["date"], str(milestone.get("description") or "")))
     recorded = {d for d, _ in dates}

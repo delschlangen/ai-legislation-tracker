@@ -11,8 +11,12 @@ and a person decides what, if anything, changes in the data.
 Sources, matched from each record's source_url (and bill_number for states):
 
 - Federal Register (federalregister.gov): executive orders and rules. No key.
-  Checks the signing date against the record and reads the disposition notes
-  for "Revoked by", "Superseded by" and "Amended by".
+  For an executive order: the signing date must equal the record's date_issued,
+  and the disposition notes are read for "Revoked by", "Superseded by" and
+  "Amended by". For a rule: the publication date is compared with date_issued
+  and flagged when they are more than 30 days apart (a rule is normally issued
+  a little before it is published), and the effective date is compared when
+  both sides record one. Rules carry no disposition notes.
 - Congress.gov (congress.gov/bill/...): federal bills. Uses api.data.gov's
   public DEMO_KEY, which needs no sign-up. It is rate-limited, but that is
   plenty for the one or two federal bills tracked here; if the limit is hit,
@@ -30,12 +34,14 @@ Usage:
     python3 scripts/upstream_check.py
 """
 
+import http.client
 import json
 import re
 import sys
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -51,23 +57,48 @@ class FetchError(Exception):
         self.status = status
 
 
-def fetch_json(url, headers=None, timeout=20):
-    """GET a URL and parse JSON. Raises FetchError with the HTTP status if any."""
-    request = urllib.request.Request(url, headers=dict({"User-Agent": USER_AGENT, "Accept": "application/json"},
-                                                       **(headers or {})))
+def fetch_json(url, headers=None, timeout=20, opener=urllib.request.urlopen):
+    """GET a URL and parse JSON. Every failure becomes a FetchError, carrying
+    the HTTP status when there was one."""
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
+        request = urllib.request.Request(url, headers=dict(
+            {"User-Agent": USER_AGENT, "Accept": "application/json"}, **(headers or {})))
+        with opener(request, timeout=timeout) as response:
+            body = response.read()
     except urllib.error.HTTPError as exc:
         raise FetchError(f"HTTP {exc.code}", exc.code)
-    except (urllib.error.URLError, OSError, ValueError) as exc:
-        raise FetchError(str(getattr(exc, "reason", exc)))
+    except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError) as exc:
+        # http.client errors (a truncated body, a garbled status line) are not
+        # OSError, and some carry no message at all.
+        detail = str(getattr(exc, "reason", "") or exc).strip()
+        raise FetchError(f"{type(exc).__name__}: {detail}" if detail else type(exc).__name__)
+    try:
+        return json.loads(body.decode("utf-8"))
+    except ValueError as exc:
+        raise FetchError(f"the response was not valid JSON ({exc})")
+
+
+def as_dict(value):
+    """An API can return null, or a list, where an object was expected."""
+    return value if isinstance(value, dict) else {}
+
+
+def as_list(value):
+    return value if isinstance(value, list) else []
 
 
 def day(value):
     """The YYYY-MM-DD part of a date or timestamp, or None."""
     match = DATE_RE.match(str(value or ""))
     return match.group(1) if match else None
+
+
+def days_between(first, second):
+    """Whole days between two YYYY-MM-DD dates, or None if either is not a date."""
+    try:
+        return abs((datetime.strptime(first, "%Y-%m-%d") - datetime.strptime(second, "%Y-%m-%d")).days)
+    except (TypeError, ValueError):
+        return None
 
 
 def newer_than_check(action_date, record):
@@ -91,6 +122,9 @@ def result(record, source, **fields):
 FR_DOCUMENT = re.compile(r"federalregister\.gov/documents/\d{4}/\d{2}/\d{2}/(\d{4}-\d{3,6})(?:/|$)")
 FR_EXECUTIVE_ORDER = re.compile(r"federalregister\.gov/executive-order/(\d+)")
 FR_API = "https://www.federalregister.gov/api/v1"
+# A rule is normally issued shortly before the Federal Register publishes it.
+# A gap larger than this suggests the record's date, or its link, is wrong.
+RULE_DATE_TOLERANCE_DAYS = 30
 DISPOSITION = re.compile(r"(Revoked by|Superseded by|Amended by|Revokes|Supersedes|Amends)\s*:?\s*([^\r\n;]+)", re.I)
 
 
@@ -128,8 +162,9 @@ def find_executive_order(number, fetch, timeout):
     for conditions in searches:
         query = urlencode(conditions + [("fields[]", "executive_order_number"),
                                         ("fields[]", "document_number"), ("per_page", "50")])
-        found = fetch(f"{FR_API}/documents.json?{query}", timeout=timeout)
-        for doc in found.get("results") or []:
+        found = as_dict(fetch(f"{FR_API}/documents.json?{query}", timeout=timeout))
+        for doc in as_list(found.get("results")):
+            doc = as_dict(doc)
             if str(doc.get("executive_order_number")) == str(number) and doc.get("document_number"):
                 return doc["document_number"]
     return None
@@ -148,13 +183,35 @@ def check_federal_register(record, fetch, timeout):
             doc = fetch(f"{FR_API}/documents/{document_number}.json", timeout=timeout)
     except FetchError as exc:
         return result(record, "Federal Register", error=str(exc))
+    if not isinstance(doc, dict) or not doc.get("document_number"):
+        return result(record, "Federal Register", error="the Federal Register returned no document")
 
     findings = []
     status = str(record.get("status", "")).lower()
+    issued = day(record.get("date_issued"))
     signing = day(doc.get("signing_date"))
     published = day(doc.get("publication_date"))
-    if doc.get("executive_order_number") and signing and record.get("date_issued") and signing != record.get("date_issued"):
-        findings.append(f"Signed {signing} according to the Federal Register; the record says date_issued {record.get('date_issued')}")
+    kind_of_document = doc.get("type") or "document"
+
+    if doc.get("executive_order_number"):
+        if signing and issued and signing != issued:
+            findings.append(f"Signed {signing} according to the Federal Register; "
+                            f"the record says date_issued {issued}")
+        summary = f"EO {doc['executive_order_number']}, {kind_of_document} {doc['document_number']}, " \
+                  f"{'signed ' + signing if signing else 'published ' + str(published)}"
+    else:
+        gap = days_between(published, issued)
+        if gap is not None and gap > RULE_DATE_TOLERANCE_DAYS:
+            findings.append(f"Published {published} in the Federal Register, but the record says "
+                            f"date_issued {issued}, {gap} days apart. Check the date and the link")
+        effective = day(doc.get("effective_on"))
+        recorded = day(record.get("effective_date"))
+        if effective and recorded and effective != recorded:
+            findings.append(f"Effective {effective} according to the Federal Register; "
+                            f"the record says effective_date {recorded}")
+        summary = f"{kind_of_document} {doc['document_number']}, published {published}"
+        if effective:
+            summary += f", effective {effective}"
 
     notes = disposition_notes(doc)
     dispositions = DISPOSITION.findall(notes)
@@ -164,10 +221,6 @@ def check_federal_register(record, fetch, timeout):
             findings.append(f"Federal Register notes say \"{verb} {target.strip()}\", but the record's status is {status}")
         elif verb_l == "amended by" and not record.get("amended_by"):
             findings.append(f"Federal Register notes say \"{verb} {target.strip()}\"; the record has no amended_by link")
-
-    eo = f"EO {doc['executive_order_number']}, " if doc.get("executive_order_number") else ""
-    summary = f"{eo}{doc.get('type') or 'document'} {doc.get('document_number')}, " \
-              f"{'signed ' + signing if signing else 'published ' + str(published)}"
     if dispositions:
         summary += ". " + "; ".join(f"{verb} {target.strip()}" for verb, target in dispositions)
     return result(record, "Federal Register", upstream_url=doc.get("html_url"), summary=summary, findings=findings)
@@ -185,13 +238,13 @@ CONGRESS_TYPES = {
     "house-resolution": "hres", "senate-resolution": "sres",
 }
 CONGRESS_SLUGS = {v: k for k, v in CONGRESS_TYPES.items()}
+CONGRESS_API = "https://api.congress.gov/v3"
 
 
 def ordinal(n):
     n = int(n)
     suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
     return f"{n}{suffix}"
-CONGRESS_API = "https://api.congress.gov/v3"
 
 
 def congress_target(record):
@@ -216,9 +269,16 @@ def check_congress(record, fetch, timeout, api_key=CONGRESS_DEMO_KEY):
             if exc.status in (403, 429) else ""
         return result(record, "Congress.gov", error=f"{exc}{hint}")
 
-    bill = payload.get("bill") or {}
-    latest = bill.get("latestAction") or {}
-    laws = [law.get("number") for law in bill.get("laws") or [] if law.get("number")]
+    bill = as_dict(as_dict(payload).get("bill"))
+    if not bill:
+        return result(record, "Congress.gov", error="Congress.gov returned no bill")
+    latest = as_dict(bill.get("latestAction"))
+    # The API leaves "laws" out for a bill that is not law. A value that is
+    # there but malformed tells us nothing, so say that rather than guess.
+    raw_laws = bill.get("laws")
+    if raw_laws is not None and not (isinstance(raw_laws, list) and all(isinstance(law, dict) for law in raw_laws)):
+        return result(record, "Congress.gov", error="unexpected response: the list of laws could not be read")
+    laws = [str(law["number"]) for law in as_list(raw_laws) if law.get("number")]
     status = str(record.get("status", "")).lower()
     findings = []
     if laws and status == "pending":
@@ -247,14 +307,20 @@ def check_all(records, fetch=None, timeout=20, pause=0.5):
     results = []
     for record in records:
         if federal_register_target(record):
-            results.append(check_federal_register(record, fetch, timeout))
+            source, check = "Federal Register", check_federal_register
         elif congress_target(record):
-            results.append(check_congress(record, fetch, timeout))
+            source, check = "Congress.gov", check_congress
         else:
             reason = ("state bills have no free official API; covered by the staleness and date checks"
                       if record.get("state") else "no official API covers this source")
             results.append(result(record, None, skipped=reason))
             continue
+        try:
+            results.append(check(record, fetch, timeout))
+        except Exception as exc:  # noqa: BLE001 - one odd response must not stop the report
+            detail = str(exc).strip()
+            results.append(result(record, source, error="unexpected response: "
+                                  + (f"{type(exc).__name__}: {detail}" if detail else type(exc).__name__)))
         if pause:
             time.sleep(pause)
     return results

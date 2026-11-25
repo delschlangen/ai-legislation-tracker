@@ -102,26 +102,34 @@ def filter_by_jurisdiction(items: List[Dict], jurisdiction: str) -> List[Dict]:
     ]
 
 
+def searchable_text(item: Dict) -> str:
+    """Everything a search looks through, lower-cased.
+
+    This is the website's search (matchesFilters in docs/app.js) plus one field,
+    last_verified, so that `--search needs_verification` finds unchecked entries.
+    Keep the two lists in step. Tags and types are searchable as written
+    ("frontier_ai") and as displayed ("frontier ai")."""
+    tags = [str(t) for t in as_list(item.get("tags"))]
+    kind = str(item.get("type") or "")
+    parts = (
+        [str(item.get(field) or "") for field in (
+            "id", "title", "name", "summary", "bill_number", "type",
+            "state", "jurisdiction", "issuing_body", "injunction",
+            "verification", "last_verified")]
+        # Federal records have no jurisdiction field; the site calls them this.
+        + (["US Federal"] if item.get("_source") == FEDERAL_SOURCE else [])
+        + [str(m.get("description") or "") for m in as_list(item.get("milestones")) if isinstance(m, dict)]
+        + [str(p) for p in as_list(item.get("key_provisions"))]
+        + tags
+        + [t.replace("_", " ") for t in tags + [kind]]
+    )
+    return " ".join(part for part in parts if part).lower()
+
+
 def search_text(items: List[Dict], query: str) -> List[Dict]:
-    """Full-text search. Covers the same fields as the website's search box."""
-    results = []
-    query = query.lower()
-
-    for item in items:
-        searchable = " ".join(
-            [str(item.get(field, "")) for field in (
-                "id", "title", "name", "summary", "bill_number", "type",
-                "state", "jurisdiction", "issuing_body", "injunction",
-                "verification", "last_verified")]
-            + [str(m.get("description", "")) for m in as_list(item.get("milestones")) if isinstance(m, dict)]
-            + [str(p) for p in as_list(item.get("key_provisions"))]
-            + [str(t) for t in as_list(item.get("tags"))]
-        ).lower()
-
-        if query in searchable:
-            results.append(item)
-
-    return results
+    """Full-text search over the fields listed in searchable_text."""
+    query = query.lower().strip()
+    return [item for item in items if query in searchable_text(item)]
 
 
 def get_all_tags(items: List[Dict]) -> Dict[str, int]:
@@ -157,10 +165,11 @@ def format_item(item: Dict) -> str:
         lines.append(f"📁 Type: {item['type']}")
 
     for field, label in (
-        ("date_issued", "Issued"), ("date_enacted", "Enacted"), ("date_adopted", "Adopted"),
-        ("effective_date", "Effective"), ("date_vetoed", "Vetoed"),
-        ("date_rescinded", "Rescinded"), ("date_superseded", "Superseded"),
-        ("date_enjoined", "Enjoined"),
+        ("date_introduced", "Introduced"), ("date_issued", "Issued"), ("date_adopted", "Adopted"),
+        ("date_enacted", "Enacted"), ("effective_date", "Effective"),
+        ("full_application_date", "Applies in full"), ("date_vetoed", "Vetoed"),
+        ("date_enjoined", "Enjoined"), ("date_rescinded", "Rescinded"),
+        ("date_superseded", "Superseded"), ("date_expired", "Expired"),
     ):
         if item.get(field):
             lines.append(f"📅 {label}: {item[field]}")
@@ -221,8 +230,8 @@ def main():
         help="Filter by state, country, issuing body, or 'federal'. Matches part of a name.")
     parser.add_argument(
         "--search", "-q",
-        help="Full-text search across title, summary, provisions, tags, id, bill number, "
-             "jurisdiction and verification (try 'secondary' or 'needs_verification')")
+        help="Full-text search across title, summary, provisions, key dates, tags, id, bill number, "
+             "jurisdiction and verification (try 'us federal', 'secondary' or 'needs_verification')")
     parser.add_argument("--list-tags", action="store_true", help="List all tags with counts")
     parser.add_argument("--count", action="store_true", help="Show only count, not details")
 

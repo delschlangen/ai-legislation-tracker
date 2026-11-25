@@ -9,7 +9,8 @@ workflow in .github/workflows/maintenance.yml posts the result as a GitHub issue
 Sections:
 - Stale entries: not verified within --max-age-days (default 183, twice a year,
   matching the review cadence in MAINTENANCE.md)
-- Dates that just passed: confirm the law really took effect as recorded
+- Dates that just passed: confirm the law really took effect as recorded. An
+  entry verified on or after the date drops off the list
 - Dates coming up soon
 - README dates now in the past
 - Entries not yet confirmed against a primary source
@@ -22,7 +23,8 @@ Usage:
     python3 scripts/maintenance_report.py --output report.md --attention-file attention.txt
 
 The exit code is 0 whenever a report was produced, even one full of findings:
-findings are for a person to act on, not a build failure.
+findings are for a person to act on, not a build failure. A network section
+that cannot run says so in the report; it never costs the other sections.
 """
 
 import argparse
@@ -43,7 +45,7 @@ from generate_dashboard import key_dates  # noqa: E402
 
 FILES = ("us_federal_actions", "us_state_bills", "international_frameworks")
 IN_FORCE_STATUSES = {"enacted", "active", "adopted"}
-DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+DATE_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 REPO_URL = "https://github.com/delschlangen/ai-legislation-tracker"
 SITE_URL = "https://delschlangen.github.io/ai-legislation-tracker/"
 
@@ -58,7 +60,7 @@ def load_records(data_dir=DATA_DIR):
 
 
 def parse_date(value):
-    if isinstance(value, str) and DATE_RE.match(value):
+    if isinstance(value, str) and DATE_RE.fullmatch(value):
         try:
             return datetime.strptime(value, "%Y-%m-%d").date()
         except ValueError:
@@ -72,6 +74,13 @@ def label(record):
     title = record.get("title") or record.get("name") or record.get("id")
     link = f"[`{record.get('id')}`]({SITE_URL}#{record.get('id')})"
     return f"{link} {md(title)}" + (f" ({md(where)})" if where else "")
+
+
+def jurisdiction_of(record):
+    """The name the website and the README use for where a record applies."""
+    if str(record.get("id", "")).startswith("fed-"):
+        return "US Federal"
+    return str(record.get("state") or record.get("jurisdiction") or "")
 
 
 def md(text):
@@ -129,17 +138,30 @@ def upcoming(records, today, within_days):
 
 
 def recently_passed(records, today, within_days):
-    """Stages whose date arrived recently. A law can be delayed, enjoined or
-    amended right before its start date, so each one is worth confirming."""
+    """Stages whose date arrived recently and that nobody has confirmed since.
+
+    A law can be delayed, enjoined or amended right before its start date, so
+    each one is worth confirming. Once the record's last_verified is on or after
+    the stage's date, someone has looked, and the item is done."""
     start = today - timedelta(days=within_days)
-    return [s for s in dated_stages(records) if start <= s[0] <= today]
+    passed = []
+    for when, record, what in dated_stages(records):
+        if not start <= when <= today:
+            continue
+        checked = parse_date(record.get("last_verified"))
+        if checked is not None and checked >= when:
+            continue
+        passed.append((when, record, what))
+    return passed
 
 
-README_ROW = re.compile(r"^\|\s*\*{0,2}(\d{4}-\d{2}-\d{2})\*{0,2}\s*\|(.+)$")
+README_ROW = re.compile(r"^\|\s*\*{0,2}([0-9]{4}-[0-9]{2}-[0-9]{2})\*{0,2}\s*\|(.+)$")
 
 
-def readme_rows_in_past(readme_text, today):
-    """Rows of the README's hand-written 'Upcoming effective dates' table whose date has passed."""
+def readme_upcoming_rows(readme_text):
+    """(date, [the other cells]) for each row of the README's hand-written
+    'Upcoming effective dates' table. The first of the other cells is the
+    jurisdiction."""
     rows = []
     in_section = False
     for line in readme_text.splitlines():
@@ -151,10 +173,14 @@ def readme_rows_in_past(readme_text, today):
         match = README_ROW.match(line.strip())
         if match:
             when = parse_date(match.group(1))
-            if when and when < today:
-                cells = [c.strip() for c in match.group(2).split("|") if c.strip()]
-                rows.append((when, " · ".join(cells[:2])))
+            if when:
+                rows.append((when, [c.strip() for c in match.group(2).split("|") if c.strip()]))
     return rows
+
+
+def readme_rows_in_past(readme_text, today):
+    """Rows of that table whose date has passed."""
+    return [(when, " · ".join(cells[:2])) for when, cells in readme_upcoming_rows(readme_text) if when < today]
 
 
 # ---------------------------------------------------------------------------
@@ -182,7 +208,8 @@ def render_offline_sections(records, today, max_age_days, readme_text):
     passed = recently_passed(records, today, 60)
     out.append(f"## Dates that just passed ({len(passed)})\n")
     out.append("These dates arrived in the last 60 days. Confirm each law really took effect as recorded, "
-               "and was not delayed, enjoined or amended at the last minute.\n")
+               "and was not delayed, enjoined or amended at the last minute. Then update `last_verified`: "
+               "an entry verified on or after its date drops off this list.\n")
     if passed:
         attention += len(passed)
         for when, record, what in passed:
@@ -235,17 +262,31 @@ def build_report(records, today, max_age_days=183, readme_text="", links=False, 
     offline, count = render_offline_sections(records, today, max_age_days, readme_text)
     attention += count
 
+    # Each network section stands alone. If one cannot run at all, the report
+    # says so and still carries everything else.
+    def could_not_run(heading, exc):
+        detail = str(exc).strip()
+        return (f"## {heading}\n\nThis check could not run this week "
+                f"({type(exc).__name__}{': ' + detail if detail else ''}). "
+                "It will be tried again next week.\n")
+
     if upstream:
-        import upstream_check
-        results = upstream_check.check_all(records, fetch=fetch, timeout=timeout)
-        text, count = upstream_check.render_markdown(results)
+        try:
+            import upstream_check
+            results = upstream_check.check_all(records, fetch=fetch, timeout=timeout)
+            text, count = upstream_check.render_markdown(results)
+        except Exception as exc:  # noqa: BLE001
+            text, count = could_not_run("Changes reported by official sources", exc), 0
         sections.append(text)
         attention += count
 
     if links:
-        import link_check
-        results = link_check.check_all(records, timeout=timeout)
-        text, count = link_check.render_markdown(results)
+        try:
+            import link_check
+            results = link_check.check_all(records, timeout=timeout)
+            text, count = link_check.render_markdown(results)
+        except Exception as exc:  # noqa: BLE001
+            text, count = could_not_run("Source links", exc), 0
         sections.append(text)
         attention += count
 

@@ -5,6 +5,7 @@ network: every web request is answered by a fake.
     python3 -m unittest discover -s tests
 """
 
+import http.client
 import io
 import json
 import socket
@@ -83,6 +84,16 @@ class DateTests(unittest.TestCase):
         passed = report.recently_passed(self.records, TODAY, 60)
         self.assertEqual([r["id"] for _, r, _ in passed], ["state-002"])
 
+    def test_a_passed_date_clears_once_the_entry_is_verified_after_it(self):
+        def listed(last_verified):
+            records = [rec(effective_date="2026-10-10", last_verified=last_verified)]
+            return bool(report.recently_passed(records, TODAY, 60))
+        self.assertTrue(listed("2026-10-09"))            # checked before the date arrived
+        self.assertFalse(listed("2026-10-10"))           # checked on the day
+        self.assertFalse(listed("2026-11-01"))           # checked since
+        self.assertTrue(listed("needs_verification"))    # never checked
+        self.assertTrue(listed(None))
+
 
 class ReadmeTests(unittest.TestCase):
     readme = """
@@ -103,6 +114,16 @@ class ReadmeTests(unittest.TestCase):
     def test_only_past_rows_in_the_upcoming_table(self):
         rows = report.readme_rows_in_past(self.readme, TODAY)
         self.assertEqual([(d.isoformat(), text) for d, text in rows], [("2026-10-01", "Connecticut · CART Act")])
+
+    def test_rows_are_parsed_with_their_jurisdiction(self):
+        rows = report.readme_upcoming_rows(self.readme)
+        self.assertEqual([(d.isoformat(), cells[0]) for d, cells in rows],
+                         [("2026-10-01", "Connecticut"), ("2027-01-01", "Colorado")])
+
+    def test_jurisdiction_names_match_the_site(self):
+        self.assertEqual(report.jurisdiction_of({"id": "fed-001", "issuing_body": "OMB"}), "US Federal")
+        self.assertEqual(report.jurisdiction_of({"id": "state-001", "state": "Colorado"}), "Colorado")
+        self.assertEqual(report.jurisdiction_of({"id": "intl-001", "jurisdiction": "European Union"}), "European Union")
 
     def test_real_readme_parses(self):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -125,6 +146,21 @@ class ReportTests(unittest.TestCase):
         text, _ = report.build_report(records, TODAY, 183, "")
         self.assertIn("A \\| B &lt;script&gt;", text)
         self.assertNotIn("<script>", text)
+
+    def test_a_network_section_that_fails_does_not_cost_the_rest(self):
+        saved = upstream.check_all, link_check.check_all
+
+        def explode(*args, **kwargs):
+            raise RuntimeError("resolver on fire")
+        upstream.check_all = link_check.check_all = explode
+        try:
+            text, attention = report.build_report([rec(last_verified="2020-01-01")], TODAY, 183, "",
+                                                  links=True, upstream=True)
+        finally:
+            upstream.check_all, link_check.check_all = saved
+        self.assertEqual(text.count("could not run this week (RuntimeError: resolver on fire)"), 2)
+        self.assertIn("## Stale entries (1)", text)
+        self.assertEqual(attention, 1)
 
     def test_real_data_offline_report_runs(self):
         text, _ = report.build_report(report.load_records(), TODAY, 183, "")
@@ -178,17 +214,97 @@ class LinkCheckTests(unittest.TestCase):
         result = self.check({"HEAD": http_error(405), "GET": lambda r: FakeResponse(self.url)})
         self.assertEqual(result["outcome"], "ok")
 
-    def test_not_found_is_broken(self):
-        self.assertEqual(self.check({"HEAD": http_error(404)})["outcome"], "broken")
+    def test_not_found_is_broken_once_a_full_request_agrees(self):
+        calls = []
+
+        def counted(code):
+            def handler(request):
+                calls.append(request.get_method())
+                return http_error(code)(request)
+            return handler
+        result = self.check({"HEAD": counted(404), "GET": counted(404)})
+        self.assertEqual((result["outcome"], result["status"]), ("broken", 404))
+        self.assertEqual(calls, ["HEAD", "GET"])   # a definite answer is not retried
+
+    def test_a_server_that_wrongly_answers_head_with_404_is_not_broken(self):
+        result = self.check({"HEAD": http_error(404), "GET": lambda r: FakeResponse(self.url)})
+        self.assertEqual(result["outcome"], "ok")
+
+    def test_gone_is_broken(self):
+        self.assertEqual(self.check({"HEAD": http_error(410), "GET": http_error(410)})["outcome"], "broken")
 
     def test_forbidden_is_blocked_not_broken(self):
         result = self.check({"HEAD": http_error(403), "GET": http_error(403)})
         self.assertEqual(result["outcome"], "blocked")
 
-    def test_missing_host_is_broken(self):
+    def test_missing_host_is_broken_after_two_tries(self):
+        calls = []
+
         def dns(request):
-            raise urllib.error.URLError(socket.gaierror(-2, "Name or service not known"))
-        self.assertEqual(self.check({"HEAD": dns})["outcome"], "broken")
+            calls.append(1)
+            raise urllib.error.URLError(socket.gaierror(socket.EAI_NONAME, "Name or service not known"))
+        result = self.check({"HEAD": dns})
+        self.assertEqual((result["outcome"], result["detail"]), ("broken", "host not found"))
+        self.assertEqual(len(calls), 2)
+
+    def test_host_that_resolves_on_the_second_try_is_ok(self):
+        calls = []
+
+        def flaky(request):
+            calls.append(1)
+            if len(calls) == 1:
+                raise urllib.error.URLError(socket.gaierror(socket.EAI_NONAME, "Name or service not known"))
+            return FakeResponse(self.url)
+        self.assertEqual(self.check({"HEAD": flaky})["outcome"], "ok")
+
+    def test_temporary_dns_failure_is_not_a_broken_link(self):
+        calls = []
+
+        def dns(request):
+            calls.append(1)
+            raise urllib.error.URLError(socket.gaierror(socket.EAI_AGAIN, "Temporary failure in name resolution"))
+        result = self.check({"HEAD": dns})
+        self.assertEqual(result["outcome"], "unreachable")
+        self.assertIn("DNS lookup failed", result["detail"])
+        self.assertEqual(len(calls), 2)
+        result["ids"] = ["fed-001"]
+        text, broken = link_check.render_markdown([result])
+        self.assertEqual(broken, 0)
+        self.assertIn("Could not check automatically (1)", text)
+
+    def test_garbled_responses_are_an_outcome_not_a_crash(self):
+        # None of these is an OSError or a ValueError, which is what used to be caught.
+        for error in (http.client.BadStatusLine("not http"), http.client.IncompleteRead(b"x"),
+                      http.client.HTTPException("got more than 100 headers"),
+                      http.client.LineTooLong("header line"), RuntimeError("anything else"), KeyError("x")):
+            def broken_server(request, error=error):
+                raise error
+            result = self.check({"HEAD": broken_server})
+            self.assertEqual(result["outcome"], "unreachable", repr(error))
+            self.assertIn(type(error).__name__, result["detail"])
+
+    def test_one_bad_link_does_not_stop_the_others(self):
+        def head(request):
+            if "bad" in request.full_url:
+                raise http.client.BadStatusLine("not http")
+            return FakeResponse(request.full_url)
+        records = [rec(id="state-001", source_url="https://ok.example/a"),
+                   rec(id="state-002", source_url="https://bad.example/b"),
+                   rec(id="state-003", source_url="https://ok.example/c")]
+        results = link_check.check_all(records, opener=opener_for({"HEAD": head}), pause=0)
+        self.assertEqual(sorted((r["ids"][0], r["outcome"]) for r in results),
+                         [("state-001", "ok"), ("state-002", "unreachable"), ("state-003", "ok")])
+
+    def test_status_from_a_failed_try_does_not_leak_into_the_next(self):
+        calls = []
+
+        def first_500_then_timeout(request):
+            calls.append(1)
+            if len(calls) == 1:
+                return http_error(500)(request)
+            raise socket.timeout("timed out")
+        result = self.check({"HEAD": first_500_then_timeout})
+        self.assertEqual((result["outcome"], result["status"], result["detail"]), ("unreachable", None, "timed out"))
 
     def test_timeout_is_unreachable_after_retry(self):
         calls = []
@@ -329,6 +445,162 @@ class FederalRegisterTests(unittest.TestCase):
     def test_errors_are_reported_not_raised(self):
         fetch = fake_fetch([("documents/2023-24283.json", upstream.FetchError("HTTP 500", 500))])
         self.assertEqual(upstream.check_federal_register(self.record, fetch, 20)["error"], "HTTP 500")
+
+
+class FederalRegisterRuleTests(unittest.TestCase):
+    """A rule has no signing date and no disposition notes, so it is compared by
+    publication date instead. Before this, nothing was compared at all and the
+    report still said "matched"."""
+
+    record = rec(id="fed-008", title="Rule", status="active", date_issued="2023-10-17",
+                 source_url="https://www.federalregister.gov/documents/2023/10/25/2023-23055/export-controls")
+
+    def rule(self, **fields):
+        doc = {"type": "Rule", "document_number": "2023-23055", "publication_date": "2023-10-25",
+               "signing_date": None, "html_url": "https://fr.example/rule"}
+        doc.update(fields)
+        return fake_fetch([("documents/2023-23055.json", doc)])
+
+    def test_published_soon_after_it_was_issued_is_a_match(self):
+        out = upstream.check_federal_register(self.record, self.rule(), 20)
+        self.assertEqual(out["findings"], [])
+        self.assertEqual(out["summary"], "Rule 2023-23055, published 2023-10-25")
+
+    def test_a_date_far_from_publication_is_reported(self):
+        out = upstream.check_federal_register(dict(self.record, date_issued="2024-10-01"), self.rule(), 20)
+        self.assertEqual(len(out["findings"]), 1)
+        self.assertIn("Published 2023-10-25", out["findings"][0])
+        self.assertIn("342 days apart", out["findings"][0])
+
+    def test_the_tolerance_is_thirty_days(self):
+        at_limit = upstream.check_federal_register(dict(self.record, date_issued="2023-09-25"), self.rule(), 20)
+        over = upstream.check_federal_register(dict(self.record, date_issued="2023-09-24"), self.rule(), 20)
+        self.assertEqual(at_limit["findings"], [])
+        self.assertEqual(len(over["findings"]), 1)
+
+    def test_effective_dates_are_compared_when_both_sides_have_one(self):
+        fetch = self.rule(effective_on="2023-11-17")
+        same = upstream.check_federal_register(dict(self.record, effective_date="2023-11-17"), fetch, 20)
+        different = upstream.check_federal_register(dict(self.record, effective_date="2024-01-01"), fetch, 20)
+        absent = upstream.check_federal_register(self.record, fetch, 20)
+        self.assertEqual(same["findings"], [])
+        self.assertIn("Effective 2023-11-17", different["findings"][0])
+        self.assertEqual(absent["findings"], [])
+        self.assertTrue(same["summary"].endswith("effective 2023-11-17"))
+
+    def test_the_tracked_export_control_record_is_flagged(self):
+        """fed-008 cites the October 2023 rule but gives date_issued 2024-10-01.
+        The report should say so until a person resolves it."""
+        record = real_records()["fed-008"]
+        out = upstream.check_federal_register(record, self.rule(), 20)
+        if record["date_issued"] == "2024-10-01":
+            self.assertEqual(len(out["findings"]), 1)
+        else:
+            self.assertEqual(out["findings"], [])
+
+
+class FetchTests(unittest.TestCase):
+    """fetch_json turns every kind of failure into a FetchError."""
+
+    class Body:
+        def __init__(self, payload=b"{}", error=None):
+            self.payload, self.error = payload, error
+
+        def read(self):
+            if self.error:
+                raise self.error
+            return self.payload
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def fetch(self, body=None, raises=None, seen=None):
+        def opener(request, timeout):
+            if seen is not None:
+                seen.append(request)
+            if raises:
+                raise raises
+            return body
+        return upstream.fetch_json("https://api.example/x", headers={"X-Api-Key": "DEMO_KEY"}, opener=opener)
+
+    def test_good_json_is_returned_and_headers_are_sent(self):
+        seen = []
+        self.assertEqual(self.fetch(self.Body(b'{"a": 1}'), seen=seen), {"a": 1})
+        self.assertEqual(seen[0].get_header("X-api-key"), "DEMO_KEY")
+        self.assertNotIn("DEMO_KEY", seen[0].full_url)
+
+    def test_http_errors_keep_their_status(self):
+        error = urllib.error.HTTPError("https://api.example/x", 429, "Too Many", {}, io.BytesIO(b""))
+        with self.assertRaises(upstream.FetchError) as caught:
+            self.fetch(raises=error)
+        self.assertEqual((str(caught.exception), caught.exception.status), ("HTTP 429", 429))
+
+    def test_truncated_and_garbled_responses_become_fetch_errors(self):
+        for error in (http.client.IncompleteRead(b"par"), http.client.BadStatusLine("x"),
+                      http.client.HTTPException(), socket.timeout("timed out"),
+                      urllib.error.URLError("no route")):
+            with self.assertRaises(upstream.FetchError, msg=repr(error)) as caught:
+                self.fetch(self.Body(error=error))
+            self.assertTrue(str(caught.exception))
+
+    def test_a_body_that_is_not_json_is_a_fetch_error(self):
+        for payload in (b"<html>rate limited</html>", b"", b"\xff\xfe"):
+            with self.assertRaises(upstream.FetchError) as caught:
+                self.fetch(self.Body(payload))
+            self.assertIn("not valid JSON", str(caught.exception))
+
+
+class OddResponseTests(unittest.TestCase):
+    """Valid JSON in an unexpected shape is reported for that record and never raised."""
+
+    def test_federal_register_shapes(self):
+        order = rec(id="fed-010", status="active", date_issued="2025-12-11",
+                    source_url="https://www.federalregister.gov/executive-order/14365")
+        document = rec(id="fed-001", status="active", date_issued="2023-10-30",
+                       source_url="https://www.federalregister.gov/documents/2023/11/01/2023-24283/x")
+        for payload in ({"results": [None]}, {"results": None}, {"results": "x"}, [], None, "text", 5):
+            out = upstream.check_all([order], fetch=fake_fetch([("documents.json?", payload)]), pause=0)
+            self.assertIn("no Federal Register document found", out[0]["error"], repr(payload))
+        for payload in ([], None, "text", {}, {"title": "no document number"}):
+            out = upstream.check_all([document], fetch=fake_fetch([("documents/2023-24283.json", payload)]), pause=0)
+            self.assertEqual(out[0]["error"], "the Federal Register returned no document", repr(payload))
+            self.assertEqual(out[0]["findings"], [])
+
+    def test_congress_shapes(self):
+        record = real_records()["fed-012"]
+        for payload in ([], None, {}, {"bill": None}, {"bill": []}):
+            out = upstream.check_all([record], fetch=fake_fetch([("/bill/119/s/146", payload)]), pause=0)
+            self.assertEqual(out[0]["error"], "Congress.gov returned no bill", repr(payload))
+        # A malformed list of laws must not be read as "this never became law".
+        for laws in ([None], "119-12", [["119-12"]]):
+            payload = {"bill": {"latestAction": {"actionDate": "2025-05-19", "text": "x"}, "laws": laws}}
+            out = upstream.check_all([record], fetch=fake_fetch([("/bill/119/s/146", payload)]), pause=0)
+            self.assertIn("could not be read", out[0]["error"], repr(laws))
+            self.assertEqual(out[0]["findings"], [])
+        # Odd values inside an otherwise good answer are tolerated.
+        payload = {"bill": {"latestAction": None, "laws": [{"number": "119-12"}, {"type": "Public Law"}]}}
+        out = upstream.check_all([record], fetch=fake_fetch([("/bill/119/s/146", payload)]), pause=0)
+        self.assertIsNone(out[0]["error"])
+        self.assertEqual(out[0]["findings"], [])
+
+    def test_anything_else_becomes_an_error_for_that_record_only(self):
+        def fetch(url, headers=None, timeout=20):
+            if "2023-24283" in url:
+                raise KeyError("surprise")
+            return {"document_number": "2025-02172", "executive_order_number": 14179, "signing_date": "2025-01-23"}
+        records = [rec(id="fed-001", status="rescinded", date_issued="2023-10-30",
+                       source_url="https://www.federalregister.gov/documents/2023/11/01/2023-24283/x"),
+                   rec(id="fed-009", status="active", date_issued="2025-01-23",
+                       source_url="https://www.federalregister.gov/documents/2025/01/31/2025-02172/y")]
+        out = upstream.check_all(records, fetch=fetch, pause=0)
+        self.assertIn("unexpected response: KeyError", out[0]["error"])
+        self.assertIsNone(out[1]["error"])
+        text, count = upstream.render_markdown(out)
+        self.assertIn("Could not check (1)", text)
+        self.assertIn("Matched with no change (1)", text)
 
 
 class CongressTests(unittest.TestCase):

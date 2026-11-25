@@ -10,14 +10,19 @@ library only. Run by the weekly maintenance workflow, or by hand:
 Outcomes:
 - ok:          the page answered
 - moved:       it answered, but only after redirecting to a different site
-- broken:      404 or 410, or the host does not exist. Needs a new link
+- broken:      404 or 410 to a full request, or the host does not exist, on two
+               tries. Needs a new link
 - blocked:     the site refused an automated request (401, 403, 429, 451, 503).
                Common for government sites; open the link in a browser to check
-- unreachable: a timeout or connection error, after one retry
+- unreachable: a timeout, a connection or DNS fault, or a garbled response,
+               after one retry
 
 Only "broken" counts as an action item. "blocked" and "unreachable" are often
 the site's bot protection or a passing outage, so they are listed separately
 rather than reported as failures.
+
+Nothing a server sends can stop the run: every failure for one link becomes
+that link's outcome, and the other links are still checked.
 """
 
 import json
@@ -37,7 +42,13 @@ FILES = ("us_federal_actions", "us_state_bills", "international_frameworks")
 USER_AGENT = "Mozilla/5.0 (compatible; link-check/1.0)"
 BLOCKED = {401, 403, 429, 451, 503}
 GONE = {404, 410}
-RETRY_WITH_GET = {400, 403, 405, 501}
+# Some servers answer HEAD wrongly, including with 404, and serve GET normally.
+# So a HEAD failure with one of these codes is confirmed with a GET.
+RETRY_WITH_GET = {400, 403, 404, 405, 410, 501}
+
+# Resolver answers that mean the host really does not exist. Any other
+# resolver error ("try again", "server failure") is treated as temporary.
+PERMANENT_DNS_ERRORS = {socket.EAI_NONAME, getattr(socket, "EAI_NODATA", socket.EAI_NONAME)}
 
 
 def _request(url, method, timeout, opener):
@@ -52,14 +63,18 @@ def _request(url, method, timeout, opener):
 
 
 def check_url(url, timeout=20, opener=urllib.request.urlopen, retries=1, pause=2.0):
-    """Returns a dict: url, outcome, status, final_url, detail."""
+    """Returns a dict: url, outcome, status, final_url, detail.
+
+    A definite answer (the page, a 404 to a GET, a refusal) is returned at once.
+    Anything that could be a passing fault is tried again first, and the last
+    attempt's outcome is what is reported. No exception leaves this function."""
     result = {"url": url, "outcome": "unreachable", "status": None, "final_url": None, "detail": ""}
     for attempt in range(retries + 1):
+        result.update(status=None, final_url=None)
         try:
             try:
                 status, final = _request(url, "HEAD", timeout, opener)
             except urllib.error.HTTPError as exc:
-                # Many servers refuse HEAD but serve GET normally.
                 if exc.code in RETRY_WITH_GET:
                     status, final = _request(url, "GET", timeout, opener)
                 else:
@@ -80,25 +95,34 @@ def check_url(url, timeout=20, opener=urllib.request.urlopen, retries=1, pause=2
         except urllib.error.URLError as exc:
             reason = exc.reason
             if isinstance(reason, socket.gaierror):
-                result.update(outcome="broken", detail="host not found")
-                return result
-            if "CERTIFICATE_VERIFY_FAILED" in str(reason):
+                if reason.errno in PERMANENT_DNS_ERRORS:
+                    # Reported as broken only if the retry gets the same answer.
+                    result.update(outcome="broken", detail="host not found")
+                else:
+                    result.update(outcome="unreachable",
+                                  detail=f"DNS lookup failed ({reason.strerror or reason})")
+            elif "CERTIFICATE_VERIFY_FAILED" in str(reason):
                 # Usually a server that omits an intermediate certificate.
                 # Browsers fill the gap; Python does not. Verification stays on.
                 result.update(outcome="unreachable",
                               detail="the site's certificate chain is incomplete; browsers usually still open it")
                 return result
-            result.update(outcome="unreachable", detail=str(reason))
+            else:
+                result.update(outcome="unreachable", detail=str(reason))
         except (socket.timeout, TimeoutError):
             result.update(outcome="unreachable", detail="timed out")
-        except (OSError, ValueError) as exc:
-            result.update(outcome="unreachable", detail=str(exc))
+        except Exception as exc:  # noqa: BLE001 - deliberate; see the docstring
+            # http.client errors (a garbled status line, a truncated body, too
+            # many headers) are not OSError or ValueError, so catch everything.
+            detail = str(exc).strip()
+            result.update(outcome="unreachable",
+                          detail=f"{type(exc).__name__}: {detail}" if detail else type(exc).__name__)
         if attempt < retries:
             time.sleep(pause)
     return result
 
 
-def check_all(records, timeout=20, workers=8, opener=urllib.request.urlopen):
+def check_all(records, timeout=20, workers=8, opener=urllib.request.urlopen, pause=2.0):
     """Check each distinct source_url once. Returns a list of results, each with
     the ids of the records that cite it."""
     by_url = {}
@@ -108,7 +132,7 @@ def check_all(records, timeout=20, workers=8, opener=urllib.request.urlopen):
             by_url.setdefault(url, []).append(record.get("id"))
 
     def run(url):
-        result = check_url(url, timeout=timeout, opener=opener)
+        result = check_url(url, timeout=timeout, opener=opener, pause=pause)
         result["ids"] = by_url[url]
         return result
 
@@ -135,7 +159,8 @@ def render_markdown(results):
     out = [f"## Source links ({len(results)} checked)\n"]
     out.append(f"### Broken ({len(broken)})\n")
     if broken:
-        out.append("The official source is gone. Find the current URL for the same document.\n")
+        out.append("The page is gone (404 or 410), or the host no longer exists. "
+                   "Find the current URL for the same document.\n")
         out += lines(broken, True)
     else:
         out.append("None.")
