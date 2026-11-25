@@ -34,10 +34,18 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.8', '3.12']
+        include:
+          # The README promises Python 3.7+, so test 3.7 itself. setup-python
+          # only has 3.7 builds up to Ubuntu 22.04, so that version is pinned
+          # to that image. ubuntu-latest no longer carries anything below 3.10.
+          - python-version: '3.7'
+            os: ubuntu-22.04
+          - python-version: '3.12'
+            os: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 

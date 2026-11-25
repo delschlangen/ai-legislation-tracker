@@ -79,7 +79,7 @@ If a record gains a field the CSV does not know, add it to `COLUMNS` in `src/exp
 ## Rules for the code
 
 - **Python standard library only. No third-party dependencies.** This is deliberate.
-- **Python 3.7+ syntax.** No walrus operator, `match`, dict union (`|`) or `str.removeprefix`. CI runs 3.8 and 3.12, so the 3.7 floor is checked by reading, not by running.
+- **Python 3.7+ syntax.** No walrus operator, `match`, dict union (`|`) or `str.removeprefix`. CI runs 3.7 (pinned to ubuntu-22.04, the last image with a 3.7 build) and 3.12, so the floor is tested for real.
 - **Read files and write output as UTF-8** (`encoding="utf-8"`, and `sys.stdout.reconfigure` for emoji output). Without it the tools crash on Windows consoles.
 - **Tools must not crash on odd data.** Use `.get()` for optional fields. The validator is the gatekeeper, but the tools should still degrade gracefully.
 - **CI is read-only.** The workflow must not need secrets, fetch external data, or edit and commit files. Keep it that way.
