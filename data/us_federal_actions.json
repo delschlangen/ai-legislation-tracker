@@ -279,6 +279,16 @@
     "date_issued": "2025-05-19",
     "date_enacted": "2025-05-19",
     "effective_date": "2026-05-19",
+    "milestones": [
+      {
+        "date": "2025-05-19",
+        "description": "Criminal provisions apply on enactment"
+      },
+      {
+        "date": "2026-05-19",
+        "description": "Covered platforms must have a notice-and-removal process in place"
+      }
+    ],
     "issuing_body": "United States Congress",
     "summary": "The first federal statute imposing AI-related duties on private platforms. Criminalises knowing publication of non-consensual intimate imagery, including AI-generated deepfakes, and requires covered platforms to run a notice-and-removal process. The criminal provisions applied on enactment; the platform obligations applied from 2026-05-19.",
     "key_provisions": [

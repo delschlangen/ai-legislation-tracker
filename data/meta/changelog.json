@@ -1,0 +1,111 @@
+[
+  {
+    "date": "2026-11-25",
+    "summary": "Recorded phased application dates as separate milestones, taken from each entry's existing text. No date changed.",
+    "updated": [
+      "intl-001",
+      "fed-012",
+      "state-017",
+      "state-019"
+    ]
+  },
+  {
+    "date": "2026-11-24",
+    "summary": "Added Illinois SB 315, the California AI Transparency Act and Executive Order 14409. Updated the New York RAISE Act for its March 2026 chapter amendment.",
+    "added": [
+      "state-018",
+      "state-019",
+      "fed-013"
+    ],
+    "updated": [
+      "state-016"
+    ]
+  },
+  {
+    "date": "2026-11-24",
+    "summary": "Recorded the supersession of EO 14110 and OMB M-24-10 on their successors as well, so both sides of each link show it.",
+    "updated": [
+      "fed-009",
+      "fed-011"
+    ]
+  },
+  {
+    "date": "2026-09-17",
+    "summary": "Added the TAKE IT DOWN Act, the first federal statute placing AI-related duties on private platforms.",
+    "added": [
+      "fed-012"
+    ]
+  },
+  {
+    "date": "2026-09-17",
+    "summary": "Full dataset review. Added 15 entries from 2025 and 2026 and corrected 15, including the repeal of Colorado SB 24-205, the expiry of Canada's AIDA and the supersession of OMB M-24-10.",
+    "added": [
+      "fed-009",
+      "fed-010",
+      "fed-011",
+      "state-011",
+      "state-012",
+      "state-013",
+      "state-014",
+      "state-015",
+      "state-016",
+      "state-017",
+      "intl-011",
+      "intl-012",
+      "intl-013",
+      "intl-014",
+      "intl-015"
+    ],
+    "updated": [
+      "fed-001",
+      "fed-003",
+      "fed-004",
+      "fed-005",
+      "fed-007",
+      "fed-008",
+      "state-001",
+      "state-005",
+      "state-008",
+      "state-010",
+      "intl-001",
+      "intl-002",
+      "intl-005",
+      "intl-006",
+      "intl-010"
+    ]
+  },
+  {
+    "date": "2024-12-24",
+    "summary": "First release: 28 entries across US federal, US state and international law.",
+    "added": [
+      "fed-001",
+      "fed-002",
+      "fed-003",
+      "fed-004",
+      "fed-005",
+      "fed-006",
+      "fed-007",
+      "fed-008",
+      "state-001",
+      "state-002",
+      "state-003",
+      "state-004",
+      "state-005",
+      "state-006",
+      "state-007",
+      "state-008",
+      "state-009",
+      "state-010",
+      "intl-001",
+      "intl-002",
+      "intl-003",
+      "intl-004",
+      "intl-005",
+      "intl-006",
+      "intl-007",
+      "intl-008",
+      "intl-009",
+      "intl-010"
+    ]
+  }
+]

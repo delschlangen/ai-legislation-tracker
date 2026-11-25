@@ -60,10 +60,13 @@ def federal(**overrides):
 
 class ValidatorTests(unittest.TestCase):
     def run_validator(self, files):
-        """files: {filename: list_of_records}. Returns (exit_code, output)."""
+        """files: {filename: list_of_records}. A name may include a folder, such as
+        meta/changelog.json. Returns (exit_code, output)."""
         with tempfile.TemporaryDirectory() as tmp:
             for name, records in files.items():
-                Path(tmp, name).write_text(json.dumps(records), encoding="utf-8")
+                target = Path(tmp, name)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(json.dumps(records), encoding="utf-8")
             original = validate.DATA_DIR
             validate.DATA_DIR = Path(tmp)
             out = io.StringIO()
@@ -168,6 +171,86 @@ class ValidatorTests(unittest.TestCase):
 
     def test_unknown_status_is_rejected(self):
         self.assert_fails_with({"us_state_bills.json": [state(status="maybe")]}, "is not one of")
+
+    # --- enjoined -----------------------------------------------------------
+
+    def test_enjoined_requires_an_injunction(self):
+        self.assert_fails_with({"us_state_bills.json": [state(status="enjoined")]}, "requires 'injunction'")
+
+    def test_enjoined_with_injunction_passes(self):
+        code, output = self.run_validator({"us_state_bills.json": [state(
+            status="enjoined", injunction="Preliminary injunction, Example v. State, D. Test, 2026-03-01",
+            date_enjoined="2026-03-01")]})
+        self.assertEqual(code, 0, output)
+
+    # --- field vocabulary ---------------------------------------------------
+
+    def test_misspelled_field_is_rejected(self):
+        self.assert_fails_with({"us_state_bills.json": [state(efective_date="2026-01-01")]},
+                               "unknown field 'efective_date'")
+
+    def test_retired_date_effective_names_its_replacement(self):
+        self.assert_fails_with({"us_state_bills.json": [state(date_effective="2026-01-01")]},
+                               "rename it to 'effective_date'")
+
+    # --- milestones ---------------------------------------------------------
+
+    def test_good_milestones_pass(self):
+        code, output = self.run_validator({"us_state_bills.json": [state(milestones=[
+            {"date": "2026-01-01", "description": "First duties"},
+            {"date": "2027-01-01", "description": "Second duties"}])]})
+        self.assertEqual(code, 0, output)
+
+    def test_milestones_must_be_a_non_empty_list(self):
+        self.assert_fails_with({"us_state_bills.json": [state(milestones=[])]}, "non-empty list")
+
+    def test_milestone_dates_must_be_valid(self):
+        self.assert_fails_with({"us_state_bills.json": [state(milestones=[
+            {"date": "2026-1-1", "description": "x"}])]}, "milestones[0] date")
+
+    def test_milestones_must_be_in_order(self):
+        self.assert_fails_with({"us_state_bills.json": [state(milestones=[
+            {"date": "2027-01-01", "description": "later"},
+            {"date": "2026-01-01", "description": "earlier"}])]}, "oldest first")
+
+    def test_milestone_needs_a_description_and_no_extra_fields(self):
+        self.assert_fails_with({"us_state_bills.json": [state(milestones=[
+            {"date": "2026-01-01", "description": "", "note": "x"}])]}, "unexpected field")
+        self.assert_fails_with({"us_state_bills.json": [state(milestones=[
+            {"date": "2026-01-01"}])]}, "non-empty 'description'")
+
+    # --- changelog ----------------------------------------------------------
+
+    def with_changelog(self, entries, records=None):
+        return {"us_state_bills.json": records or [state()], "meta/changelog.json": entries}
+
+    def test_good_changelog_passes(self):
+        code, output = self.run_validator(self.with_changelog([
+            {"date": "2026-02-01", "summary": "Corrected it.", "updated": ["state-001"]},
+            {"date": "2026-01-01", "summary": "Added it.", "added": ["state-001"]}]))
+        self.assertEqual(code, 0, output)
+
+    def test_changelog_ids_must_exist(self):
+        self.assert_fails_with(self.with_changelog([
+            {"date": "2026-01-01", "summary": "x", "added": ["state-999"]}]), "unknown id 'state-999'")
+
+    def test_changelog_must_be_newest_first(self):
+        self.assert_fails_with(self.with_changelog([
+            {"date": "2026-01-01", "summary": "x", "updated": ["state-001"]},
+            {"date": "2026-02-01", "summary": "y", "updated": ["state-001"]}]), "newest first")
+
+    def test_changelog_entry_must_name_a_record(self):
+        self.assert_fails_with(self.with_changelog([
+            {"date": "2026-01-01", "summary": "x"}]), "at least one record")
+
+    def test_record_cannot_be_added_twice(self):
+        self.assert_fails_with(self.with_changelog([
+            {"date": "2026-02-01", "summary": "x", "added": ["state-001"]},
+            {"date": "2026-01-01", "summary": "y", "added": ["state-001"]}]), "added twice")
+
+    def test_changelog_rejects_unknown_fields(self):
+        self.assert_fails_with(self.with_changelog([
+            {"date": "2026-01-01", "summary": "x", "updated": ["state-001"], "author": "me"}]), "unexpected field")
 
 
 if __name__ == "__main__":
