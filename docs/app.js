@@ -1042,7 +1042,10 @@
     }
 
     if (activeFilters.search) {
-      // Keep this list in step with searchable_text() in src/query_legislation.py.
+      // Keep this list, and its order, in step with searchable_text() in
+      // src/query_legislation.py. A query such as "Colorado SB 24-205" spans two
+      // fields, so it matches only where they are joined next to each other.
+      // tests/test_scripts.py compares the two lists.
       const tags = Array.isArray(item.tags) ? item.tags : [];
       const searchableText = [
         item.title, item.name, item.summary, item.state, item.jurisdiction,

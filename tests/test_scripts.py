@@ -135,22 +135,84 @@ class SearchFieldTests(unittest.TestCase):
 
     def test_each_plain_field(self):
         for field in ("title", "summary", "bill_number", "state", "jurisdiction", "issuing_body",
-                      "type", "verification", "last_verified", "id"):
+                      "verification", "last_verified", "id"):
             self.assertTrue(self.found("zebra", **{field: "Zebra"}), field)
+        # type is also searched in its displayed form, so probe the written form
+        # with a value the displayed form cannot match.
+        self.assertTrue(self.found("zebra_crossing", type="zebra_crossing"))
         self.assertTrue(self.found("zebra", key_provisions=["A zebra clause"]))
         self.assertTrue(self.found("zebra", tags=["zebra"]))
 
     def test_tags_and_types_match_as_written_and_as_displayed(self):
         self.assertTrue(self.found("frontier_ai", tags=["frontier_ai"]))
         self.assertTrue(self.found("frontier ai", tags=["frontier_ai"]))
+        # A type whose written and displayed forms differ, so each is tested alone.
+        self.assertTrue(self.found("executive_order", type="executive_order"))
         self.assertTrue(self.found("executive order", type="executive_order"))
 
     def test_federal_records_match_us_federal(self):
-        self.assertTrue(self.found("us federal", _source="us_federal_actions"))
-        self.assertFalse(self.found("us federal", _source="international_frameworks"))
+        # A federal record has an issuing body and no state or jurisdiction.
+        federal = dict(_source="us_federal_actions", state=None, issuing_body="OMB")
+        self.assertTrue(self.found("us federal", **federal))
+        self.assertFalse(self.found("us federal", _source="international_frameworks", state=None,
+                                    jurisdiction="Testland"))
+        # The site's rule: a record's own jurisdiction or state comes first.
+        self.assertFalse(self.found("us federal", _source="us_federal_actions", state="Nowhere"))
+
+    def test_a_query_can_span_neighbouring_fields(self):
+        """"Colorado SB 24-205" spans the state and the bill number. It matched on
+        the site and not here while the two joined their fields in a different order."""
+        self.assertTrue(self.found("nowhere hb 9"))
+        self.assertTrue(self.found("plain nothing"))                      # title then summary
+        self.assertTrue(self.found("us federal omb", _source="us_federal_actions", state=None,
+                                   issuing_body="OMB"))                   # jurisdiction then issuing body
 
     def test_search_ignores_case_and_surrounding_space(self):
         self.assertTrue(self.found("  ZEBRA ", title="zebra crossing"))
+
+
+class SearchMatchesTheSiteTests(unittest.TestCase):
+    """The site and the command-line tool must return the same records. They do
+    only if both join the same fields in the same order, so compare the lists."""
+
+    app = (ROOT / "docs" / "app.js").read_text(encoding="utf-8")
+
+    def site_block(self):
+        self.assertIn("const searchableText = [", self.app)
+        return self.app.split("const searchableText = [", 1)[1].split("].filter(Boolean)", 1)[0]
+
+    def test_single_fields_are_joined_in_the_same_order(self):
+        plain = self.site_block().split("...", 1)[0]
+        site_fields = tuple(re.findall(r"item\.([a-z_]+)", plain))
+        self.assertEqual(site_fields, query_legislation.SEARCH_FIELDS,
+                         "docs/app.js and src/query_legislation.py list different search fields, "
+                         "or list them in a different order")
+
+    def test_list_fields_follow_in_the_same_order(self):
+        block = self.site_block()
+        rest = block[block.index("..."):]
+        site_order = [rest.index(marker) for marker in
+                      ("item.key_provisions", "...tags,", "replace(/_/g", "item.milestones")]
+        self.assertEqual(site_order, sorted(site_order), "docs/app.js changed the order of its list fields")
+        # The same order here, checked by where each kind of text lands.
+        record = {"id": "x", "key_provisions": ["PROV"], "tags": ["a_b"], "type": "c_d",
+                  "milestones": [{"date": "2027-01-01", "description": "STAGE"}], "last_verified": "LAST"}
+        text = query_legislation.searchable_text(record)
+        positions = [text.index(marker) for marker in ("prov", "a_b", "a b", "c d", "stage", "last")]
+        self.assertEqual(positions, sorted(positions))
+        self.assertTrue(text.endswith("last"), "last_verified must stay at the very end")
+
+    def test_the_site_gives_federal_records_the_same_jurisdiction(self):
+        self.assertIn("jurisdiction: record.jurisdiction || record.state ||", self.app)
+        self.assertIn("(source.jurisdiction_type === 'federal' ? 'US Federal' : '')", self.app)
+
+    def test_every_state_record_is_found_by_state_and_bill_number(self):
+        items = query_legislation.load_all_data(ROOT / "data")
+        for item in items:
+            if item.get("state") and item.get("bill_number"):
+                query = f"{item['state']} {item['bill_number']}"
+                found = [i["id"] for i in query_legislation.search_text(items, query)]
+                self.assertIn(item["id"], found, query)
 
 
 class DashboardTests(unittest.TestCase):

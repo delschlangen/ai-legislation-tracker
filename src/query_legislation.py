@@ -102,28 +102,38 @@ def filter_by_jurisdiction(items: List[Dict], jurisdiction: str) -> List[Dict]:
     ]
 
 
-def searchable_text(item: Dict) -> str:
-    """Everything a search looks through, lower-cased.
+# The single-value fields a search looks through, in the order they are joined.
+# The order matters: a query such as "Colorado SB 24-205" spans two fields and
+# matches only when they sit next to each other. matchesFilters in docs/app.js
+# joins the same fields in the same order, and tests/test_scripts.py compares
+# the two lists, so the site and this tool return the same records.
+SEARCH_FIELDS = ("title", "name", "summary", "state", "jurisdiction", "issuing_body",
+                 "bill_number", "id", "type", "verification", "injunction")
 
-    This is the website's search (matchesFilters in docs/app.js) plus one field,
-    last_verified, so that `--search needs_verification` finds unchecked entries.
-    Keep the two lists in step. Tags and types are searchable as written
-    ("frontier_ai") and as displayed ("frontier ai")."""
+
+def searchable_text(item: Dict) -> str:
+    """Everything a search looks through, lower-cased and joined by spaces.
+
+    This is the website's search plus one field at the very end, last_verified,
+    so that `--search needs_verification` finds unchecked entries. Tags and
+    types are searchable as written ("frontier_ai") and as displayed
+    ("frontier ai")."""
+    values = dict(item)
+    # The site gives every record a jurisdiction: its own, else its state, else
+    # "US Federal" for federal records, which carry only an issuing body.
+    values["jurisdiction"] = (item.get("jurisdiction") or item.get("state")
+                              or ("US Federal" if item.get("_source") == FEDERAL_SOURCE else ""))
     tags = [str(t) for t in as_list(item.get("tags"))]
-    kind = str(item.get("type") or "")
+    kind = [str(item["type"])] if item.get("type") else []
     parts = (
-        [str(item.get(field) or "") for field in (
-            "id", "title", "name", "summary", "bill_number", "type",
-            "state", "jurisdiction", "issuing_body", "injunction",
-            "verification", "last_verified")]
-        # Federal records have no jurisdiction field; the site calls them this.
-        + (["US Federal"] if item.get("_source") == FEDERAL_SOURCE else [])
-        + [str(m.get("description") or "") for m in as_list(item.get("milestones")) if isinstance(m, dict)]
-        + [str(p) for p in as_list(item.get("key_provisions"))]
+        [values.get(field) for field in SEARCH_FIELDS]
+        + as_list(item.get("key_provisions"))
         + tags
-        + [t.replace("_", " ") for t in tags + [kind]]
+        + [t.replace("_", " ") for t in tags + kind]
+        + [m.get("description") for m in as_list(item.get("milestones")) if isinstance(m, dict)]
+        + [item.get("last_verified")]
     )
-    return " ".join(part for part in parts if part).lower()
+    return " ".join(str(part) for part in parts if part).lower()
 
 
 def search_text(items: List[Dict], query: str) -> List[Dict]:
