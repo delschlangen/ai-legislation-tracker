@@ -201,8 +201,8 @@ The [live site](https://delschlangen.github.io/ai-legislation-tracker/) needs no
 - **In force today** narrows the list to laws and policies that apply now. A law that is enacted but not yet effective is marked "Not yet in force".
 - **Sort by** effective date, jurisdiction, name or status.
 - **Every view is a link.** Filters and sort order live in the address bar, so a copied URL reproduces what you see. Adding `#state-001` opens that record.
-- **Each record** lists every date it carries, from introduction to each stage of a phased law, with a countdown for those still to come. It also shows the full line of succession and any amendments, with links to each.
-- **Back and Forward work.** The page follows the address bar, so the browser's history steps through the views you opened.
+- **Each record** lists every date it carries, from introduction to each stage of a phased law, with a countdown for those still to come. A stage is stated as fact only where the status supports it: for a bill that is pending or was vetoed, or a law that was blocked, repealed or replaced first, the date is shown as the date in the text, with no countdown. Each record also shows the full line of succession and any amendments, with links to each.
+- **Back returns from a record you followed a link to.** Following a link to a record, from Coming up, Recently changed or another record, adds a step to the browser's history. Back returns to the view you left, with keyboard focus on the link you used. Filters, sorting, search and opening a row by clicking it update the address in place and add no step, so Back does not undo them.
 
 ### Record schema
 

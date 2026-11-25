@@ -32,19 +32,36 @@
 
   const DEFAULT_FILTERS = { jurisdiction: 'all', status: 'all', tag: null, search: '', inForce: false };
 
-  // A record's own dates, in the order they usually happen.
+  // A record's own dates, in the order they usually happen: the field, what to
+  // call it once the date has come, and what to call it while it is still ahead.
   const LIFECYCLE_DATES = [
-    ['date_introduced', 'Introduced'],
-    ['date_issued', 'Issued'],
-    ['date_adopted', 'Adopted'],
-    ['date_enacted', 'Enacted'],
-    ['date_vetoed', 'Vetoed'],
-    ['date_enjoined', 'Enforcement blocked by a court'],
-    ['date_rescinded', 'Rescinded'],
-    ['date_superseded', 'Superseded'],
-    ['date_expired', 'Expired']
+    ['date_introduced', 'Introduced', 'To be introduced'],
+    ['date_issued', 'Issued', 'To be issued'],
+    ['date_adopted', 'Adopted', 'To be adopted'],
+    ['date_enacted', 'Enacted', 'To be enacted'],
+    ['date_vetoed', 'Vetoed', 'To be vetoed'],
+    ['date_enjoined', 'Enforcement blocked by a court', 'Enforcement to be blocked by a court'],
+    ['date_rescinded', 'Rescinded', 'To be rescinded'],
+    ['date_superseded', 'Superseded', 'To be superseded'],
+    ['date_expired', 'Expired', 'Expires']
   ];
+
+  // How Key Dates words a stage (an effective date, a full-application date or
+  // a milestone): once it has passed, and when it is only what the text says
+  // because the record's status means the stage did not, or will not, arrive.
   const PAST_TENSE = { 'Takes effect': 'Took effect', 'Applies in full': 'Applied in full' };
+  const AS_WRITTEN = { 'Takes effect': 'Effective date in the text',
+                       'Applies in full': 'Full application date in the text' };
+
+  // The date a law stopped applying, by status. A stage dated before it was
+  // reached. Pending and vetoed are absent: none of their stages ever arrived.
+  const END_DATE_BY_STATUS = new Map([
+    ['enjoined', 'date_enjoined'], ['rescinded', 'date_rescinded'],
+    ['superseded', 'date_superseded'], ['expired', 'date_expired']
+  ]);
+
+  // The overview lists that hold links to records. See describeLink().
+  const LINK_LISTS = ['upcoming-list', 'changes-list'];
 
   // Today's date where the reader is, as YYYY-MM-DD. Every "in force" and
   // "coming up" judgement on the page is computed from this and the data, so
@@ -64,6 +81,11 @@
   let activeFilters = Object.assign({}, DEFAULT_FILTERS);
   let sortKey = '';
   let expandedRow = null;
+  // The timer for a search that is still being typed, or null. See scheduleSearch().
+  let searchTimer = null;
+  // False once the browser has refused to let the address be rewritten. The
+  // address then no longer says what the filters are, so it is not read back.
+  let addressWritable = true;
 
   // ---------------------------------------------------------------------------
   // DOM
@@ -586,9 +608,12 @@
     const query = params.toString();
     const hash = expandedRow ? `#${encodeURIComponent(expandedRow)}` : '';
     try {
-      window.history.replaceState(null, '', window.location.pathname + (query ? `?${query}` : '') + hash);
+      // Keep the entry's state: it remembers which link the reader left this view by.
+      window.history.replaceState(window.history.state, '',
+        window.location.pathname + (query ? `?${query}` : '') + hash);
     } catch (error) {
       // Some contexts (file://, sandboxed frames) refuse this. Sharing is a bonus.
+      addressWritable = false;
     }
   }
 
@@ -740,22 +765,55 @@
     return `<p class="injunction-note"><strong>Court action:</strong> ${escapeHtml(item.injunction)}</p>`;
   }
 
+  // Whether a stage can be stated as something that happened or will happen:
+  //   'live'     the record is law or policy, so its dates arrive as written
+  //   'reached'  the law has since ended, but this stage came first
+  //   'moot'     the date is only what the text says: the bill is pending or
+  //              was vetoed, or the law ended before this stage
+  // "Coming up" and "Next stage" apply the same idea by listing live records only.
+  function stageStanding(item, date) {
+    const status = String(item.status || '').toLowerCase();
+    if (IN_FORCE_STATUSES.has(status)) return 'live';
+    const endField = END_DATE_BY_STATUS.get(status);
+    const ended = endField ? item[endField] : null;
+    return isIsoDate(ended) && date < ended && date < TODAY ? 'reached' : 'moot';
+  }
+
   // Every date a record carries, one row per date, oldest first: its own
   // lifecycle dates, plus each stage from keyDates(). Lifecycle dates stay out
   // of keyDates() itself, which feeds "Coming up" and "Next stage".
+  // `ahead` marks a date that is still expected to arrive.
   function recordDates(item) {
     const byDate = new Map();
-    const add = (date, what) => {
+    const add = (date, what, expected) => {
       if (!isIsoDate(date) || !what) return;
-      if (!byDate.has(date)) byDate.set(date, []);
-      if (!byDate.get(date).includes(what)) byDate.get(date).push(what);
+      if (!byDate.has(date)) byDate.set(date, { what: [], expected: false });
+      const entry = byDate.get(date);
+      if (!entry.what.includes(what)) entry.what.push(what);
+      if (expected) entry.expected = true;
     };
-    LIFECYCLE_DATES.forEach(([field, label]) => add(item[field], label));
-    keyDates(item).forEach(d => add(d.date, d.date >= TODAY ? d.what : (PAST_TENSE[d.what] || d.what)));
-    return Array.from(byDate.keys()).sort(compareStrings).map(date => ({ date, what: byDate.get(date) }));
+    LIFECYCLE_DATES.forEach(([field, past, future]) => {
+      const date = item[field];
+      add(date, date > TODAY ? future : past, true);
+    });
+    keyDates(item).forEach(d => {
+      if (!d.what) return;
+      const standing = stageStanding(item, d.date);
+      if (standing === 'moot') {
+        // Neither "took effect" nor a countdown: this stage is not arriving.
+        add(d.date, AS_WRITTEN[d.what] || `In the text: ${d.what}`, false);
+      } else {
+        add(d.date, d.date >= TODAY ? d.what : (PAST_TENSE[d.what] || d.what), standing === 'live');
+      }
+    });
+    return Array.from(byDate.keys()).sort(compareStrings).map(date => {
+      const entry = byDate.get(date);
+      return { date, what: entry.what, ahead: date >= TODAY && entry.expected };
+    });
   }
 
-  // Dates still to come carry a countdown; the rest are shown muted.
+  // Dates still to come carry a countdown. The rest are shown muted: dates that
+  // have passed, and dates that will not arrive.
   function renderKeyDates(item) {
     const dates = recordDates(item);
     if (!dates.length) return '';
@@ -763,14 +821,11 @@
       <div class="detail-section">
         <h4>Key Dates</h4>
         <ol class="key-dates">
-          ${dates.map(d => {
-            const ahead = d.date >= TODAY;
-            return `<li class="${ahead ? 'is-future' : 'is-past'}">
+          ${dates.map(d => `<li class="${d.ahead ? 'is-future' : 'is-past'}">
               <time datetime="${escapeHtml(d.date)}">${escapeHtml(d.date)}</time>
               <span>${d.what.map(escapeHtml).join(' · ')}</span>
-              ${ahead ? `<span class="key-date-state">${escapeHtml(countdown(d.date))}</span>` : ''}
-            </li>`;
-          }).join('')}
+              ${d.ahead ? `<span class="key-date-state">${escapeHtml(countdown(d.date))}</span>` : ''}
+            </li>`).join('')}
         </ol>
       </div>`;
   }
@@ -844,7 +899,7 @@
   // ---------------------------------------------------------------------------
 
   function bindEvents() {
-    searchInput.addEventListener('input', debounce(handleSearch, 300));
+    searchInput.addEventListener('input', scheduleSearch);
 
     jurisdictionFilters.addEventListener('click', (e) => {
       const btn = e.target.closest('.filter-btn');
@@ -895,33 +950,45 @@
 
     resetFiltersBtn.addEventListener('click', resetFilters);
 
-    // A link like #state-001 opens that record. Record ids are permanent, so
-    // this link keeps working for as long as the record does.
-    window.addEventListener('hashchange', openRowFromHash);
+    // A fragment like #state-001, typed into the address bar, opens that record.
+    // Record ids are permanent, so such a link works for as long as the record does.
+    window.addEventListener('hashchange', () => openRowFromHash());
 
     // Back and Forward change the address bar without reloading the page, so
-    // read the view back out of it. Browsers also fire this for a click on a
-    // link to a record; reading the same address again changes nothing.
-    window.addEventListener('popstate', () => {
-      activeFilters = Object.assign({}, DEFAULT_FILTERS);
-      sortKey = '';
-      readUrlState();
-      syncControls();
-      if (!hashId()) expandedRow = null;
-      applyFilters({ keepHash: true, leaveUrl: true });
-      openRowFromHash();
+    // read the view back out of it.
+    window.addEventListener('popstate', (e) => {
+      // Text still being typed belonged to the view that was just left.
+      cancelSearch();
+      // Where the address could not be kept in step, only its fragment means
+      // anything, and the filters stay as they are.
+      if (addressWritable) {
+        const before = viewKey();
+        activeFilters = Object.assign({}, DEFAULT_FILTERS);
+        sortKey = '';
+        readUrlState();
+        syncControls();
+        // Rebuild the table only when the step changes what is listed.
+        // Rebuilding destroys the control that has keyboard focus, so a step
+        // that only opens or closes a record is carried out in place.
+        if (viewKey() !== before) {
+          if (!hashId()) expandedRow = null;
+          applyFilters({ keepHash: true, leaveUrl: true });
+        }
+      } else {
+        syncControls();
+      }
+      focusAfterHistoryStep(e.state, syncOpenRecord());
     });
 
-    // A link to the record that is already named in the address bar changes
-    // nothing, so no hashchange fires. Bring that record into view directly.
+    // Links to records are followed here, not by the browser, so that a search
+    // still being typed is applied first and the way back is remembered.
     document.addEventListener('click', (e) => {
       const link = e.target.closest('a.record-link');
       if (!link) return;
-      const target = (link.getAttribute('href') || '').slice(1);
-      if (target && target === window.location.hash.slice(1)) {
-        e.preventDefault();
-        openRowFromHash();
-      }
+      // A click that opens a new tab or window is the browser's to handle.
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      followRecordLink(link);
     });
   }
 
@@ -929,7 +996,22 @@
   // button fires a click that bubbles up to the row, so this one handler serves both.
   function bindRowEvents() {
     tableBody.querySelectorAll('.data-row').forEach(row => {
-      row.addEventListener('click', () => toggleRowExpansion(row));
+      row.addEventListener('click', () => {
+        const id = row.dataset.id;
+        const wasOpen = expandedRow === id;
+        if (!settleSearch()) {
+          toggleRowExpansion(row);
+          return;
+        }
+        // A search that was still being typed has just been applied, which
+        // rebuilt the table with every record closed. Open the record that was
+        // clicked, if the search still lists it.
+        const current = findRow(id);
+        if (current && !wasOpen) {
+          toggleRowExpansion(current);
+          current.scrollIntoView({ block: 'nearest' });
+        }
+      });
     });
   }
 
@@ -968,27 +1050,35 @@
     writeUrlState();
   }
 
-  // Open the record named by the URL fragment, if there is one.
-  // The record id named by the URL fragment, or '' when there is none.
-  function hashId() {
+  function decodeFragment(text) {
     try {
-      return decodeURIComponent(window.location.hash.slice(1));
+      return decodeURIComponent(text);
     } catch (error) {
       return '';
     }
   }
 
-  function openRowFromHash() {
+  // The record id named by the URL fragment, or '' when there is none.
+  function hashId() {
+    return decodeFragment(window.location.hash.slice(1));
+  }
+
+  // Make the open record the one the address names. Returns that record's row,
+  // or null when the address names none. Moves neither focus nor the page.
+  function syncOpenRecord() {
     const id = hashId();
-    if (!id) {
-      // The fragment is gone, for example after Back: close what it had opened.
+    if (!id || !allData.some(item => item.id === id)) {
+      // No record is named: the fragment is gone, for example after Back, or it
+      // names nothing that exists. Close what was open.
       if (expandedRow) {
         setExpanded(expandedRow, false);
         expandedRow = null;
       }
-      return;
+      // A fragment that names no record is dropped, as it is when the page
+      // loads, so the address never claims a view the page is not showing.
+      if (window.location.hash) writeUrlState();
+      return null;
     }
-    if (!allData.some(item => item.id === id)) return;
 
     let row = findRow(id);
     if (!row) {
@@ -996,17 +1086,148 @@
       resetFilters();
       row = findRow(id);
     }
-    if (!row) return;
+    if (!row) return null;
 
     if (expandedRow !== id) toggleRowExpansion(row);
+    return row;
+  }
+
+  // Open the record named by the URL fragment, bring it to the middle of the
+  // window and put focus on its title. A record that is already open is left
+  // where it is unless `always` is set, so handling the same address twice
+  // (browsers report some changes through two events) moves nothing.
+  function openRowFromHash(options) {
+    const alreadyOpen = Boolean(expandedRow) && expandedRow === hashId();
+    const row = syncOpenRecord();
+    if (!row || (alreadyOpen && !(options && options.always))) return;
     row.scrollIntoView({ block: 'center' });
     const toggle = row.querySelector('.row-toggle');
     if (toggle) toggle.focus({ preventScroll: true });
   }
 
-  function handleSearch(e) {
-    activeFilters.search = e.target.value.trim().slice(0, 200);
+  // Follow a link to a record: a new step in the browser's history, with the
+  // record open. Done here so the address the step is added to is complete.
+  function followRecordLink(link) {
+    const id = decodeFragment((link.getAttribute('href') || '').slice(1));
+    if (!id) return;
+    const from = describeLink(link);
+    // A search still being typed is part of the view being left. Apply it now,
+    // or the step back would return to a view without it.
+    settleSearch();
+
+    if (id === hashId()) {
+      // Already the record in the address, so there is no step to add.
+      openRowFromHash({ always: true });
+      return;
+    }
+
+    const fragment = `#${encodeURIComponent(id)}`;
+    try {
+      // Note on the view being left which link was used, then add the step.
+      // Neither call fires an event, so the record is opened directly below.
+      window.history.replaceState({ returnTo: from }, '');
+      window.history.pushState(null, '', window.location.pathname + window.location.search + fragment);
+    } catch (error) {
+      // Some contexts (file://, sandboxed frames) refuse this. Setting the
+      // fragment still works there, and its hashchange opens the record.
+      window.location.hash = fragment;
+      return;
+    }
+    openRowFromHash();
+  }
+
+  // Where a record link sits, in words that survive the table being rebuilt:
+  // the record whose details hold it, or the overview list it is in, and which
+  // of the links there to the same record it is.
+  function describeLink(link) {
+    const detail = link.closest('.detail-row');
+    const list = detail ? null
+      : LINK_LISTS.map(id => document.getElementById(id)).find(el => el && el.contains(link));
+    const scope = detail || list;
+    if (!scope) return null;
+    const href = link.getAttribute('href');
+    const same = Array.from(scope.querySelectorAll('a.record-link')).filter(a => a.getAttribute('href') === href);
+    return { record: detail ? detail.dataset.detailFor : '', list: list ? list.id : '', href, nth: same.indexOf(link) };
+  }
+
+  // The link a description points at, if it is on the page and can be seen.
+  // The description comes back from the browser's history, so check its shape.
+  function findLink(where) {
+    if (!where || typeof where !== 'object' || typeof where.href !== 'string' || !Number.isInteger(where.nth)) {
+      return null;
+    }
+    let scope = null;
+    if (typeof where.record === 'string' && where.record) {
+      scope = findDetail(where.record);
+    } else if (LINK_LISTS.includes(where.list)) {
+      scope = document.getElementById(where.list);
+    }
+    if (!scope) return null;
+    const same = Array.from(scope.querySelectorAll('a.record-link')).filter(a => a.getAttribute('href') === where.href);
+    const link = same[where.nth] || null;
+    return link && link.getClientRects().length ? link : null;
+  }
+
+  // Put focus on a control, and move the page only if it could not be seen.
+  function focusInView(control) {
+    control.focus({ preventScroll: true });
+    const box = control.getBoundingClientRect();
+    if (box.top < 0 || box.bottom > window.innerHeight) control.scrollIntoView({ block: 'center' });
+  }
+
+  // Where keyboard focus goes after Back or Forward. A view the reader left by
+  // a record link gets focus back on that link, the way closing a dialog
+  // returns focus to the button that opened it. Otherwise focus goes to the
+  // open record, if there is one. The browser restores the scroll position
+  // when the popstate handler returns, so this waits for that and then moves
+  // the page only if the control would be out of sight.
+  function focusAfterHistoryStep(state, row) {
+    const id = row ? row.dataset.id : null;
+    window.setTimeout(() => {
+      const openRow = id ? findRow(id) : null;
+      const target = findLink(state && state.returnTo) || (openRow && openRow.querySelector('.row-toggle'));
+      if (target) focusInView(target);
+    }, 0);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Search box
+  //
+  // The box is applied 300 ms after the last key, so the table is not rebuilt on
+  // every keystroke. Anything else that changes or leaves the view in that gap
+  // first applies the pending text (settleSearch, applyFilters) or drops it
+  // (cancelSearch), so nothing ever works from a half-applied view.
+  // ---------------------------------------------------------------------------
+
+  function searchBoxText() {
+    return searchInput.value.trim().slice(0, 200);
+  }
+
+  function scheduleSearch() {
+    window.clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(applySearchBox, 300);
+  }
+
+  function cancelSearch() {
+    window.clearTimeout(searchTimer);
+    searchTimer = null;
+  }
+
+  // Apply the text in the search box. Returns true if that rebuilt the table.
+  // Text that is already applied changes nothing, so a late timer can never
+  // close the open record for no reason.
+  function applySearchBox() {
+    cancelSearch();
+    const text = searchBoxText();
+    if (text === activeFilters.search) return false;
+    activeFilters.search = text;
     applyFilters();
+    return true;
+  }
+
+  // Apply a search that is still being typed, if there is one.
+  function settleSearch() {
+    return searchTimer !== null && applySearchBox();
   }
 
   // The visual state and the accessible state of a filter button always change together.
@@ -1101,22 +1322,50 @@
     }
   }
 
+  // The filters and sort as one value, to tell whether two views list the same records.
+  function viewKey() {
+    return JSON.stringify([activeFilters.jurisdiction, activeFilters.status, activeFilters.tag,
+                           activeFilters.search, activeFilters.inForce, sortKey]);
+  }
+
+  // The record whose title button has keyboard focus, or null.
+  function focusedRowId() {
+    const active = document.activeElement;
+    const row = active && active.classList && active.classList.contains('row-toggle')
+      ? active.closest('.data-row') : null;
+    return row ? row.dataset.id : null;
+  }
+
   // Apply filters and sort, render, and keep the address bar in step.
   // Changing a filter closes the open record unless keepHash is set.
   function applyFilters(options) {
     const keepHash = options && options.keepHash;
     const leaveUrl = options && options.leaveUrl;
+    // A search still being typed is part of the view the reader is asking for.
+    if (searchTimer !== null) {
+      cancelSearch();
+      activeFilters.search = searchBoxText();
+    }
     if (!keepHash) expandedRow = null;
 
     filteredData = sortRecords(allData.filter(matchesFilters));
     if (expandedRow && !filteredData.some(item => item.id === expandedRow)) expandedRow = null;
 
+    // Rebuilding the table destroys the button that has focus. Put focus back
+    // on the same record's new button, if the record is still listed.
+    const focused = focusedRowId();
     renderTable();
     if (expandedRow) setExpanded(expandedRow, true);
+    if (focused) {
+      const row = findRow(focused);
+      const toggle = row && row.querySelector('.row-toggle');
+      if (toggle) toggle.focus({ preventScroll: true });
+    }
     if (!leaveUrl) writeUrlState();
   }
 
   function resetFilters() {
+    cancelSearch();
     activeFilters = Object.assign({}, DEFAULT_FILTERS);
     syncControls();
     applyFilters();
@@ -1199,14 +1448,6 @@
   function capitalizeFirst(str) {
     if (!str) return '';
     return str.charAt(0).toUpperCase() + str.slice(1);
-  }
-
-  function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func(...args), wait);
-    };
   }
 
   document.addEventListener('DOMContentLoaded', init);
