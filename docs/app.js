@@ -32,6 +32,20 @@
 
   const DEFAULT_FILTERS = { jurisdiction: 'all', status: 'all', tag: null, search: '', inForce: false };
 
+  // A record's own dates, in the order they usually happen.
+  const LIFECYCLE_DATES = [
+    ['date_introduced', 'Introduced'],
+    ['date_issued', 'Issued'],
+    ['date_adopted', 'Adopted'],
+    ['date_enacted', 'Enacted'],
+    ['date_vetoed', 'Vetoed'],
+    ['date_enjoined', 'Enforcement blocked by a court'],
+    ['date_rescinded', 'Rescinded'],
+    ['date_superseded', 'Superseded'],
+    ['date_expired', 'Expired']
+  ];
+  const PAST_TENSE = { 'Takes effect': 'Took effect', 'Applies in full': 'Applied in full' };
+
   // Today's date where the reader is, as YYYY-MM-DD. Every "in force" and
   // "coming up" judgement on the page is computed from this and the data, so
   // nothing on the page has to be updated by hand when a date passes.
@@ -455,8 +469,20 @@
       const count = counts[status] || 0;
       const label = btn.dataset.label || btn.textContent.trim();
       btn.dataset.label = label;
+      btn.dataset.count = String(count);
       btn.innerHTML = `${escapeHtml(label)} <span class="filter-count">(${count})</span>`;
       btn.hidden = count === 0;
+    });
+  }
+
+  // Pressed state for the status buttons, and which of them are shown: a status
+  // no record uses stays hidden unless it is the one selected, for example from
+  // a shared link. It hides again as soon as another status is chosen.
+  function syncStatusButtons() {
+    statusFilters.querySelectorAll('.filter-btn').forEach(btn => {
+      const active = btn.dataset.filter === activeFilters.status;
+      setPressed(btn, active);
+      btn.hidden = !active && btn.dataset.count === '0';
     });
   }
 
@@ -491,12 +517,7 @@
     jurisdictionFilters.querySelectorAll('.filter-btn').forEach(btn =>
       setPressed(btn, btn.dataset.filter === activeFilters.jurisdiction));
 
-    statusFilters.querySelectorAll('.filter-btn').forEach(btn => {
-      const active = btn.dataset.filter === activeFilters.status;
-      setPressed(btn, active);
-      // Never hide the button for the status currently selected.
-      if (active) btn.hidden = false;
-    });
+    syncStatusButtons();
 
     tagFiltersContainer.querySelectorAll('.filter-btn').forEach(btn =>
       setPressed(btn, btn.dataset.filter === activeFilters.tag));
@@ -532,8 +553,8 @@
       ensureTagButton(tag);
     }
 
-    const query = params.get('q');
-    if (query) activeFilters.search = query.slice(0, 200);
+    const query = (params.get('q') || '').trim().slice(0, 200);
+    if (query) activeFilters.search = query;
 
     activeFilters.inForce = params.get('in_force') === '1';
 
@@ -719,20 +740,35 @@
     return `<p class="injunction-note"><strong>Court action:</strong> ${escapeHtml(item.injunction)}</p>`;
   }
 
-  // Phased laws list every stage, marked as passed or still to come.
+  // Every date a record carries, one row per date, oldest first: its own
+  // lifecycle dates, plus each stage from keyDates(). Lifecycle dates stay out
+  // of keyDates() itself, which feeds "Coming up" and "Next stage".
+  function recordDates(item) {
+    const byDate = new Map();
+    const add = (date, what) => {
+      if (!isIsoDate(date) || !what) return;
+      if (!byDate.has(date)) byDate.set(date, []);
+      if (!byDate.get(date).includes(what)) byDate.get(date).push(what);
+    };
+    LIFECYCLE_DATES.forEach(([field, label]) => add(item[field], label));
+    keyDates(item).forEach(d => add(d.date, d.date >= TODAY ? d.what : (PAST_TENSE[d.what] || d.what)));
+    return Array.from(byDate.keys()).sort(compareStrings).map(date => ({ date, what: byDate.get(date) }));
+  }
+
+  // Dates still to come carry a countdown; the rest are shown muted.
   function renderKeyDates(item) {
-    const dates = keyDates(item);
-    if (dates.length < 2) return '';
+    const dates = recordDates(item);
+    if (!dates.length) return '';
     return `
       <div class="detail-section">
         <h4>Key Dates</h4>
         <ol class="key-dates">
           ${dates.map(d => {
-            const future = d.date > TODAY;
-            return `<li class="${future ? 'is-future' : 'is-past'}">
+            const ahead = d.date >= TODAY;
+            return `<li class="${ahead ? 'is-future' : 'is-past'}">
               <time datetime="${escapeHtml(d.date)}">${escapeHtml(d.date)}</time>
-              <span>${escapeHtml(d.what)}</span>
-              <span class="key-date-state">${future ? escapeHtml(countdown(d.date)) : 'Passed'}</span>
+              <span>${d.what.map(escapeHtml).join(' · ')}</span>
+              ${ahead ? `<span class="key-date-state">${escapeHtml(countdown(d.date))}</span>` : ''}
             </li>`;
           }).join('')}
         </ol>
@@ -821,8 +857,8 @@
     statusFilters.addEventListener('click', (e) => {
       const btn = e.target.closest('.filter-btn');
       if (!btn) return;
-      setActiveButton(statusFilters, btn);
       activeFilters.status = btn.dataset.filter;
+      syncStatusButtons();
       applyFilters();
     });
 
@@ -862,6 +898,19 @@
     // A link like #state-001 opens that record. Record ids are permanent, so
     // this link keeps working for as long as the record does.
     window.addEventListener('hashchange', openRowFromHash);
+
+    // Back and Forward change the address bar without reloading the page, so
+    // read the view back out of it. Browsers also fire this for a click on a
+    // link to a record; reading the same address again changes nothing.
+    window.addEventListener('popstate', () => {
+      activeFilters = Object.assign({}, DEFAULT_FILTERS);
+      sortKey = '';
+      readUrlState();
+      syncControls();
+      if (!hashId()) expandedRow = null;
+      applyFilters({ keepHash: true, leaveUrl: true });
+      openRowFromHash();
+    });
 
     // A link to the record that is already named in the address bar changes
     // nothing, so no hashchange fires. Bring that record into view directly.
@@ -920,14 +969,26 @@
   }
 
   // Open the record named by the URL fragment, if there is one.
-  function openRowFromHash() {
-    let id = '';
+  // The record id named by the URL fragment, or '' when there is none.
+  function hashId() {
     try {
-      id = decodeURIComponent(window.location.hash.slice(1));
+      return decodeURIComponent(window.location.hash.slice(1));
     } catch (error) {
+      return '';
+    }
+  }
+
+  function openRowFromHash() {
+    const id = hashId();
+    if (!id) {
+      // The fragment is gone, for example after Back: close what it had opened.
+      if (expandedRow) {
+        setExpanded(expandedRow, false);
+        expandedRow = null;
+      }
       return;
     }
-    if (!id || !allData.some(item => item.id === id)) return;
+    if (!allData.some(item => item.id === id)) return;
 
     let row = findRow(id);
     if (!row) {
@@ -981,12 +1042,16 @@
     }
 
     if (activeFilters.search) {
+      // Keep this list in step with searchable_text() in src/query_legislation.py.
+      const tags = Array.isArray(item.tags) ? item.tags : [];
       const searchableText = [
         item.title, item.name, item.summary, item.state, item.jurisdiction,
         item.issuing_body, item.bill_number, item.id, item.type, item.verification,
         item.injunction,
         ...(Array.isArray(item.key_provisions) ? item.key_provisions : []),
-        ...(Array.isArray(item.tags) ? item.tags : []),
+        ...tags,
+        // Also as displayed, so "frontier ai" finds the tag frontier_ai.
+        ...tags.concat(item.type || []).map(t => String(t).replace(/_/g, ' ')),
         ...(Array.isArray(item.milestones) ? item.milestones.map(m => m && m.description) : [])
       ].filter(Boolean).join(' ').toLowerCase();
 

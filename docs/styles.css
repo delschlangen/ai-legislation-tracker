@@ -252,6 +252,11 @@ body {
   opacity: 0.75;
 }
 
+/* On a pressed button the faded count fell to 3.6:1 against the blue. */
+.filter-btn.active .filter-count {
+  opacity: 1;
+}
+
 /* Overview: dates coming up and recent changes */
 .overview-section {
   display: grid;
@@ -1092,6 +1097,15 @@ tr.expanded .expand-icon {
 
   .legislation-table .detail-row td {
     border-bottom: 1px solid var(--color-gray-100);
+  }
+
+  /* Put the countdown under the description, so the text keeps its width. */
+  .key-dates li {
+    grid-template-columns: 5.75rem minmax(0, 1fr);
+  }
+
+  .key-date-state {
+    grid-column: 2;
   }
 }
 
