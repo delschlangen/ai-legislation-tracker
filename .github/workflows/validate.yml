@@ -14,6 +14,8 @@ on:
   pull_request:
     paths:
       - 'data/**'
+      - 'schema/**'
+      - 'scripts/**'
       - 'src/**'
       - 'tests/**'
       - 'validate.py'
@@ -24,6 +26,8 @@ on:
     branches: [main]
     paths:
       - 'data/**'
+      - 'schema/**'
+      - 'scripts/**'
       - 'src/**'
       - 'tests/**'
       - 'validate.py'
