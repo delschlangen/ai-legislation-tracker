@@ -109,7 +109,7 @@
 | 2027-01-01 | New York | Responsible AI Safety and Education (RAISE) Act | Takes effect |
 | 2027-08-02 | European Union | EU AI Act | National regulatory sandboxes due, moved by Regulation (EU) 2026/1744 |
 | 2027-12-02 | European Union | EU AI Act | Annex III stand-alone high-risk obligations apply, deferred by Regulation (EU) 2026/1744 |
-| 2028-01-01 | California | California AI Transparency Act | Capture-device duties apply to devices first produced on or after this date |
+| 2028-01-01 | California | California AI Transparency Act | Makers of devices that capture images or audio must offer a latent disclosure option |
 | 2028-01-01 | Connecticut | Connecticut Artificial Intelligence Responsibility | Last of the staggered obligations begin |
 | 2028-08-02 | European Union | EU AI Act | Annex I high-risk obligations for regulated products apply, deferred by Regulation (EU) 2026/1744 |
 

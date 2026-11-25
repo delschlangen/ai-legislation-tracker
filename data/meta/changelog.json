@@ -1,7 +1,7 @@
 [
   {
     "date": "2026-11-25",
-    "summary": "Recorded phased application dates as separate milestones, taken from each entry's existing text. No date changed.",
+    "summary": "Recorded phased application dates as separate milestones. Each restates the entry's own text, except two EU AI Act dates taken from the entry for its amending Regulation (intl-011). Set the TAKE IT DOWN Act's effective date to its first stage, 2025-05-19, as its summary already said.",
     "updated": [
       "intl-001",
       "fed-012",
@@ -38,7 +38,7 @@
   },
   {
     "date": "2026-09-17",
-    "summary": "Full dataset review. Added 15 entries from 2025 and 2026 and corrected 15, including the repeal of Colorado SB 24-205, the expiry of Canada's AIDA and the supersession of OMB M-24-10.",
+    "summary": "Full dataset review. Added 15 entries, mostly from 2025 and 2026 and corrected 15, including the repeal of Colorado SB 24-205, the expiry of Canada's AIDA and the supersession of OMB M-24-10.",
     "added": [
       "fed-009",
       "fed-010",
@@ -75,7 +75,7 @@
     ]
   },
   {
-    "date": "2024-12-24",
+    "date": "2025-12-24",
     "summary": "First release: 28 entries across US federal, US state and international law.",
     "added": [
       "fed-001",
