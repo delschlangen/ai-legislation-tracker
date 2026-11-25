@@ -8,11 +8,18 @@ This script only READS. It never edits, commits or fetches anything. It prints
 what is wrong and exits non-zero so a pull request can fail loudly instead of
 merging a malformed entry.
 
-It also checks data/meta/changelog.json, the hand-written log of what changed
-and when, which the website shows as "Recently changed".
+Two layers:
 
-The field vocabulary here must match schema/legislation.schema.json.
-tests/test_schema.py fails if the two drift apart.
+1. Its own checks, which give messages a contributor can act on.
+2. schema/legislation.schema.json. A record that passes layer 1 is then checked
+   against the schema, so nothing the schema rejects can pass here, and the two
+   cannot drift apart.
+
+It also enforces what a schema cannot express: real calendar dates, duplicate
+ids, mutual supersession and amendment links, milestones in date order, a
+phased law's first milestone matching effective_date, and the hand-written
+change log in data/meta/changelog.json, which the website shows as "Recently
+changed".
 
 Usage:
     python3 validate.py          # check every file in data/
@@ -26,7 +33,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-DATA_DIR = Path(__file__).parent / "data"
+ROOT = Path(__file__).parent
+DATA_DIR = ROOT / "data"
+SCHEMA_PATH = ROOT / "schema" / "legislation.schema.json"
 CHANGELOG_NAME = "meta/changelog.json"
 
 # Required in every record, in every file.
@@ -44,6 +53,13 @@ ID_PREFIX_BY_FILE = {
     "us_federal_actions.json": "fed-",
     "us_state_bills.json": "state-",
     "international_frameworks.json": "intl-",
+}
+
+# The schema definition each file's records are checked against.
+SCHEMA_DEF_BY_FILE = {
+    "us_federal_actions.json": "federalRecord",
+    "us_state_bills.json": "stateRecord",
+    "international_frameworks.json": "internationalRecord",
 }
 
 VALID_STATUS = {
@@ -75,6 +91,13 @@ KNOWN_FIELDS = {
 # Fields that were renamed. A record still using one gets told the new name.
 RETIRED_FIELDS = {"name": "title", "date_effective": "effective_date"}
 
+# Fields that hold one piece of text, and fields that hold a list of them.
+STRING_FIELDS = [
+    "title", "summary", "type", "state", "bill_number", "jurisdiction", "issuing_body",
+    "veto_reason", "injunction",
+]
+STRING_LIST_FIELDS = ["covered_decisions", "principles"]
+
 # Only last_verified may say "nobody has checked this yet". Every other date
 # field must be a real date.
 DATE_SENTINEL = "needs_verification"
@@ -84,7 +107,9 @@ DATE_FIELDS = [
     "date_rescinded", "date_vetoed", "date_superseded", "date_expired",
     "date_enjoined", "last_verified",
 ]
-DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# ASCII digits only: \d would also accept digits from other scripts.
+DATE_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+ID_RE = re.compile(r"(fed|state|intl)-[0-9]{3,}")
 
 # Fields that must point at another record's id, and the field the target must
 # point back with. A link recorded in only one direction leaves the other record
@@ -96,14 +121,14 @@ RECIPROCAL = {
     "amended_by": "amends",
 }
 
-TAG_RE = re.compile(r"^[a-z0-9_]+$")
+TAG_RE = re.compile(r"[a-z0-9_]+")
 
 
 def is_valid_date(value, field):
     """YYYY-MM-DD, zero-padded, and a real calendar date."""
     if field == "last_verified" and value == DATE_SENTINEL:
         return True
-    if not isinstance(value, str) or not DATE_RE.match(value):
+    if not isinstance(value, str) or not DATE_RE.fullmatch(value):
         return False
     try:
         datetime.strptime(value, "%Y-%m-%d")
@@ -113,7 +138,10 @@ def is_valid_date(value, field):
 
 
 def is_specific_url(url):
-    """Reject bare domains like https://www.sec.gov that cite no document."""
+    """Reject bare domains like https://www.sec.gov that cite no document.
+
+    The source_url pattern in the schema expresses the same rule;
+    tests/test_schema.py checks the two agree."""
     if not isinstance(url, str) or not url.startswith(("http://", "https://")):
         return False
     remainder = url.split("://", 1)[1]
@@ -121,14 +149,160 @@ def is_specific_url(url):
     return bool(path.strip("/")) or "?" in url
 
 
+def is_text(value):
+    return isinstance(value, str) and bool(value.strip())
+
+
+# ---------------------------------------------------------------------------
+# Layer 2: the schema
+# ---------------------------------------------------------------------------
+
+# The project has no dependencies, so this is a small checker for the parts of
+# JSON Schema (draft 2020-12) that schema/legislation.schema.json uses. A
+# keyword outside these two sets raises instead of being silently ignored, so
+# the schema cannot grow a rule that nothing enforces.
+SCHEMA_RULES = {
+    "$ref", "type", "enum", "const", "pattern", "minLength", "minItems", "required",
+    "properties", "additionalProperties", "items", "allOf", "anyOf", "if", "then",
+    "dependentRequired",
+}
+SCHEMA_ANNOTATIONS = {"$schema", "$id", "$defs", "title", "description"}
+
+_JSON_TYPES = {
+    "string": lambda v: isinstance(v, str),
+    # JSON Schema counts 28.0 as an integer; Python's bool is not a number here.
+    "integer": lambda v: (isinstance(v, int) and not isinstance(v, bool))
+               or (isinstance(v, float) and v.is_integer()),
+    "number": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
+    "boolean": lambda v: isinstance(v, bool),
+    "array": lambda v: isinstance(v, list),
+    "object": lambda v: isinstance(v, dict),
+    "null": lambda v: v is None,
+}
+
+
+class SchemaError(ValueError):
+    """The schema itself uses something this checker does not implement."""
+
+
+def _json_equal(a, b):
+    """Equality as JSON sees it: true is not 1, but 1 and 1.0 are the same number."""
+    if isinstance(a, bool) or isinstance(b, bool):
+        return a is b
+    return a == b
+
+
+def _pattern_matches(pattern, value):
+    # JSON Schema patterns follow JavaScript, where "$" means the very end.
+    # In Python "$" also matches before a final newline, so use \Z instead.
+    if pattern.endswith("$") and not pattern.endswith("\\$"):
+        pattern = pattern[:-1] + r"\Z"
+    return re.search(pattern, value) is not None
+
+
+def _resolve(ref, root):
+    if not ref.startswith("#/"):
+        raise SchemaError(f"only local references are supported, not {ref!r}")
+    node = root
+    for part in ref[2:].split("/"):
+        node = node[part]
+    return node
+
+
+def schema_errors(value, schema, root, path="$"):
+    """Problems found checking `value` against `schema`; an empty list means valid."""
+    unsupported = set(schema) - SCHEMA_RULES - SCHEMA_ANNOTATIONS
+    if unsupported:
+        raise SchemaError(f"unsupported schema keyword(s) {sorted(unsupported)} at {path}")
+
+    found = []
+    if "$ref" in schema:
+        found += schema_errors(value, _resolve(schema["$ref"], root), root, path)
+    if "type" in schema:
+        is_type = _JSON_TYPES.get(schema["type"]) if isinstance(schema["type"], str) else None
+        if is_type is None:
+            raise SchemaError(f"unsupported type {schema['type']!r} at {path}")
+        if not is_type(value):
+            return found + [f"{path}: expected {schema['type']}, got {type(value).__name__}"]
+    if "enum" in schema and not any(_json_equal(value, option) for option in schema["enum"]):
+        found.append(f"{path}: {value!r} is not one of {schema['enum']}")
+    if "const" in schema and not _json_equal(value, schema["const"]):
+        found.append(f"{path}: {value!r} is not {schema['const']!r}")
+    if isinstance(value, str):
+        if "pattern" in schema and not _pattern_matches(schema["pattern"], value):
+            found.append(f"{path}: {value!r} does not match the pattern {schema['pattern']}")
+        if "minLength" in schema and len(value) < schema["minLength"]:
+            found.append(f"{path}: is empty")
+    if isinstance(value, list):
+        if "minItems" in schema and len(value) < schema["minItems"]:
+            found.append(f"{path}: needs at least {schema['minItems']} item(s)")
+        if "items" in schema:
+            for index, item in enumerate(value):
+                found += schema_errors(item, schema["items"], root, f"{path}[{index}]")
+    if isinstance(value, dict):
+        for key in schema.get("required", []):
+            if key not in value:
+                found.append(f"{path}: missing {key}")
+        for key, needed in schema.get("dependentRequired", {}).items():
+            if key in value:
+                for other in needed:
+                    if other not in value:
+                        found.append(f"{path}: {key} needs {other}")
+        properties = schema.get("properties", {})
+        for key, sub in properties.items():
+            if key in value:
+                found += schema_errors(value[key], sub, root, f"{path}.{key}")
+        if "additionalProperties" in schema:
+            if schema["additionalProperties"] is not False:
+                raise SchemaError(f"additionalProperties must be false at {path}")
+            for key in value:
+                if key not in properties:
+                    found.append(f"{path}: unexpected property {key}")
+    for sub in schema.get("allOf", []):
+        found += schema_errors(value, sub, root, path)
+    if "anyOf" in schema and not any(not schema_errors(value, sub, root, path) for sub in schema["anyOf"]):
+        found.append(f"{path}: matches none of the allowed forms")
+    if "if" in schema and "then" in schema and not schema_errors(value, schema["if"], root, path):
+        found += schema_errors(value, schema["then"], root, path)
+    return found
+
+
+def load_schema(path=None):
+    """Returns (schema, problem). Exactly one of the two is None."""
+    path = SCHEMA_PATH if path is None else path
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8")), None
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
+        return None, f"schema/{Path(path).name}: cannot read as JSON - {exc}"
+
+
+def schema_problems(filename, record, schema):
+    """What the schema says about one record, as validator problems."""
+    definition = SCHEMA_DEF_BY_FILE.get(filename, "record")
+    where = f"{filename} :: {record.get('id', '<no id>')}"
+    errors = schema_errors(record, {"$ref": f"#/$defs/{definition}"}, schema)
+    return [f"{where}: does not match schema/{SCHEMA_PATH.name} ({error})" for error in errors]
+
+
+# ---------------------------------------------------------------------------
+# Layer 1: checks with messages a contributor can act on
+# ---------------------------------------------------------------------------
+
 def check_record(filename, record, problems):
     """Per-record checks. `record` is known to be a dict."""
     where = f"{filename} :: {record.get('id', '<no id>')}"
 
+    # A required field that is absent or empty is reported once, here, and the
+    # type checks below then leave it alone.
+    missing = set()
     required = REQUIRED + REQUIRED_BY_FILE.get(filename, [])
     for field in required:
         if field not in record or record[field] in (None, "", []):
             problems.append(f"{where}: missing required field '{field}'")
+            missing.add(field)
+
+    def present(field):
+        return field in record and field not in missing
 
     for field in sorted(set(record) - KNOWN_FIELDS):
         if field in RETIRED_FIELDS:
@@ -139,69 +313,93 @@ def check_record(filename, record, problems):
                 f"{where}: unknown field '{field}'. Check the spelling, or add it to KNOWN_FIELDS "
                 "in validate.py and to schema/legislation.schema.json")
 
-    rid = record.get("id")
-    if "id" in record:
+    if present("id"):
+        rid = record["id"]
         prefix = ID_PREFIX_BY_FILE.get(filename)
         if not isinstance(rid, str):
             problems.append(f"{where}: id must be a string")
-        elif prefix and not re.fullmatch(re.escape(prefix) + r"\d{3,}", rid):
+        elif prefix and not re.fullmatch(re.escape(prefix) + r"[0-9]{3,}", rid):
             problems.append(
                 f"{where}: id should be '{prefix}' followed by at least three digits "
                 f"(for example '{prefix}018') in {filename}")
+        elif not prefix and not ID_RE.fullmatch(rid):
+            problems.append(f"{where}: id should look like 'state-018'")
 
-    for field in ("title", "summary", "veto_reason", "injunction"):
-        if field in record and not isinstance(record[field], str):
-            problems.append(f"{where}: '{field}' must be a string")
+    for field in STRING_FIELDS:
+        if present(field) and not is_text(record[field]):
+            hint = "" if field in required else "; leave the field out if it does not apply"
+            problems.append(f"{where}: '{field}' must be text that is not blank{hint}")
+
+    for field in STRING_LIST_FIELDS:
+        if field in record:
+            value = record[field]
+            if not isinstance(value, list) or not all(is_text(item) for item in value):
+                problems.append(f"{where}: '{field}' must be a list of non-blank strings")
+
+    if "signatories" in record:
+        value = record["signatories"]
+        if isinstance(value, bool) or not isinstance(value, int):
+            problems.append(f"{where}: 'signatories' must be a whole number, not {value!r}")
+
+    if "enforcement" in record and not isinstance(record["enforcement"], dict):
+        problems.append(f"{where}: 'enforcement' must be an object")
 
     check_milestones(where, record, problems)
 
     status = record.get("status")
-    if status is not None and status not in VALID_STATUS:
-        problems.append(f"{where}: status '{status}' is not one of {sorted(VALID_STATUS)}")
+    if present("status") and (not isinstance(status, str) or status not in VALID_STATUS):
+        problems.append(f"{where}: status {status!r} is not one of {sorted(VALID_STATUS)}")
+    if not isinstance(status, str):
+        status = None
     for field in REQUIRED_BY_STATUS.get(status, []):
-        if not record.get(field):
+        if field not in record:
             problems.append(f"{where}: status '{status}' requires '{field}'")
 
-    verification = record.get("verification")
-    if verification is not None and verification not in VALID_VERIFICATION:
-        problems.append(
-            f"{where}: verification '{verification}' is not one of {sorted(VALID_VERIFICATION)}")
+    if "verification" in record:
+        verification = record["verification"]
+        if not isinstance(verification, str) or verification not in VALID_VERIFICATION:
+            problems.append(
+                f"{where}: verification {verification!r} is not one of {sorted(VALID_VERIFICATION)}. "
+                "Leave the field out if the entry has not been re-checked")
 
     for field in DATE_FIELDS:
-        if field in record and record[field] is not None:
-            if not is_valid_date(record[field], field):
-                problems.append(
-                    f"{where}: '{field}' is {record[field]!r}, expected a zero-padded YYYY-MM-DD date")
+        if present(field) and not is_valid_date(record[field], field):
+            hint = "; leave the field out if there is no date" if record[field] is None else ""
+            problems.append(
+                f"{where}: '{field}' is {record[field]!r}, expected a zero-padded YYYY-MM-DD date{hint}")
 
-    url = record.get("source_url")
-    if url and not is_specific_url(url):
+    for field in RECIPROCAL:
+        if field in record:
+            target = record[field]
+            if not isinstance(target, str) or not ID_RE.fullmatch(target):
+                problems.append(f"{where}: {field} is {target!r}, expected one record id such as 'state-001'")
+
+    if present("source_url") and not is_specific_url(record["source_url"]):
         problems.append(
-            f"{where}: source_url {url!r} is not a specific http(s) link. "
+            f"{where}: source_url {record['source_url']!r} is not a specific http(s) link. "
             "Link the bill, rule or document, not a bare domain.")
 
-    tags = record.get("tags")
-    if "tags" in record and tags not in (None, "", []):
+    if present("tags"):
+        tags = record["tags"]
         if not isinstance(tags, list):
             problems.append(f"{where}: 'tags' must be a list of strings, not {type(tags).__name__}")
         else:
             for tag in tags:
-                if not isinstance(tag, str) or not TAG_RE.match(tag):
+                if not isinstance(tag, str) or not TAG_RE.fullmatch(tag):
                     problems.append(f"{where}: tag {tag!r} should be lowercase letters, digits and underscores")
 
-    provisions = record.get("key_provisions")
-    if "key_provisions" in record and provisions not in (None, "", []):
+    if present("key_provisions"):
+        provisions = record["key_provisions"]
         if not isinstance(provisions, list):
             problems.append(
                 f"{where}: 'key_provisions' must be a list of strings, not {type(provisions).__name__}")
-        else:
-            for item in provisions:
-                if not isinstance(item, str) or not item.strip():
-                    problems.append(f"{where}: key_provisions contains an empty or non-string item")
-                    break
+        elif not all(is_text(item) for item in provisions):
+            problems.append(f"{where}: key_provisions contains an empty or non-string item")
 
 
 def check_milestones(where, record, problems):
-    """Phased dates: a non-empty list of {date, description}, oldest first."""
+    """Phased dates: a non-empty list of {date, description}, oldest first, whose
+    first date is the record's effective_date."""
     if "milestones" not in record:
         return
     milestones = record["milestones"]
@@ -209,23 +407,36 @@ def check_milestones(where, record, problems):
         problems.append(f"{where}: 'milestones' must be a non-empty list")
         return
     dates = []
+    well_formed = True
     for index, item in enumerate(milestones):
         label = f"{where}: milestones[{index}]"
         if not isinstance(item, dict):
             problems.append(f"{label} must be an object with 'date' and 'description'")
+            well_formed = False
             continue
         extra = sorted(set(item) - {"date", "description"})
         if extra:
             problems.append(f"{label} has unexpected field(s) {extra}; only 'date' and 'description' are allowed")
         if not is_valid_date(item.get("date"), "milestone"):
             problems.append(f"{label} date is {item.get('date')!r}, expected a zero-padded YYYY-MM-DD date")
+            well_formed = False
         else:
             dates.append(item["date"])
-        description = item.get("description")
-        if not isinstance(description, str) or not description.strip():
+        if not is_text(item.get("description")):
             problems.append(f"{label} needs a non-empty 'description'")
     if dates != sorted(dates):
         problems.append(f"{where}: milestones must be listed oldest first")
+        well_formed = False
+
+    # A phased law keeps its first stage in effective_date. The site's "in force
+    # today" rule reads effective_date alone, so the two must not disagree.
+    if "effective_date" not in record:
+        problems.append(f"{where}: a record with milestones needs effective_date, set to the first milestone's date")
+    elif well_formed and is_valid_date(record["effective_date"], "effective_date") \
+            and record["effective_date"] != dates[0]:
+        problems.append(
+            f"{where}: effective_date is {record['effective_date']} but the first milestone is {dates[0]}. "
+            "A phased law keeps its first stage in effective_date")
 
 
 def check_changelog(path, records_by_id, problems):
@@ -259,7 +470,7 @@ def check_changelog(path, records_by_id, problems):
             if previous_date and date > previous_date:
                 problems.append(f"{where}: entries must be newest first ({date} comes after {previous_date})")
             previous_date = date
-        if not isinstance(entry.get("summary"), str) or not entry.get("summary", "").strip():
+        if not is_text(entry.get("summary")):
             problems.append(f"{where}: needs a non-empty 'summary'")
 
         ids_seen = set()
@@ -269,6 +480,9 @@ def check_changelog(path, records_by_id, problems):
                 problems.append(f"{where}: '{kind}' must be a list of record ids")
                 continue
             for rid in ids:
+                if not isinstance(rid, str):
+                    problems.append(f"{where}: '{kind}' must list record ids as strings, got {rid!r}")
+                    continue
                 if rid not in records_by_id:
                     problems.append(f"{where}: '{kind}' names unknown id {rid!r}")
                 if rid in ids_seen:
@@ -288,11 +502,8 @@ def check_cross_references(records_by_id, problems):
         where = f"{filename} :: {rid}"
         for field, inverse in RECIPROCAL.items():
             target = record.get(field)
-            if not target:
-                continue
-            if not isinstance(target, str):
-                problems.append(f"{where}: {field} must be a single record id")
-                continue
+            if not isinstance(target, str) or not ID_RE.fullmatch(target):
+                continue  # absent, or already reported by check_record
             if target == rid:
                 problems.append(f"{where}: {field} points at itself")
             elif target not in records_by_id:
@@ -319,6 +530,10 @@ def main(argv=None):
         print(f"ERROR: no JSON files found in {DATA_DIR}")
         return 1
 
+    schema, schema_problem = load_schema()
+    if schema_problem:
+        problems.append(schema_problem)
+
     for path in files:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -343,7 +558,17 @@ def main(argv=None):
             problems.append(f"{filename}[{index}]: record is not an object")
             continue
 
-        check_record(filename, record, problems)
+        found = []
+        check_record(filename, record, found)
+        # The schema is the backstop: it only speaks when this script's own
+        # checks found nothing, so a problem is never reported twice.
+        if not found and schema is not None:
+            try:
+                found = schema_problems(filename, record, schema)
+            except (SchemaError, KeyError) as exc:
+                problems.append(f"schema/{SCHEMA_PATH.name}: {exc}")
+                schema = None
+        problems.extend(found)
 
         rid = record.get("id")
         if isinstance(rid, str):

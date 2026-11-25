@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/delschlangen/ai-legislation-tracker/main/schema/legislation.schema.json",
   "title": "AI Legislation Tracker records",
-  "description": "Schema for the three files in data/. Validate a whole file against #/$defs/federalFile, #/$defs/stateFile or #/$defs/internationalFile, or one record against the matching *Record definition. The root accepts any of the three files. validate.py enforces the same rules and is what CI runs; tests/test_schema.py fails if the two disagree.",
+  "description": "Schema for the three files in data/. Validate a whole file against #/$defs/federalFile, #/$defs/stateFile or #/$defs/internationalFile, or one record against the matching *Record definition. The root accepts any of the three files. validate.py, which CI runs, checks every record against this schema and then adds rules a schema cannot express: real calendar dates, mutual supersession and amendment links, milestone order, and a phased law's first milestone matching effective_date.",
   "type": "array",
   "items": {
     "anyOf": [
@@ -23,8 +23,10 @@
       "pattern": "^(fed|state|intl)-[0-9]{3,}$"
     },
     "nonEmptyString": {
+      "description": "A string with at least one character that is not white space.",
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "pattern": "\\S"
     },
     "milestone": {
       "description": "One phase of a law that applies in stages.",
@@ -60,7 +62,7 @@
         "date_introduced": { "$ref": "#/$defs/date" },
         "date_enacted": { "$ref": "#/$defs/date" },
         "date_adopted": { "$ref": "#/$defs/date" },
-        "effective_date": { "description": "When obligations begin. For a law that applies in stages, the first stage; the rest go in milestones.", "$ref": "#/$defs/date" },
+        "effective_date": { "description": "When obligations begin. For a law that applies in stages, the first stage, which is also the first milestone.", "$ref": "#/$defs/date" },
         "full_application_date": { "description": "When the last stage applies.", "$ref": "#/$defs/date" },
         "date_rescinded": { "$ref": "#/$defs/date" },
         "date_vetoed": { "$ref": "#/$defs/date" },
@@ -69,7 +71,7 @@
         "date_enjoined": { "$ref": "#/$defs/date" },
 
         "milestones": {
-          "description": "Phased application dates, oldest first.",
+          "description": "Phased application dates, oldest first. Requires effective_date, which must equal the first milestone's date.",
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/$defs/milestone" }
@@ -95,9 +97,9 @@
         "enforcement": { "type": "object" },
 
         "source_url": {
-          "description": "A specific document, never a bare domain.",
+          "description": "A specific document, never a bare domain: an http(s) URL with a path beyond '/', or a query string.",
           "type": "string",
-          "pattern": "^https?://[^/]+/.+"
+          "pattern": "^https?://([^/]*/+[^/]|[\\s\\S]*[?])"
         },
         "tags": {
           "type": "array",
@@ -112,6 +114,9 @@
           "description": "How the entry was last checked. Absent means not re-checked since first recorded.",
           "enum": ["primary", "secondary", "unconfirmed"]
         }
+      },
+      "dependentRequired": {
+        "milestones": ["effective_date"]
       },
       "allOf": [
         { "if": { "properties": { "status": { "const": "superseded" } }, "required": ["status"] }, "then": { "required": ["superseded_by"] } },

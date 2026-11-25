@@ -172,6 +172,39 @@ class ValidatorTests(unittest.TestCase):
     def test_unknown_status_is_rejected(self):
         self.assert_fails_with({"us_state_bills.json": [state(status="maybe")]}, "is not one of")
 
+    # --- odd values are reported, never a crash --------------------------------
+
+    def test_status_that_is_not_text_is_reported_not_a_crash(self):
+        for value in ({}, ["enacted"], 5):
+            self.assert_fails_with({"us_state_bills.json": [state(status=value)]}, "is not one of")
+        # An empty value for a required field reads as missing.
+        self.assert_fails_with({"us_state_bills.json": [state(status=[])]}, "missing required field 'status'")
+
+    def test_verification_that_is_not_text_is_reported_not_a_crash(self):
+        for value in ([], {}, 5, None):
+            self.assert_fails_with({"us_state_bills.json": [state(verification=value)]}, "is not one of")
+
+    def test_null_is_not_a_date(self):
+        self.assert_fails_with({"us_state_bills.json": [state(effective_date=None)]},
+                               "leave the field out if there is no date")
+
+    def test_link_must_be_one_record_id(self):
+        for value in (None, "", 5, ["state-002"], "Colorado SB 26-189"):
+            self.assert_fails_with({"us_state_bills.json": [state(superseded_by=value)]},
+                                   "expected one record id")
+
+    def test_optional_text_fields_cannot_be_blank_or_another_type(self):
+        self.assert_fails_with({"us_state_bills.json": [state(type=7)]}, "'type' must be text")
+        self.assert_fails_with({"us_state_bills.json": [state(injunction="  ")]}, "'injunction' must be text")
+        self.assert_fails_with({"us_state_bills.json": [state(signatories="28")]}, "must be a whole number")
+        self.assert_fails_with({"us_state_bills.json": [state(enforcement="AG")]}, "must be an object")
+        self.assert_fails_with({"us_state_bills.json": [state(principles="fairness")]}, "list of non-blank strings")
+
+    def test_dates_use_plain_digits(self):
+        arabic_indic = "\u0662\u0660\u0662\u0666-\u0660\u0661-\u0660\u0661"
+        self.assert_fails_with({"us_state_bills.json": [state(effective_date=arabic_indic)]},
+                               "zero-padded YYYY-MM-DD")
+
     # --- enjoined -----------------------------------------------------------
 
     def test_enjoined_requires_an_injunction(self):
@@ -213,6 +246,24 @@ class ValidatorTests(unittest.TestCase):
             {"date": "2027-01-01", "description": "later"},
             {"date": "2026-01-01", "description": "earlier"}])]}, "oldest first")
 
+    def test_first_milestone_must_be_the_effective_date(self):
+        # The site's "in force today" rule reads effective_date alone, so a phased
+        # law whose first stage is somewhere else would be reported wrongly.
+        self.assert_fails_with({"us_state_bills.json": [state(effective_date="2026-06-01", milestones=[
+            {"date": "2026-01-01", "description": "First duties"},
+            {"date": "2027-01-01", "description": "Second duties"}])]}, "but the first milestone is 2026-01-01")
+
+    def test_milestones_need_an_effective_date(self):
+        record = state(milestones=[{"date": "2026-01-01", "description": "First duties"}])
+        del record["effective_date"]
+        self.assert_fails_with({"us_state_bills.json": [record]}, "needs effective_date")
+
+    def test_real_phased_records_follow_the_first_stage_rule(self):
+        for name in ("us_federal_actions", "us_state_bills", "international_frameworks"):
+            for record in json.loads((ROOT / "data" / f"{name}.json").read_text(encoding="utf-8")):
+                if record.get("milestones"):
+                    self.assertEqual(record["effective_date"], record["milestones"][0]["date"], record["id"])
+
     def test_milestone_needs_a_description_and_no_extra_fields(self):
         self.assert_fails_with({"us_state_bills.json": [state(milestones=[
             {"date": "2026-01-01", "description": "", "note": "x"}])]}, "unexpected field")
@@ -247,6 +298,12 @@ class ValidatorTests(unittest.TestCase):
         self.assert_fails_with(self.with_changelog([
             {"date": "2026-02-01", "summary": "x", "added": ["state-001"]},
             {"date": "2026-01-01", "summary": "y", "added": ["state-001"]}]), "added twice")
+
+    def test_changelog_ids_that_are_not_strings_are_reported_not_a_crash(self):
+        self.assert_fails_with(self.with_changelog([
+            {"date": "2026-01-01", "summary": "x", "updated": [{"id": "state-001"}]}]), "record ids as strings")
+        self.assert_fails_with(self.with_changelog([
+            {"date": "2026-01-01", "summary": "x", "added": [["state-001"]]}]), "record ids as strings")
 
     def test_changelog_rejects_unknown_fields(self):
         self.assert_fails_with(self.with_changelog([
