@@ -126,7 +126,7 @@ For international:
 | `last_verified` | Yes | `YYYY-MM-DD` date you checked it, or `needs_verification` |
 | `verification` | No | `primary`, `secondary` or `unconfirmed` — how you checked it |
 | `effective_date` | If enacted | When obligations begin. For a law that applies in stages, the first stage |
-| `milestones` | If phased | Every stage, oldest first: `[{"date": "2027-01-01", "description": "Platform duties begin"}]` |
+| `milestones` | If phased | Every stage, oldest first: `[{"date": "2027-01-01", "description": "Platform duties begin"}]`. The first stage's date must equal `effective_date`. Only record a stage you have read a source for |
 | `injunction` / `date_enjoined` | If enjoined | The court, case and date of the order blocking enforcement |
 | `superseded_by` / `supersedes` | If applicable | The id of the related record. Set both sides: the validator fails a one-way link |
 | `amends` / `amended_by` | If applicable | The id of the related record. Also set on both sides |
@@ -216,6 +216,15 @@ Before submitting:
 - [ ] Tags use existing tags where applicable
 - [ ] An entry at the top of `data/meta/changelog.json` says what you added or changed
 - [ ] Run `python3 validate.py` and fix everything it reports
+- [ ] Run `python3 -m unittest discover -s tests`. It checks the hand-written numbers below against the data and says which one is out of date
+
+If you added a record, or changed a status or a date, these hand-written places must follow. The tests fail until they do:
+
+- [ ] README badges at the top: `Legislation Tracked`, and `Jurisdictions` if the jurisdiction is new
+- [ ] README "Data Currency" line: "N entries across M jurisdictions"
+- [ ] README "At a glance" table
+- [ ] README "Upcoming effective dates" table: one row for each future date, including each milestone. Remove the row if the date changed or the law was superseded
+- [ ] `examples/current_landscape.md`: regenerate it with `python3 src/generate_dashboard.py examples/current_landscape.md`
 
 ---
 
@@ -267,7 +276,8 @@ python3 src/generate_dashboard.py
 # Check tag assignment
 python3 src/query_legislation.py --list-tags
 
-# Only if you changed code in src/ or validate.py
+# Run this after any change to data/, schema/ or code. It also checks the
+# README's counts and its upcoming-dates table against the data.
 python3 -m unittest discover -s tests
 ```
 
@@ -285,7 +295,7 @@ Your entry appears on the site as soon as the change is on `main`.
 1. Fork the repository
 2. Create a branch: `git checkout -b add-virginia-hb1234`
 3. Make your changes
-4. Run `python3 validate.py` and fix anything it reports
+4. Run `python3 validate.py` and `python3 -m unittest discover -s tests`, and fix anything they report
 5. Commit: `git commit -m "Add Virginia HB 1234: AI Transparency Requirements"`
 6. Push and open a Pull Request
 

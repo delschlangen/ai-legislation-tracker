@@ -25,14 +25,16 @@ Earlier versions of this file promised quarterly reviews and one-week turnaround
 
 Every Monday a GitHub Actions workflow builds a checklist and posts it as one issue titled **Maintenance report**. It updates that same issue each week rather than opening new ones, and adds a comment only when there is more to do than the week before.
 
+It only ever updates an issue that its own bot account opened. An issue anyone else opens under the same title is ignored. If you close the report issue, the next run opens a fresh one.
+
 | Section | What it means | What to do |
 |:--------|:--------------|:-----------|
 | Changes reported by official sources | The Federal Register or Congress.gov shows something newer than, or different from, the record | Read the official source. Update the record if the law really changed |
 | Stale entries | Not verified in the last 183 days | Re-check the entry, then update `last_verified` and `verification` |
-| Dates that just passed | An effective date or phase arrived in the last 60 days | Confirm the law took effect as recorded and was not delayed or enjoined |
+| Dates that just passed | An effective date or phase arrived in the last 60 days, and the entry has not been verified since | Confirm the law took effect as recorded and was not delayed or enjoined, then update `last_verified`. An entry verified on or after the date drops off the list |
 | README dates now in the past | A row in the README's hand-written upcoming table has passed | Remove or update the row |
-| Broken source links | The official page returns 404 or 410, or the host is gone | Find the current URL for the same document |
-| Could not check automatically | The site refused an automated request or timed out | Usually bot protection. Open the link in a browser if in doubt |
+| Broken source links | The page answers 404 or 410 to a full request, or the host does not exist, on two tries | Find the current URL for the same document |
+| Could not check automatically | The site refused an automated request, timed out, had a temporary DNS fault or sent a garbled answer | Usually bot protection or a passing fault. Open the link in a browser if in doubt |
 
 **It never edits the data.** An API knows a bill had an action. It does not know that a court enjoined the law or a different bill delayed it, and it cannot judge what counts as AI law. So the report says "look at this", and a person decides. A record's `last_verified` date moves only when someone actually checked it.
 
@@ -40,8 +42,11 @@ Every Monday a GitHub Actions workflow builds a checklist and posts it as one is
 
 | Source | Records | What it checks |
 |:-------|:--------|:---------------|
-| Federal Register | Executive orders and rules whose `source_url` is on federalregister.gov | The signing date, and the "Revoked by", "Superseded by" and "Amended by" notes |
+| Federal Register | Executive orders whose `source_url` is on federalregister.gov | The signing date must equal `date_issued`. The notes are read for "Revoked by", "Superseded by" and "Amended by" |
+| Federal Register | Rules whose `source_url` is on federalregister.gov | The publication date is compared with `date_issued` and flagged when they are more than 30 days apart, since a rule is normally issued shortly before it is published. The effective date is compared when both sides record one. Rules carry no revocation notes |
 | Congress.gov | Federal bills whose `source_url` is on congress.gov | Public-law status, and any action newer than the last check |
+
+One failed check never costs the rest. A site that sends a garbled or truncated answer, or an API that returns something unexpected, is listed under "Could not check" for that record, and every other section is still published.
 
 **No setup and no API keys.** The Federal Register needs no key. Congress.gov is queried with api.data.gov's public `DEMO_KEY`, which needs no account. It is rate-limited; if a week's run hits the limit, the report says so and the next week tries again.
 
@@ -144,7 +149,7 @@ This is deliberate. A citation to `state-001` written in 2024 still resolves tod
 
 ## Handling Enjoined Law
 
-When a court blocks enforcement of a law, set its `status` to `enjoined`, add `injunction` naming the court, the case and the date, and add `date_enjoined`. If the injunction is lifted, set the status back and keep the history in the summary. The site shows an enjoined law with its own status and filter button.
+When a court blocks enforcement of a law, set its `status` to `enjoined` and add `injunction` naming the court, the case and the date. The validator requires `injunction`. Add `date_enjoined` as well, so the date shows among the record's key dates. If the injunction is lifted, set the status back and keep the history in the summary. The site shows an enjoined law with its own status and filter button.
 
 ## Phased Laws
 
@@ -157,7 +162,9 @@ A law that applies in stages keeps its first stage in `effective_date`, and list
 ]
 ```
 
-The site's "Coming up" list, each record's key dates, the dashboard and the weekly report all read these, so no upcoming-date table has to be kept by hand.
+The site's "Coming up" list, each record's key dates, the dashboard and the weekly report all compute their dates from these. The README's "Upcoming effective dates" table is the one copy still kept by hand. The tests fail if it lists a date the data does not have, or misses a future date the data does have, and the weekly report flags its rows once they pass.
+
+`validate.py` requires a record with `milestones` to have `effective_date` equal to the first milestone's date. The site's "in force today" rule reads `effective_date` alone, so the two must agree.
 
 ---
 

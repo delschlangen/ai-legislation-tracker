@@ -15,11 +15,11 @@ This is a research tool, not legal advice. Never write copy that implies otherwi
 | `data/*.json` | The dataset. **The single source of truth.** Three files, each a JSON list of records |
 | `data/meta/changelog.json` | Hand-written log of what changed and when, newest first. The site shows it as "Recently changed" |
 | `schema/legislation.schema.json` | JSON Schema for the data. Lists every allowed field |
-| `validate.py` | Read-only data validator. Run by CI. Must agree with the schema |
+| `validate.py` | Read-only data validator. Run by CI. Checks every record against the schema, then adds rules a schema cannot express |
 | `src/query_legislation.py` | CLI filtering and search |
 | `src/generate_dashboard.py` | Markdown summary report |
 | `src/export_csv.py` | Flattens the data to CSV on demand (never committed) |
-| `scripts/` | The weekly maintenance report: `maintenance_report.py`, `link_check.py`, `upstream_check.py` |
+| `scripts/` | The weekly maintenance report: `maintenance_report.py`, `link_check.py`, `upstream_check.py`, and `publish_report.py`, which posts it as an issue |
 | `tests/` | Standard-library `unittest` suite |
 | `docs/` | GitHub Pages site: `index.html`, `app.js`, `styles.css`. No build step |
 | `examples/current_landscape.md` | A committed copy of generated dashboard output |
@@ -51,9 +51,10 @@ python3 -m http.server 8000     # then open http://localhost:8000/docs/
 - **Supersession and amendment links are mutual.** If `fed-001` has `superseded_by: fed-009`, then `fed-009` needs `supersedes: fed-001`. The same holds for `amends` and `amended_by`. The validator fails a one-way link.
 - **New records get the next unused id in their file** (highest number plus one). The file decides the prefix.
 - **Use `title`, not `name`.** The `name` and `date_effective` fields were retired.
-- **Every field must be in the schema.** The validator rejects any field not in `KNOWN_FIELDS`, which catches misspellings. A genuinely new field goes in `KNOWN_FIELDS` in `validate.py`, in `schema/legislation.schema.json`, and in `COLUMNS` in `src/export_csv.py`. `tests/test_schema.py` fails if the schema and validator disagree.
-- **Phased laws use `milestones`**, a list of `{"date", "description"}`, oldest first, with the first stage also in `effective_date`. Only record a stage you have a source for.
-- **A law blocked by a court is `enjoined`** and needs `injunction` (court, case, date) and `date_enjoined`.
+- **Every field must be in the schema.** The validator rejects any field not in `KNOWN_FIELDS`, which catches misspellings. A genuinely new field goes in `KNOWN_FIELDS` in `validate.py`, in `schema/legislation.schema.json`, and in `COLUMNS` in `src/export_csv.py`.
+- **The validator runs the schema.** A record that passes `validate.py`'s own checks is then checked against the schema by a small built-in checker, so nothing the schema rejects can pass. A schema keyword that checker does not implement is an error: add support in `schema_errors`, never a silent skip. `tests/test_schema.py` runs a table of broken records through both layers; add a row there for any new rule.
+- **Phased laws use `milestones`**, a list of `{"date", "description"}`, oldest first. The validator requires `effective_date` to equal the first milestone's date. Only record a stage you have read a source for, and word it as the source does: a milestone is a factual claim like any other field.
+- **A law blocked by a court is `enjoined`** and needs `injunction` (court, case, date). Add `date_enjoined` too; the validator does not require it.
 - **Log every data change** with an entry at the top of `data/meta/changelog.json`: `date`, `summary`, and the ids in `added` or `updated`. The validator checks that ids exist and dates run newest first. Do not log purely structural edits that change no fact.
 - **Dates are `YYYY-MM-DD`, zero-padded.** Only `last_verified` may instead be the literal `needs_verification`.
 - **`source_url` must be a specific document**, never a bare agency homepage. Prefer the official legislature, agency or gazette. News is never the citation.
@@ -75,15 +76,16 @@ Only change these when you actually performed the check, and set `verification` 
 
 ### Things that must stay in step with the data
 
-Adding or removing a record changes counts that are written by hand. Update all of these in the same change. The tests check the README badge total and the example report; the rest you must remember:
+Adding a record, or changing a status or a date, changes things that are written by hand. Update all of these in the same change. The tests check the first four and say which is wrong; the rest you must remember:
 
-1. README badges (`Legislation Tracked`, `Jurisdictions`) and the "At a glance" table
-2. `examples/current_landscape.md`, by regenerating it: `python3 src/generate_dashboard.py examples/current_landscape.md`
-3. `MAINTENANCE.md` review history, if you did a review pass
-4. `CITATION.md` and `CITATION.cff` (`date-released`, "data current as of") after a review pass
-5. `data/meta/changelog.json`, for any change of fact
+1. README badges (`Legislation Tracked`, `Jurisdictions`), the "N entries across M jurisdictions" line, and the "At a glance" table
+2. README "Upcoming effective dates" table. It must have one row for every future dated stage of an enacted, active or adopted record, and no row for a date the data does not have
+3. `examples/current_landscape.md`, by regenerating it: `python3 src/generate_dashboard.py examples/current_landscape.md`
+4. `data/meta/changelog.json`, for any change of fact. The validator checks its shape
+5. `MAINTENANCE.md` review history, if you did a review pass
+6. `CITATION.md` and `CITATION.cff` (`date-released`, "data current as of") after a review pass
 
-The README's "Upcoming effective dates" table is also hand-written. The weekly maintenance report flags rows once they pass; the site computes the same dates itself.
+The weekly maintenance report flags README upcoming rows once their date has passed. That is the one check time itself can trip; the tests never start failing just because a date went by.
 
 If a record gains a field the CSV does not know, add it to `COLUMNS` in `src/export_csv.py`. A test fails otherwise, so a field is never silently dropped.
 
@@ -94,9 +96,11 @@ If a record gains a field the CSV does not know, add it to `COLUMNS` in `src/exp
 - **Read files and write output as UTF-8** (`encoding="utf-8"`, and `sys.stdout.reconfigure` for emoji output). Without it the tools crash on Windows consoles.
 - **Tools must not crash on odd data.** Use `.get()` for optional fields. The validator is the gatekeeper, but the tools should still degrade gracefully.
 - **CI is read-only.** `validate.yml` must not need secrets, fetch external data, or edit and commit files. Keep it that way.
-- **The maintenance workflow is the one exception, and a narrow one.** `maintenance.yml` fetches official APIs and source links. It uses no secrets: the Federal Register needs no key and Congress.gov is queried with api.data.gov's public `DEMO_KEY`. **The maintainer has decided not to manage API keys**, so do not add a check that needs one. State bills stay unchecked upstream for that reason. Only its `publish` job has a write permission, `issues: write`, and it never runs on pull requests. It must never edit data or commit. Pass untrusted text (API responses, record content) to `gh` as files, never through `${{ }}` in a `run:` line.
+- **The maintenance workflow is the one exception, and a narrow one.** `maintenance.yml` fetches official APIs and source links. It uses no secrets: the Federal Register needs no key and Congress.gov is queried with api.data.gov's public `DEMO_KEY`. **The maintainer has decided not to manage API keys**, so do not add a check that needs one. State bills stay unchecked upstream for that reason. Only its `publish` job has a write permission, `issues: write`, and it never runs on pull requests. It must never edit data or commit. The publishing logic lives in `scripts/publish_report.py` so the tests cover it: it only updates an open issue that `github-actions[bot]` itself opened, because anyone can open an issue with the same title. Pass untrusted text (API responses, record content) to `gh` as files, never through a shell and never through `${{ }}` in a `run:` line. `tests/test_publish.py` checks these guarantees against the workflow file.
 - **Automation reports; people edit.** No script may change a record or bump `last_verified`. An API can say a bill had an action; only a person reading the source can say what the law now is.
 - **The maintenance scripts take an injectable `fetch` or `opener`.** Tests must not touch the network. Add a fake response to `tests/test_maintenance.py` for any new upstream check.
+- **One bad answer must never cost the whole report.** A garbled response, an odd JSON shape or a failed lookup becomes that record's outcome ("could not check"), and everything else is still published. `http.client` errors are not `OSError`; catch broadly at those boundaries, and never report a guess: a malformed answer is "unreadable", not "no change".
+- **Only report what was compared.** A record goes under "Matched with no change" only if something was actually checked against it.
 - Keep the three CLIs consistent. A filter or search that works on the site should work in `query_legislation.py`, across all three files, which use different field names (`state` vs `jurisdiction` vs `issuing_body`).
 
 ## Rules for the website (`docs/`)
@@ -105,7 +109,8 @@ If a record gains a field the CSV does not know, add it to `COLUMNS` in `src/exp
 - **Everything that comes from the data and goes into HTML is escaped** with `escapeHtml`. Values used as CSS classes go through `cssToken`, and links through `safeUrl` (http and https only). Do not interpolate a data field into a template string unescaped.
 - **Keep it keyboard accessible.** Each row's title is a real `<button>` with `aria-expanded`. Filter buttons carry `aria-pressed`. Keep the two states changing together (`setPressed`, `setExpanded`).
 - **Record ids are deep links:** `/docs/#state-001` opens that record. Do not break this.
-- **The view is in the address bar.** Filters and sort live in the query string (`jurisdiction`, `status`, `tag`, `q`, `in_force`, `sort`), the open record in the fragment. `readUrlState` must ignore anything it does not recognise.
+- **The view is in the address bar.** Filters and sort live in the query string (`jurisdiction`, `status`, `tag`, `q`, `in_force`, `sort`), the open record in the fragment. `readUrlState` must ignore anything it does not recognise. The `popstate` handler reads the view back from the address, so Back and Forward work; anything new that belongs in the view must be read there too.
+- **Search is the same on the site and in the CLI.** `matchesFilters` in `docs/app.js` and `searchable_text` in `src/query_legislation.py` list the same fields; the CLI adds only `last_verified`. Change both together.
 - **Nothing date-dependent is hand-written on the site.** "Coming up", "Not yet in force", "Next stage" and "In force today" are computed from the data and the reader's date. "In force" means status `enacted`, `active` or `adopted` with no effective date still to come; the CLI and dashboard use the same rule.
 - Below 640px the table becomes stacked cards. Explicit `role` attributes keep table semantics, so keep them when editing the row template.
 - Text on coloured backgrounds must stay at 4.5:1 contrast or better.

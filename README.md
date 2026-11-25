@@ -93,12 +93,14 @@ This dataset deliberately tracks **notable frameworks and instruments with opera
 
 ### At a glance
 
-| Category | Total | In force / active | Pending | Superseded, expired, vetoed or rescinded |
-|:---------|:-----:|:-----------------:|:-------:|:----------------------------------------:|
+| Category | Total | Enacted, active or adopted | Pending | Superseded, expired, vetoed, rescinded or enjoined |
+|:---------|:-----:|:--------------------------:|:-------:|:--------------------------------------------------:|
 | US Federal | 13 | 11 | — | 2 |
 | US State | 19 | 17 | — | 2 |
 | International | 15 | 12 | 2 | 1 |
 | **Total** | **47** | **40** | **2** | **5** |
+
+Enacted does not always mean in force yet: some enacted laws have an effective date still to come. For what applies today, use the "In force today" filter on the [live site](https://delschlangen.github.io/ai-legislation-tracker/) or `python3 src/query_legislation.py --in-force`.
 
 ### Key legislation you should know
 
@@ -116,14 +118,18 @@ This dataset deliberately tracks **notable frameworks and instruments with opera
 
 | Date | Jurisdiction | Legislation | What happens |
 |:-----|:-------------|:------------|:-------------|
+| **2026-12-02** | European Union | EU AI Act | Prohibitions on non-consensual intimate imagery and CSAM-generating systems apply |
 | **2027-01-01** | Colorado | SB 26-189 | Replacement AI law takes effect |
 | **2027-01-01** | New York | RAISE Act | Frontier model safety duties begin |
 | **2027-01-01** | Illinois | SB 315 | Frontier AI safety duties and third-party audits begin |
 | **2027-01-01** | California | AI Transparency Act | Large online platform and hosting platform duties begin |
+| **2027-08-02** | European Union | EU AI Act | National regulatory sandboxes due |
 | **2027-12-02** | European Union | EU AI Act | Annex III stand-alone high-risk obligations apply |
+| **2028-01-01** | California | AI Transparency Act | Capture-device makers must offer a latent disclosure option |
+| **2028-01-01** | Connecticut | CART Act | Last of the staggered obligations begin |
 | **2028-08-02** | European Union | EU AI Act | Annex I embedded high-risk obligations apply |
 
-This table is written by hand. The [live site](https://delschlangen.github.io/ai-legislation-tracker/) shows the same dates computed from the data, including each stage of phased laws, and `python3 src/generate_dashboard.py` prints them. The weekly maintenance report flags any row here once its date has passed.
+This table is the one list of dates kept by hand, so two things guard it. The tests fail if a row names a date the data does not have, or if the data has a future date with no row here. The weekly maintenance report flags a row once its date has passed. The [live site](https://delschlangen.github.io/ai-legislation-tracker/) computes the next six dates from the data on every visit, and `python3 src/generate_dashboard.py` prints the next ten.
 
 ---
 
@@ -184,7 +190,7 @@ for law in state:
 
 Prefer a spreadsheet? `python3 src/export_csv.py` flattens all three files into one CSV. It is generated on demand rather than committed, so there is never a stale second copy of the data in the repository.
 
-Validating your own copy or a fork? [`schema/legislation.schema.json`](schema/legislation.schema.json) is a JSON Schema (draft 2020-12) for all three files. Use `#/$defs/federalFile`, `#/$defs/stateFile` or `#/$defs/internationalFile` for one file. It lists every field a record may carry, so a misspelled field fails validation. `validate.py` enforces the same rules, and a test fails if the two disagree.
+Validating your own copy or a fork? [`schema/legislation.schema.json`](schema/legislation.schema.json) is a JSON Schema (draft 2020-12) for all three files. Use `#/$defs/federalFile`, `#/$defs/stateFile` or `#/$defs/internationalFile` for one file. It lists every field a record may carry, so a misspelled field fails validation. `validate.py` checks every record against this schema, so nothing the schema rejects can pass it. It then adds rules a schema cannot express: real calendar dates, mutual supersession and amendment links, milestones in date order, and a phased law's first milestone matching `effective_date`.
 
 ### Using the site
 
@@ -195,7 +201,8 @@ The [live site](https://delschlangen.github.io/ai-legislation-tracker/) needs no
 - **In force today** narrows the list to laws and policies that apply now. A law that is enacted but not yet effective is marked "Not yet in force".
 - **Sort by** effective date, jurisdiction, name or status.
 - **Every view is a link.** Filters and sort order live in the address bar, so a copied URL reproduces what you see. Adding `#state-001` opens that record.
-- **Each record** shows its key dates, its full line of succession and any amendments, with links to each.
+- **Each record** lists every date it carries, from introduction to each stage of a phased law, with a countdown for those still to come. It also shows the full line of succession and any amendments, with links to each.
+- **Back and Forward work.** The page follows the address bar, so the browser's history steps through the views you opened.
 
 ### Record schema
 
@@ -259,7 +266,8 @@ ai-legislation-tracker/
 ├── scripts/                         # Weekly maintenance report (read-only)
 │   ├── maintenance_report.py        # Stale entries, passed dates, README dates
 │   ├── link_check.py                # Do the source links still answer?
-│   └── upstream_check.py            # Federal Register and Congress.gov, no keys
+│   ├── upstream_check.py            # Federal Register and Congress.gov, no keys
+│   └── publish_report.py            # Posts the report as one GitHub issue
 ├── .github/
 │   ├── ISSUE_TEMPLATE/              # Forms for reporting or suggesting entries
 │   └── workflows/
