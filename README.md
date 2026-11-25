@@ -1,8 +1,13 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Legislation%20Tracked-44-blue?style=for-the-badge" alt="Legislation Tracked"/>
+  <img src="https://img.shields.io/badge/Legislation%20Tracked-47-blue?style=for-the-badge" alt="Legislation Tracked"/>
   <img src="https://img.shields.io/badge/Jurisdictions-22-green?style=for-the-badge" alt="Jurisdictions"/>
   <img src="https://img.shields.io/badge/Python-3.7+-yellow?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
-  <img src="https://img.shields.io/badge/License-MIT-purple?style=for-the-badge" alt="License"/>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-purple?style=for-the-badge" alt="License: MIT"/>
+  </a>
+  <a href="https://orcid.org/0009-0005-5116-9564">
+    <img src="https://img.shields.io/badge/ORCID-0009--0005--5116--9564-A6CE39?style=for-the-badge&logo=orcid&logoColor=white" alt="ORCID"/>
+  </a>
   <a href="https://delschlangen.github.io/ai-legislation-tracker/">
     <img src="https://img.shields.io/badge/Try%20It%20Live-Visit%20Site-ff6b6b?style=for-the-badge" alt="Try It Live"/>
   </a>
@@ -11,7 +16,7 @@
 <h1 align="center">AI Legislation Tracker</h1>
 
 <p align="center">
-  <strong>A structured, queryable database tracking AI laws, regulations, and governance frameworks worldwide.</strong>
+  <strong>An open-source, machine-readable dataset and CLI toolkit for tracking AI legislation, AI regulation, and AI governance frameworks across US federal, US state, and international jurisdictions — including the EU AI Act, state AI laws, executive orders, and global AI policy.</strong>
 </p>
 
 <p align="center">
@@ -44,7 +49,9 @@ This repo provides:
 
 ## Data Currency
 
-> **Last review: September 2026. 44 entries across 22 jurisdictions.**
+> **Last full review: September 2026. 47 entries across 22 jurisdictions.**
+>
+> A targeted update on 2026-11-24 added three entries and corrected one. Every other entry was last checked in September 2026 or earlier.
 
 Each entry carries its own `last_verified` date and a `verification` field saying how it was checked:
 
@@ -85,10 +92,10 @@ This dataset deliberately tracks **notable frameworks and instruments with opera
 
 | Category | Total | In force / active | Pending | Superseded, expired, vetoed or rescinded |
 |:---------|:-----:|:-----------------:|:-------:|:----------------------------------------:|
-| US Federal | 12 | 10 | — | 2 |
-| US State | 17 | 15 | — | 2 |
+| US Federal | 13 | 11 | — | 2 |
+| US State | 19 | 17 | — | 2 |
 | International | 15 | 12 | 2 | 1 |
-| **Total** | **44** | **37** | **2** | **5** |
+| **Total** | **47** | **40** | **2** | **5** |
 
 ### Key legislation you should know
 
@@ -98,7 +105,7 @@ This dataset deliberately tracks **notable frameworks and instruments with opera
 | **Colorado SB 26-189** | CO | Enacted | Replaced the repealed Colorado AI Act with a narrower transparency regime. Effective Jan 2027. |
 | **California SB 53** | CA | Enacted | First US state frontier AI safety law. In force since Jan 2026. |
 | **Texas HB 149 (TRAIGA)** | TX | Enacted | Third state comprehensive AI law, built on intent rather than risk tiers. |
-| **Connecticut CART Act** | CT | Enacted | Broadest US state AI law to date. First obligations bite Oct 2026. |
+| **Connecticut CART Act** | CT | Enacted | Broadest US state AI law to date. First obligations were scheduled for Oct 2026. |
 | **TAKE IT DOWN Act** | US Federal | Enacted | First federal statute placing AI duties on private platforms. |
 | **South Korea AI Framework Act** | KR | Enacted | World's second comprehensive national AI statute. In force since Jan 2026. |
 
@@ -106,9 +113,10 @@ This dataset deliberately tracks **notable frameworks and instruments with opera
 
 | Date | Jurisdiction | Legislation | What happens |
 |:-----|:-------------|:------------|:-------------|
-| **2026-10-01** | Connecticut | CART Act | First obligations begin, including AI-related layoff disclosure |
 | **2027-01-01** | Colorado | SB 26-189 | Replacement AI law takes effect |
 | **2027-01-01** | New York | RAISE Act | Frontier model safety duties begin |
+| **2027-01-01** | Illinois | SB 315 | Frontier AI safety duties and third-party audits begin |
+| **2027-01-01** | California | AI Transparency Act | Large online platform and hosting platform duties begin |
 | **2027-12-02** | European Union | EU AI Act | Annex III stand-alone high-risk obligations apply |
 | **2028-08-02** | European Union | EU AI Act | Annex I embedded high-risk obligations apply |
 
@@ -134,6 +142,9 @@ python3 src/query_legislation.py --list-tags
 
 # Check the data is well formed
 python3 validate.py
+
+# Run the test suite (standard library only)
+python3 -m unittest discover -s tests
 
 # Export everything to one CSV for a spreadsheet
 python3 src/export_csv.py
@@ -188,7 +199,7 @@ Prefer a spreadsheet? `python3 src/export_csv.py` flattens all three files into 
 
 | Field | Required | Notes |
 |:------|:--------:|:------|
-| `id` | Yes | Permanent. Never reused or renumbered |
+| `id` | Yes | Permanent. Never reused or renumbered. `fed-`, `state-` or `intl-` plus digits |
 | `title` | Yes | Official name |
 | `status` | Yes | `enacted`, `active`, `adopted`, `pending`, `vetoed`, `rescinded`, `superseded`, `expired` |
 | `summary` | Yes | One to three sentences |
@@ -198,8 +209,8 @@ Prefer a spreadsheet? `python3 src/export_csv.py` flattens all three files into 
 | `last_verified` | Yes | `YYYY-MM-DD`, or `needs_verification` |
 | `verification` | No | `primary`, `secondary` or `unconfirmed` |
 | `effective_date` | If enacted | When obligations begin |
-| `superseded_by` / `supersedes` | If applicable | The id of the related record |
-| `amends` / `amended_by` | If applicable | The id of the related record |
+| `superseded_by` / `supersedes` | If applicable | The id of the related record. Recorded on both sides |
+| `amends` / `amended_by` | If applicable | The id of the related record. Recorded on both sides |
 
 ---
 
@@ -221,9 +232,12 @@ ai-legislation-tracker/
 │   └── export_csv.py                # Flatten the dataset to CSV on demand
 ├── .github/
 │   ├── ISSUE_TEMPLATE/              # Forms for reporting or suggesting entries
-│   └── workflows/validate.yml       # Read-only data check on pull requests
+│   └── workflows/validate.yml       # Read-only data check and tests on pull requests
 ├── examples/current_landscape.md    # Sample generated dashboard
+├── tests/                           # Standard-library unittest suite (run by CI)
 ├── validate.py                      # Data validator (read-only)
+├── CITATION.cff                     # Machine-readable citation metadata (GitHub "Cite this repository")
+├── CLAUDE.md                        # Conventions for AI-assisted contributions
 ├── CITATION.md · CONTRIBUTING.md · MAINTENANCE.md · LICENSE
 └── README.md
 ```
@@ -256,15 +270,21 @@ If you would rather edit the data directly, see [CONTRIBUTING.md](CONTRIBUTING.m
 
 ---
 
+## Citing This Dataset
+
+GitHub's **"Cite this repository"** button (top right of the repo page) reads [CITATION.cff](CITATION.cff) and produces APA and BibTeX entries. [CITATION.md](CITATION.md) has Chicago, Bluebook and IEEE formats, plus guidance on citing a specific commit for reproducibility.
+
+---
+
 ## License
 
-**MIT License** — See [LICENSE](LICENSE)
+This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for the full text.
 
-Data is curated from public government sources.
+Copyright (c) 2024 Del Schlangen. The dataset is curated from public government sources; cite the primary source for any individual law.
 
 ---
 
 <p align="center">
-  <strong>Built by Del Schlangen</strong><br/>
-  <a href="https://linkedin.com/in/del-s-759557175/">LinkedIn</a>
+  <strong>Built by <a href="https://orcid.org/0009-0005-5116-9564">Del Schlangen</a></strong><br/>
+  <a href="https://linkedin.com/in/del-s-759557175/">LinkedIn</a> · <a href="https://orcid.org/0009-0005-5116-9564">ORCID</a>
 </p>

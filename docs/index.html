@@ -71,47 +71,47 @@
     <!-- Filters Section -->
     <section class="filters-section">
       <div class="search-container">
-        <input type="text" id="search-input" class="search-input" placeholder="Search by title, jurisdiction, bill number, summary or tag...">
-        <span class="search-icon">
-          <svg viewBox="0 0 20 20" width="20" height="20"><path fill="currentColor" d="M12.9 14.32a8 8 0 1 1 1.41-1.41l5.35 5.33-1.42 1.42-5.33-5.34zM8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12z"/></svg>
+        <input type="search" id="search-input" class="search-input" aria-label="Search legislation" placeholder="Search by title, jurisdiction, bill number, summary or tag...">
+        <span class="search-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" width="20" height="20" focusable="false"><path fill="currentColor" d="M12.9 14.32a8 8 0 1 1 1.41-1.41l5.35 5.33-1.42 1.42-5.33-5.34zM8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12z"/></svg>
         </span>
       </div>
 
       <div class="filter-groups">
         <div class="filter-group">
-          <label class="filter-label">Jurisdiction</label>
-          <div class="filter-buttons" id="jurisdiction-filters">
-            <button class="filter-btn active" data-filter="all">All</button>
-            <button class="filter-btn" data-filter="federal">US Federal</button>
-            <button class="filter-btn" data-filter="state">US State</button>
-            <button class="filter-btn" data-filter="international">International</button>
+          <span class="filter-label" id="jurisdiction-label">Jurisdiction</span>
+          <div class="filter-buttons" id="jurisdiction-filters" role="group" aria-labelledby="jurisdiction-label">
+            <button type="button" class="filter-btn active" data-filter="all" aria-pressed="true">All</button>
+            <button type="button" class="filter-btn" data-filter="federal" aria-pressed="false">US Federal</button>
+            <button type="button" class="filter-btn" data-filter="state" aria-pressed="false">US State</button>
+            <button type="button" class="filter-btn" data-filter="international" aria-pressed="false">International</button>
           </div>
         </div>
 
         <div class="filter-group">
-          <label class="filter-label">Status</label>
-          <div class="filter-buttons" id="status-filters">
-            <button class="filter-btn active" data-filter="all">All</button>
-            <button class="filter-btn" data-filter="enacted">Enacted</button>
-            <button class="filter-btn" data-filter="adopted">Adopted</button>
-            <button class="filter-btn" data-filter="active">Active</button>
-            <button class="filter-btn" data-filter="pending">Pending</button>
-            <button class="filter-btn" data-filter="vetoed">Vetoed</button>
-            <button class="filter-btn" data-filter="rescinded">Rescinded</button>
-            <button class="filter-btn" data-filter="superseded">Superseded</button>
-            <button class="filter-btn" data-filter="expired">Expired</button>
+          <span class="filter-label" id="status-label">Status</span>
+          <div class="filter-buttons" id="status-filters" role="group" aria-labelledby="status-label">
+            <button type="button" class="filter-btn active" data-filter="all" aria-pressed="true">All</button>
+            <button type="button" class="filter-btn" data-filter="enacted" aria-pressed="false">Enacted</button>
+            <button type="button" class="filter-btn" data-filter="adopted" aria-pressed="false">Adopted</button>
+            <button type="button" class="filter-btn" data-filter="active" aria-pressed="false">Active</button>
+            <button type="button" class="filter-btn" data-filter="pending" aria-pressed="false">Pending</button>
+            <button type="button" class="filter-btn" data-filter="vetoed" aria-pressed="false">Vetoed</button>
+            <button type="button" class="filter-btn" data-filter="rescinded" aria-pressed="false">Rescinded</button>
+            <button type="button" class="filter-btn" data-filter="superseded" aria-pressed="false">Superseded</button>
+            <button type="button" class="filter-btn" data-filter="expired" aria-pressed="false">Expired</button>
           </div>
         </div>
 
         <div class="filter-group">
-          <label class="filter-label">Popular Tags</label>
-          <div class="filter-buttons tag-filters" id="tag-filters">
+          <span class="filter-label" id="tag-label">Popular Tags</span>
+          <div class="filter-buttons tag-filters" id="tag-filters" role="group" aria-labelledby="tag-label">
             <!-- Tags populated by JavaScript -->
           </div>
         </div>
       </div>
 
-      <div class="results-count" id="results-count">
+      <div class="results-count" id="results-count" role="status" aria-live="polite" aria-atomic="true">
         Showing <span id="visible-count">—</span> of <span id="total-count">—</span> items
       </div>
     </section>
@@ -119,26 +119,26 @@
     <!-- Data Table -->
     <section class="table-section">
       <div class="table-container">
-        <table class="legislation-table" id="legislation-table">
-          <thead>
-            <tr>
-              <th class="col-jurisdiction">Jurisdiction</th>
-              <th class="col-title">Name / Title</th>
-              <th class="col-status">Status</th>
-              <th class="col-effective">Effective Date</th>
-              <th class="col-expand"></th>
+        <table class="legislation-table" id="legislation-table" role="table" aria-label="AI legislation">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader" class="col-jurisdiction">Jurisdiction</th>
+              <th scope="col" role="columnheader" class="col-title">Name / Title</th>
+              <th scope="col" role="columnheader" class="col-status">Status</th>
+              <th scope="col" role="columnheader" class="col-effective">Effective Date</th>
+              <th scope="col" role="columnheader" class="col-expand"><span class="visually-hidden">Show details</span></th>
             </tr>
           </thead>
-          <tbody id="table-body">
+          <tbody id="table-body" role="rowgroup">
             <!-- Rows populated by JavaScript -->
           </tbody>
         </table>
       </div>
 
       <div class="no-results" id="no-results" style="display: none;">
-        <svg viewBox="0 0 24 24" width="48" height="48"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        <svg viewBox="0 0 24 24" width="48" height="48" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
         <p>No legislation matches your filters</p>
-        <button class="reset-btn" id="reset-filters">Clear all filters</button>
+        <button type="button" class="reset-btn" id="reset-filters">Clear all filters</button>
       </div>
     </section>
   </main>

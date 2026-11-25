@@ -23,6 +23,7 @@ Earlier versions of this file promised quarterly reviews and one-week turnaround
 
 | Review | Date | Scope |
 |:-------|:-----|:------|
+| Targeted update | 2026-11-24 | 3 entries added (Illinois SB 315, California AI Transparency Act, EO 14409) and 1 corrected (New York RAISE Act), all checked against published legal analyses and official bill pages. **Not a full review:** every other entry keeps its earlier `last_verified` date |
 | Full dataset review | 2026-09-17 | 30 of 44 entries corrected or added; schema extended for supersession |
 | Full dataset review | 2024-12-24 | Original 28 entries verified |
 
@@ -46,13 +47,18 @@ Every entry may carry a `verification` field recording **how** it was last check
 ### Checking status
 
 ```bash
-# Entries nobody has ever verified
+# Entries nobody has ever verified (none today, so this returns nothing)
 python3 src/query_legislation.py --search "needs_verification"
+
+# Entries confirmed only against secondary sources, still waiting for a primary check
+# (search also matches the word anywhere in a record, so skim the results)
+python3 src/query_legislation.py --search "secondary"
 
 # Verification date range and full status breakdown
 python3 src/generate_dashboard.py
 
-# Structural problems: duplicate ids, missing fields, bad dates, bare-domain URLs
+# Structural problems: duplicate ids, missing fields, bad dates, bare-domain URLs,
+# one-way supersession links
 python3 validate.py
 ```
 
@@ -87,7 +93,7 @@ Then set `last_verified` to the date of the check and `verification` to the meth
 
 1. Set the old record's `status` to `superseded`, `expired` or `rescinded`
 2. Add `date_superseded` and `superseded_by` pointing at the successor's id
-3. Create the successor as a new record with `supersedes` pointing back
+3. Create the successor as a new record with `supersedes` pointing back. The validator fails a link recorded on only one side
 4. Update the old record's summary to explain what happened
 
 This is deliberate. A citation to `state-001` written in 2024 still resolves today and now tells the reader that Colorado SB 24-205 was repealed before it ever took effect. Deleting the record would break that.

@@ -202,6 +202,7 @@
     "status": "active",
     "date_issued": "2025-01-23",
     "issuing_body": "White House",
+    "supersedes": "fed-001",
     "summary": "Revoked Executive Order 14110 and reoriented federal AI policy toward promoting innovation and American AI leadership, directing agencies to identify and revise policies that act as barriers to AI development.",
     "key_provisions": [
       "Revokes Executive Order 14110",
@@ -251,6 +252,7 @@
     "status": "active",
     "date_issued": "2025-04-03",
     "issuing_body": "OMB",
+    "supersedes": "fed-003",
     "summary": "Replaced M-24-10 as the governing policy for federal agency use of AI, retaining Chief AI Officers and AI use case inventories while shifting emphasis toward adoption and removing some of the prior memo's risk-management requirements.",
     "key_provisions": [
       "Supersedes OMB M-24-10",
@@ -295,6 +297,32 @@
       "nonconsensual_imagery"
     ],
     "last_verified": "2026-09-17",
+    "verification": "secondary"
+  },
+  {
+    "id": "fed-013",
+    "title": "Executive Order 14409: Promoting Advanced Artificial Intelligence Innovation and Security",
+    "type": "executive_order",
+    "status": "active",
+    "date_issued": "2026-06-02",
+    "issuing_body": "White House",
+    "summary": "Directs federal agencies to strengthen cyber defences and expand use of AI-enabled cybersecurity tools, and sets up a voluntary framework for collaboration with frontier AI developers. Its 30-day and 60-day implementation deadlines passed in July and August 2026; whether agencies met them was not confirmed.",
+    "key_provisions": [
+      "DHS (through CISA), OMB and the Department of War must act within 30 and 60 days to harden federal systems",
+      "Expands access to AI-enabled cybersecurity tools for federal agencies",
+      "The Department of War designates \"covered frontier models\" within 60 days",
+      "A classified benchmarking process and a voluntary framework for developer engagement",
+      "Creates no enforceable rights and is subject to appropriations"
+    ],
+    "source_url": "https://www.federalregister.gov/documents/2026/06/05/2026-11415/promoting-advanced-artificial-intelligence-innovation-and-security",
+    "tags": [
+      "executive_order",
+      "federal",
+      "federal_agencies",
+      "frontier_ai",
+      "voluntary"
+    ],
+    "last_verified": "2026-11-24",
     "verification": "secondary"
   }
 ]
