@@ -7,8 +7,9 @@ Flattens data/*.json into a single CSV for spreadsheet and BI use.
 The CSV is generated on demand and deliberately NOT committed, so there is only
 ever one copy of the data to keep correct. Regenerate it whenever you need it.
 
-Every field in the data has a column. A list becomes one pipe-delimited cell and
-a nested object becomes one JSON cell. If a record carries a field with no
+Every field in the data has a column. A list becomes one pipe-delimited cell,
+milestones become "date: description" pairs, and a nested object becomes one
+JSON cell. If a record carries a field with no
 column, the script says so on stderr instead of dropping it silently.
 
 Usage:
@@ -43,13 +44,22 @@ COLUMNS = [
     "date_vetoed", "veto_reason", "date_rescinded", "date_expired",
     "amended_by", "amends",
     "covered_decisions", "principles", "signatories", "enforcement",
+    "milestones", "injunction", "date_enjoined",
 ]
 
 
 def flatten(value):
     """One CSV cell per field: lists joined with ' | ', objects as JSON."""
     if isinstance(value, list):
-        return " | ".join(str(v) for v in value)
+        parts = []
+        for item in value:
+            if isinstance(item, dict) and set(item) == {"date", "description"}:
+                parts.append(f"{item['date']}: {item['description']}")
+            elif isinstance(item, dict):
+                parts.append(json.dumps(item, ensure_ascii=False, sort_keys=True))
+            else:
+                parts.append(str(item))
+        return " | ".join(parts)
     if isinstance(value, dict):
         return json.dumps(value, ensure_ascii=False, sort_keys=True)
     return value

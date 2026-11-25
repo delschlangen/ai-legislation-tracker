@@ -10,6 +10,7 @@ from the data it was generated from.
 """
 
 import csv
+import datetime
 import glob
 import io
 import json
@@ -85,6 +86,19 @@ class QueryTests(unittest.TestCase):
                    env_extra={"PYTHONIOENCODING": "cp1252"})
         self.assertEqual(done.returncode, 0, text(done))
 
+    def test_in_force_matches_the_rule(self):
+        today = datetime.date.today().isoformat()
+        every = [r for records in load_records().values() for r in records]
+        expected = sum(1 for r in every if r["status"] in ("enacted", "active", "adopted")
+                       and not (r.get("effective_date") and r["effective_date"] > today))
+        self.assertEqual(self.count("--in-force"), expected)
+
+    def test_search_finds_milestone_text(self):
+        records = [r for rs in load_records().values() for r in rs if r.get("milestones")]
+        self.assertTrue(records, "expected at least one record with milestones")
+        word = records[0]["milestones"][-1]["description"].split()[0]
+        self.assertGreaterEqual(self.count("--search", word), 1)
+
 
 class DashboardTests(unittest.TestCase):
     def test_runs_and_reports_the_right_total(self):
@@ -103,6 +117,17 @@ class DashboardTests(unittest.TestCase):
     def test_survives_a_legacy_windows_console(self):
         done = run(SRC / "generate_dashboard.py", env_extra={"PYTHONIOENCODING": "cp1252"})
         self.assertEqual(done.returncode, 0, text(done))
+
+    def test_upcoming_dates_skip_laws_that_are_not_in_force(self):
+        sys.path.insert(0, str(SRC))
+        import generate_dashboard
+        data = {"us_state_bills": [
+            {"id": "state-001", "state": "A", "title": "Dead", "status": "superseded", "effective_date": "2999-01-01"},
+            {"id": "state-002", "state": "B", "title": "Live", "status": "enacted", "effective_date": "2999-01-01",
+             "milestones": [{"date": "2999-06-01", "description": "Second stage"}]},
+        ]}
+        rows = generate_dashboard.upcoming_effective_dates(data, "2026-01-01")
+        self.assertEqual([(r[2], r[3]) for r in rows], [("Live", "Takes effect"), ("Live", "Second stage")])
 
     def test_committed_example_matches_the_data(self):
         example = (ROOT / "examples" / "current_landscape.md").read_text(encoding="utf-8")
@@ -138,6 +163,14 @@ class ExportTests(unittest.TestCase):
         federal = [r for r in rows if r["jurisdiction_type"] == "federal"]
         self.assertTrue(federal)
         self.assertTrue(all(r["issuing_body"] for r in federal))
+
+    def test_milestones_become_readable_cells(self):
+        records = [r for rs in load_records().values() for r in rs if r.get("milestones")]
+        _, rows = self.export()
+        by_id = {r["id"]: r for r in rows}
+        for record in records:
+            expected = " | ".join(f"{m['date']}: {m['description']}" for m in record["milestones"])
+            self.assertEqual(by_id[record["id"]]["milestones"], expected)
 
     def test_dates_and_reasons_survive(self):
         records = [r for rs in load_records().values() for r in rs]

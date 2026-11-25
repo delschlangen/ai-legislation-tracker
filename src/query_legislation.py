@@ -11,6 +11,7 @@ Usage:
     python3 src/query_legislation.py --jurisdiction federal
     python3 src/query_legislation.py --search "frontier"
     python3 src/query_legislation.py --search "SB 24-205"
+    python3 src/query_legislation.py --in-force --jurisdiction California
     python3 src/query_legislation.py --list-tags
 
 Filters combine: each one narrows the results of the one before it.
@@ -18,7 +19,9 @@ Filters combine: each one narrows the results of the one before it.
 
 import argparse
 import json
+import re
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Dict, List
 
@@ -27,7 +30,12 @@ STATUS_EMOJI = {
     "pending": "⏳",
     "vetoed": "❌", "rescinded": "❌",
     "superseded": "📦", "expired": "⌛",
+    "enjoined": "⚖️",
 }
+
+# Statuses that mean the instrument is law or policy now, if its date has come.
+IN_FORCE_STATUSES = {"enacted", "active", "adopted"}
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 # Federal records carry issuing_body but no jurisdiction or state, so the file
 # they came from is what says they are federal.
@@ -61,6 +69,19 @@ def jurisdiction_names(item: Dict) -> List[str]:
     return [str(n) for n in names if n]
 
 
+def is_in_force(item: Dict, today: str) -> bool:
+    """In force today: an in-force status, and no effective date still to come.
+    The website uses the same rule."""
+    if str(item.get("status", "")).lower() not in IN_FORCE_STATUSES:
+        return False
+    effective = item.get("effective_date")
+    return not (isinstance(effective, str) and DATE_RE.match(effective) and effective > today)
+
+
+def filter_in_force(items: List[Dict], today: str) -> List[Dict]:
+    return [i for i in items if is_in_force(i, today)]
+
+
 def filter_by_tag(items: List[Dict], tag: str) -> List[Dict]:
     """Filter items by tag."""
     wanted = tag.lower()
@@ -90,8 +111,9 @@ def search_text(items: List[Dict], query: str) -> List[Dict]:
         searchable = " ".join(
             [str(item.get(field, "")) for field in (
                 "id", "title", "name", "summary", "bill_number", "type",
-                "state", "jurisdiction", "issuing_body",
+                "state", "jurisdiction", "issuing_body", "injunction",
                 "verification", "last_verified")]
+            + [str(m.get("description", "")) for m in as_list(item.get("milestones")) if isinstance(m, dict)]
             + [str(p) for p in as_list(item.get("key_provisions"))]
             + [str(t) for t in as_list(item.get("tags"))]
         ).lower()
@@ -138,9 +160,19 @@ def format_item(item: Dict) -> str:
         ("date_issued", "Issued"), ("date_enacted", "Enacted"), ("date_adopted", "Adopted"),
         ("effective_date", "Effective"), ("date_vetoed", "Vetoed"),
         ("date_rescinded", "Rescinded"), ("date_superseded", "Superseded"),
+        ("date_enjoined", "Enjoined"),
     ):
         if item.get(field):
             lines.append(f"📅 {label}: {item[field]}")
+
+    milestones = [m for m in as_list(item.get("milestones")) if isinstance(m, dict)]
+    if milestones:
+        lines.append("🗓️  Key dates:")
+        for milestone in milestones:
+            lines.append(f"   {milestone.get('date', '?')}  {milestone.get('description', '')}")
+
+    if item.get("injunction"):
+        lines.append(f"⚖️  Injunction: {item['injunction']}")
 
     for field, label in (
         ("superseded_by", "Superseded by"), ("supersedes", "Replaces"),
@@ -180,7 +212,10 @@ def main():
     parser.add_argument("--tag", "-t", help="Filter by tag (see --list-tags)")
     parser.add_argument(
         "--status", "-s",
-        help="Filter by status: enacted, active, adopted, pending, vetoed, rescinded, superseded, expired")
+        help="Filter by status: enacted, active, adopted, pending, vetoed, rescinded, superseded, expired, enjoined")
+    parser.add_argument(
+        "--in-force", action="store_true",
+        help="Only records in force today: enacted, active or adopted, with no effective date still to come")
     parser.add_argument(
         "--jurisdiction", "-j",
         help="Filter by state, country, issuing body, or 'federal'. Matches part of a name.")
@@ -230,6 +265,10 @@ def main():
     if args.search:
         results = search_text(results, args.search)
         print(f"Search for '{args.search}': {len(results)} results")
+
+    if args.in_force:
+        results = filter_in_force(results, date.today().isoformat())
+        print(f"In force today: {len(results)} results")
 
     if args.count:
         print(f"\nTotal matching items: {len(results)}")
