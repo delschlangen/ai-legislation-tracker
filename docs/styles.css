@@ -204,11 +204,198 @@ body {
   border-color: var(--color-gray-700);
 }
 
-.results-count {
+.results-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid var(--color-gray-200);
+}
+
+.results-count {
   font-size: 0.875rem;
+  color: var(--color-gray-600);
+}
+
+.sort-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-gray-600);
+}
+
+.sort-select {
+  font: inherit;
+  color: var(--color-gray-800);
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
+  background: white;
+}
+
+.sort-select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.toggle-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-count {
+  opacity: 0.75;
+}
+
+/* Overview: dates coming up and recent changes */
+.overview-section {
+  display: grid;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.overview-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+
+.overview-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-gray-900);
+}
+
+.overview-hint {
+  font-size: 0.8125rem;
+  color: var(--color-gray-600);
+  margin: 0.125rem 0 0.875rem;
+}
+
+.overview-hint a,
+.record-link {
+  color: var(--color-primary-dark);
+  font-weight: 500;
+}
+
+.record-link:hover {
+  color: var(--color-primary);
+}
+
+.overview-empty {
+  list-style: none;
+  font-size: 0.875rem;
+  color: var(--color-gray-600);
+}
+
+.timeline,
+.change-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  grid-template-areas:
+    "date body"
+    "countdown body";
+  grid-template-rows: auto 1fr;
+  column-gap: 0.75rem;
+  align-items: start;
+}
+
+.timeline-date {
+  grid-area: date;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-gray-800);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-countdown {
+  grid-area: countdown;
+  font-size: 0.75rem;
+  color: var(--color-gray-600);
+}
+
+.timeline-body {
+  grid-area: body;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.875rem;
+  min-width: 0;
+}
+
+.timeline-jurisdiction {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: var(--color-gray-600);
+}
+
+.timeline-what {
+  color: var(--color-gray-700);
+}
+
+.change-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.change-entry:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.change-summary {
+  font-size: 0.875rem;
+  color: var(--color-gray-700);
+}
+
+.change-records {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+}
+
+.change-kind {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.0625rem 0.375rem;
+  border-radius: var(--radius-sm);
+  margin-right: 0.25rem;
+}
+
+.change-kind.added {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.change-kind.updated {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.change-more {
   color: var(--color-gray-600);
 }
 
@@ -416,9 +603,27 @@ tr.expanded .title-cell .bill-number {
   color: #991b1b;
 }
 
+.status-badge.enjoined {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
 tr.expanded .status-badge {
   background: rgba(0, 0, 0, 0.22);
   color: white;
+}
+
+.status-note,
+.next-stage {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--color-gray-600);
+}
+
+tr.expanded .status-note,
+tr.expanded .next-stage {
+  color: #ffffff;
 }
 
 .status-dot {
@@ -445,6 +650,10 @@ tr.expanded .status-badge {
 .status-dot.vetoed,
 .status-dot.rescinded {
   background: #ef4444;
+}
+
+.status-dot.enjoined {
+  background: #f97316;
 }
 
 tr.expanded .status-dot {
@@ -550,6 +759,80 @@ tr.expanded .expand-icon {
 .verified-date {
   font-size: 0.875rem;
   color: var(--color-gray-500);
+}
+
+.verified-date code {
+  font-size: 0.8125rem;
+}
+
+.key-dates {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.key-dates li {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-gray-700);
+}
+
+.key-dates time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.key-dates .is-past {
+  color: var(--color-gray-600);
+}
+
+.key-date-state {
+  font-size: 0.75rem;
+  color: var(--color-gray-600);
+  white-space: nowrap;
+}
+
+.key-dates .is-future .key-date-state {
+  color: var(--color-primary-dark);
+  font-weight: 600;
+}
+
+.lineage-label {
+  font-size: 0.8125rem;
+  color: var(--color-gray-600);
+  margin-bottom: 0.375rem;
+}
+
+.lineage-chain {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 0.75rem;
+  padding-left: 0.875rem;
+  border-left: 2px solid var(--color-gray-300);
+}
+
+.lineage-chain li {
+  font-size: 0.875rem;
+  color: var(--color-gray-700);
+}
+
+.lineage-meta {
+  font-size: 0.75rem;
+  color: var(--color-gray-600);
+}
+
+.injunction-note {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid #f97316;
+  background: #fff7ed;
+  color: #7c2d12;
+  font-size: 0.875rem;
 }
 
 /* No Results */
@@ -668,6 +951,10 @@ tr.expanded .expand-icon {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .overview-section {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .footer-content {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -685,8 +972,14 @@ tr.expanded .expand-icon {
     min-width: 200px;
   }
 
-  .filter-group:last-child {
+  .filter-group:last-child,
+  .filter-group--wide {
     flex: 2;
+  }
+
+  .filter-group--compact {
+    flex: 0 0 auto;
+    min-width: 0;
   }
 }
 
