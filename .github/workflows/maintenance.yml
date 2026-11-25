@@ -54,8 +54,10 @@ jobs:
           python3 scripts/maintenance_report.py --links --upstream
           --output report.md --attention-file attention.txt
 
-      - name: Show the report on the run page
-        run: cat report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Show the report on the run page and in the log
+        run: |
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+          cat report.md
 
       - uses: actions/upload-artifact@v4
         with:
