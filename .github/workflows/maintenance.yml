@@ -11,6 +11,8 @@
 # - The "report" job only reads. Only the "publish" job may write, and only to
 #   issues. It does not run on pull requests, so a PR can test the report but
 #   cannot post anything.
+# - It only ever updates an issue that this workflow's own bot account opened.
+#   An issue someone else opens under the same title is ignored.
 # - It needs no secrets and no setup. Congress.gov is queried with
 #   api.data.gov's public DEMO_KEY; the Federal Register needs no key.
 #
@@ -30,9 +32,11 @@ on:
 permissions:
   contents: read
 
+# Runs that publish wait their turn in one shared group. A pull request gets a
+# group of its own, so a dry run can never displace the weekly report.
 concurrency:
-  group: maintenance-report
-  cancel-in-progress: false
+  group: maintenance-report-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   report:
@@ -69,39 +73,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
+      contents: read
       issues: write
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           name: maintenance-report
 
-      # The report body is passed as a file, never interpolated into a command.
+      # The logic lives in a script so the test suite covers it. The report
+      # reaches gh as a file; nothing here is interpolated into a command.
       - name: Open or update the "Maintenance report" issue
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          title="Maintenance report"
-          new_count=$(tr -dc '0-9' < attention.txt)
-          new_count=${new_count:-0}
-
-          number=$(gh issue list --state open --limit 100 --json number,title \
-            --jq "map(select(.title == \"$title\")) | first | .number // empty")
-
-          if [ -z "$number" ]; then
-            gh issue create --title "$title" --body-file report.md
-            exit 0
-          fi
-
-          old_body=$(gh issue view "$number" --json body --jq .body)
-          old_count=$(printf '%s' "$old_body" | grep -oE '\*\*[0-9]+ item' | head -n1 | tr -dc '0-9' || true)
-          old_count=${old_count:-0}
-
-          gh issue edit "$number" --body-file report.md
-
-          # Editing an issue sends no notification. Comment only when there is
-          # more to do than last week, so the issue does not become weekly noise.
-          if [ "$new_count" -gt "$old_count" ]; then
-            gh issue comment "$number" --body "The weekly report now lists $new_count item(s) to look at, up from $old_count. The issue description has the details."
-          fi
+        run: python3 scripts/publish_report.py report.md attention.txt
