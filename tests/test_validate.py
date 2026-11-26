@@ -58,15 +58,23 @@ def federal(**overrides):
     return record
 
 
+class Raw(str):
+    """File content written exactly as given, for text that is not valid JSON."""
+
+
 class ValidatorTests(unittest.TestCase):
     def run_validator(self, files):
         """files: {filename: list_of_records}. A name may include a folder, such as
-        meta/changelog.json. Returns (exit_code, output)."""
+        meta/changelog.json. Content is written with json.dumps, which writes
+        NaN for float("nan"), unless it is Raw text or bytes. Returns (exit_code, output)."""
         with tempfile.TemporaryDirectory() as tmp:
             for name, records in files.items():
                 target = Path(tmp, name)
                 target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_text(json.dumps(records), encoding="utf-8")
+                if isinstance(records, bytes):
+                    target.write_bytes(records)
+                else:
+                    target.write_text(records if isinstance(records, Raw) else json.dumps(records), encoding="utf-8")
             original = validate.DATA_DIR
             validate.DATA_DIR = Path(tmp)
             out = io.StringIO()
@@ -156,6 +164,28 @@ class ValidatorTests(unittest.TestCase):
         new = state(id="state-002", title="Replacement Act")
         self.assert_fails_with({"us_state_bills.json": [old, new]}, "state-002 has supersedes = None")
 
+    def test_every_link_direction_must_be_mutual(self):
+        cases = [
+            ([state(id="state-001"), state(id="state-002", amends="state-001")],
+             "state-001 has amended_by = None"),
+            ([state(id="state-001", amended_by="state-002"), state(id="state-002")],
+             "state-002 has amends = None"),
+            ([state(id="state-001"), state(id="state-002", supersedes="state-001")],
+             "state-001 has superseded_by = None"),
+            ([state(id="state-001", status="superseded", superseded_by="state-002"),
+              state(id="state-002", supersedes="state-003"),
+              state(id="state-003", status="superseded", superseded_by="state-002")],
+             "but state-002 has supersedes = 'state-003'"),
+        ]
+        for records, fragment in cases:
+            with self.subTest(fragment=fragment):
+                self.assert_fails_with({"us_state_bills.json": records}, fragment)
+
+    def test_mutual_amendment_passes(self):
+        code, output = self.run_validator({"us_state_bills.json": [
+            state(id="state-001", amended_by="state-002"), state(id="state-002", amends="state-001")]})
+        self.assertEqual(code, 0, output)
+
     def test_mutual_supersession_passes(self):
         old = state(id="state-001", status="superseded", superseded_by="state-002", date_superseded="2026-05-01")
         new = state(id="state-002", title="Replacement Act", supersedes="state-001")
@@ -201,9 +231,29 @@ class ValidatorTests(unittest.TestCase):
         self.assert_fails_with({"us_state_bills.json": [state(principles="fairness")]}, "list of non-blank strings")
 
     def test_dates_use_plain_digits(self):
-        arabic_indic = "\u0662\u0660\u0662\u0666-\u0660\u0661-\u0660\u0661"
-        self.assert_fails_with({"us_state_bills.json": [state(effective_date=arabic_indic)]},
-                               "zero-padded YYYY-MM-DD")
+        # The last two have ASCII months and days, which Python's own date parser
+        # accepts, so only the ASCII-digit rule stands in their way.
+        for date in ("\u0662\u0660\u0662\u0666-\u0660\u0661-\u0660\u0661", "\u0662\u0660\u0662\u0666-01-01",
+                     "\uff12\uff10\uff12\uff16-01-01"):
+            with self.subTest(date=date):
+                self.assert_fails_with({"us_state_bills.json": [state(effective_date=date)]},
+                                       "zero-padded YYYY-MM-DD")
+                self.assert_fails_with(self.with_changelog([
+                    {"date": date, "summary": "x", "updated": ["state-001"]}]), "zero-padded YYYY-MM-DD")
+
+    def test_tags_must_be_lowercase(self):
+        for tag in ("Employment", "AI_Governance", "ai-safety", "ai safety"):
+            with self.subTest(tag=tag):
+                self.assert_fails_with({"us_state_bills.json": [state(tags=[tag])]}, "should be lowercase")
+
+    def test_nan_and_infinity_are_not_json(self):
+        """Python reads them; browsers do not, and the site would lose the whole file."""
+        for value in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(value=value):
+                self.assert_fails_with({"us_state_bills.json": [state(enforcement={"fine": value})]},
+                                       "is not valid JSON")
+        self.assert_fails_with(self.with_changelog(Raw('[{"date": "2026-01-01", "summary": "x", '
+                                                       '"updated": ["state-001"], "n": NaN}]')), "is not valid JSON")
 
     # --- enjoined -----------------------------------------------------------
 
@@ -304,6 +354,45 @@ class ValidatorTests(unittest.TestCase):
             {"date": "2026-01-01", "summary": "x", "updated": [{"id": "state-001"}]}]), "record ids as strings")
         self.assert_fails_with(self.with_changelog([
             {"date": "2026-01-01", "summary": "x", "added": [["state-001"]]}]), "record ids as strings")
+
+    def test_changelog_dates_must_be_real_and_padded(self):
+        for date in ("2026-1-5", "2026-02-30", 20260101, None, "yesterday"):
+            with self.subTest(date=date):
+                self.assert_fails_with(self.with_changelog([
+                    {"date": date, "summary": "x", "updated": ["state-001"]}]), "expected a zero-padded YYYY-MM-DD date")
+
+    def test_changelog_needs_a_summary(self):
+        for entry in ({"date": "2026-01-01", "summary": "  ", "updated": ["state-001"]},
+                      {"date": "2026-01-01", "summary": None, "updated": ["state-001"]},
+                      {"date": "2026-01-01", "updated": ["state-001"]}):
+            with self.subTest(entry=entry):
+                self.assert_fails_with(self.with_changelog([entry]), "needs a non-empty 'summary'")
+
+    def test_changelog_lists_each_record_once_per_entry(self):
+        self.assert_fails_with(self.with_changelog([
+            {"date": "2026-01-01", "summary": "x", "updated": ["state-001", "state-001"]}]), "listed more than once")
+        self.assert_fails_with(self.with_changelog([
+            {"date": "2026-01-01", "summary": "x", "added": ["state-001"], "updated": ["state-001"]}]),
+            "listed more than once")
+
+    def test_changelog_shapes_are_reported_not_a_crash(self):
+        for ids in ({"state-001": True}, "state-001", None, 5):
+            with self.subTest(added=ids):
+                self.assert_fails_with(self.with_changelog([
+                    {"date": "2026-01-01", "summary": "x", "added": ids, "updated": ["state-001"]}]),
+                    "'added' must be a list of record ids")
+        self.assert_fails_with(self.with_changelog(["oops"]), "entry is not an object")
+        for content in ({}, None, "text", 5):
+            with self.subTest(file=content):
+                self.assert_fails_with(self.with_changelog(content), "expected a list of entries")
+        self.assert_fails_with(self.with_changelog(Raw('[{"date": "2026-01-01",}]')), "cannot read as JSON")
+
+    def test_data_file_shapes_are_reported_not_a_crash(self):
+        for content in ({}, None, "text"):
+            with self.subTest(file=content):
+                self.assert_fails_with({"us_state_bills.json": content}, "expected a list of records")
+        self.assert_fails_with({"us_state_bills.json": Raw("[{,]")}, "cannot read as JSON")
+        self.assert_fails_with({"us_state_bills.json": b"[\xff\xfe]"}, "cannot read as JSON")   # not UTF-8
 
     def test_changelog_rejects_unknown_fields(self):
         self.assert_fails_with(self.with_changelog([

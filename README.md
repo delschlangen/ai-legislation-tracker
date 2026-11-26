@@ -118,18 +118,18 @@ Enacted does not always mean in force yet: some enacted laws have an effective d
 
 | Date | Jurisdiction | Legislation | What happens |
 |:-----|:-------------|:------------|:-------------|
-| **2026-12-02** | European Union | EU AI Act | Prohibitions on non-consensual intimate imagery and CSAM-generating systems apply |
-| **2027-01-01** | Colorado | SB 26-189 | Replacement AI law takes effect |
-| **2027-01-01** | New York | RAISE Act | Frontier model safety duties begin |
-| **2027-01-01** | Illinois | SB 315 | Frontier AI safety duties and third-party audits begin |
-| **2027-01-01** | California | AI Transparency Act | Large online platform and hosting platform duties begin |
-| **2027-08-02** | European Union | EU AI Act | National regulatory sandboxes due |
-| **2027-12-02** | European Union | EU AI Act | Annex III stand-alone high-risk obligations apply |
-| **2028-01-01** | California | AI Transparency Act | Capture-device makers must offer a latent disclosure option |
-| **2028-01-01** | Connecticut | CART Act | Last of the staggered obligations begin |
-| **2028-08-02** | European Union | EU AI Act | Annex I embedded high-risk obligations apply |
+| **2026-12-02** | European Union | [EU AI Act](https://delschlangen.github.io/ai-legislation-tracker/#intl-001) | Prohibitions on non-consensual intimate imagery and CSAM-generating systems apply |
+| **2027-01-01** | Colorado | [SB 26-189](https://delschlangen.github.io/ai-legislation-tracker/#state-011) | Replacement AI law takes effect |
+| **2027-01-01** | New York | [RAISE Act](https://delschlangen.github.io/ai-legislation-tracker/#state-016) | Frontier model safety duties begin |
+| **2027-01-01** | Illinois | [SB 315](https://delschlangen.github.io/ai-legislation-tracker/#state-018) | Frontier AI safety duties and third-party audits begin |
+| **2027-01-01** | California | [AI Transparency Act](https://delschlangen.github.io/ai-legislation-tracker/#state-019) | Large online platform and hosting platform duties begin |
+| **2027-08-02** | European Union | [EU AI Act](https://delschlangen.github.io/ai-legislation-tracker/#intl-001) | National regulatory sandboxes due |
+| **2027-12-02** | European Union | [EU AI Act](https://delschlangen.github.io/ai-legislation-tracker/#intl-001) | Annex III stand-alone high-risk obligations apply |
+| **2028-01-01** | California | [AI Transparency Act](https://delschlangen.github.io/ai-legislation-tracker/#state-019) | Capture-device makers must offer a latent disclosure option |
+| **2028-01-01** | Connecticut | [CART Act](https://delschlangen.github.io/ai-legislation-tracker/#state-017) | Last of the staggered obligations begin |
+| **2028-08-02** | European Union | [EU AI Act](https://delschlangen.github.io/ai-legislation-tracker/#intl-001) | Annex I embedded high-risk obligations apply |
 
-This table is the one list of dates kept by hand, so two things guard it. The tests fail if a row names a date the data does not have, or if the data has a future date with no row here. The weekly maintenance report flags a row once its date has passed. The [live site](https://delschlangen.github.io/ai-legislation-tracker/) computes the next six dates from the data on every visit, and `python3 src/generate_dashboard.py` prints the next ten.
+This table is the one list of dates kept by hand, so two things guard it. Each row links to its record, and the tests fail if a row names a date that record does not have, or if the data has a future date with no row here. The weekly maintenance report flags a row once its date has passed. The [live site](https://delschlangen.github.io/ai-legislation-tracker/) computes the next six dates from the data on every visit, and `python3 src/generate_dashboard.py` prints the next ten.
 
 ---
 

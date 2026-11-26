@@ -97,9 +97,9 @@
         "enforcement": { "type": "object" },
 
         "source_url": {
-          "description": "A specific document, never a bare domain: an http(s) URL with a path beyond '/', or a query string.",
+          "description": "A specific document, never a bare domain: an http(s) URL with a path segment or a query string. A fragment does not count, and whitespace and control characters are not allowed.",
           "type": "string",
-          "pattern": "^https?://([^/]*/+[^/]|[\\s\\S]*[?])"
+          "pattern": "^(?![\\s\\S]*[\\x00-\\x20\\x7f-\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff])https?://[^/?#]*(/+[^/?#]|/*[?][^#])"
         },
         "tags": {
           "type": "array",

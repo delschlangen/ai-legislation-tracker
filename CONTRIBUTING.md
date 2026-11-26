@@ -223,7 +223,7 @@ If you added a record, or changed a status or a date, these hand-written places 
 - [ ] README badges at the top: `Legislation Tracked`, and `Jurisdictions` if the jurisdiction is new
 - [ ] README "Data Currency" line: "N entries across M jurisdictions"
 - [ ] README "At a glance" table
-- [ ] README "Upcoming effective dates" table: one row for each future date, including each milestone. Remove the row if the date changed or the law was superseded
+- [ ] README "Upcoming effective dates" table: one row for each future date, including each milestone, with the Legislation cell linking to the record on the site (copy an existing row). Remove the row if the date changed or the law was superseded
 - [ ] `examples/current_landscape.md`: regenerate it with `python3 src/generate_dashboard.py examples/current_landscape.md`
 
 ---

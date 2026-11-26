@@ -96,6 +96,9 @@ BOTH = [
     {"type": 7}, {"type": ""}, {"jurisdiction": 5}, {"issuing_body": {}},
     {"effective_date": None}, {"effective_date": "2026-1-1"}, {"effective_date": 20260101},
     {"effective_date": "\u0662\u0660\u0662\u0666-\u0660\u0661-\u0660\u0661"},
+    # Only the year in another script: Python's strptime accepts this one, so
+    # only the ASCII-digit rule rejects it.
+    {"effective_date": "\u0662\u0660\u0662\u0666-01-01"}, {"effective_date": "\uff12\uff10\uff12\uff16-01-01"},
     {"date_issued": None}, {"date_introduced": None}, {"date_enacted": None}, {"date_adopted": None},
     {"full_application_date": None}, {"date_rescinded": None}, {"date_vetoed": None},
     {"date_superseded": None}, {"date_expired": None}, {"date_enjoined": None},
@@ -106,7 +109,8 @@ BOTH = [
     {"status": "superseded"}, {"status": "vetoed"}, {"status": "enjoined"},
     {"status": "vetoed", "veto_reason": ""}, {"status": "enjoined", "injunction": ""},
     {"veto_reason": 5}, {"injunction": None},
-    {"tags": "t"}, {"tags": []}, {"tags": ["Bad Tag"]}, {"tags": [5]},
+    {"tags": "t"}, {"tags": []}, {"tags": ["bad tag"]}, {"tags": ["Employment"]}, {"tags": ["ai-safety"]},
+    {"tags": [5]},
     {"key_provisions": "one"}, {"key_provisions": []}, {"key_provisions": [""]},
     {"key_provisions": ["  "]}, {"key_provisions": [5]},
     {"covered_decisions": "hiring"}, {"covered_decisions": [5]}, {"covered_decisions": [""]},
@@ -116,6 +120,11 @@ BOTH = [
     {"source_url": "https://example.gov"}, {"source_url": "https://example.gov/"},
     {"source_url": "https://example.gov//"}, {"source_url": "ftp://example.gov/x"},
     {"source_url": 5}, {"source_url": "example.gov/x"},
+    # A homepage with only a fragment, whitespace or an empty query after it.
+    {"source_url": "https://example.gov/#main-content"}, {"source_url": "https://example.gov/ "},
+    {"source_url": "https://example.gov/\n"}, {"source_url": "https://example.gov/?"},
+    {"source_url": "https://example.gov/\u00a0"}, {"source_url": "https://example.gov/\ufeff"},
+    {"source_url": "https://example.gov/#?x=1"}, {"source_url": "https://example.gov/a b"},
     {"efective_date": "2026-01-01"}, {"name": "Old Name"}, {"date_effective": "2026-01-01"},
     {"milestones": []}, {"milestones": "x"}, {"milestones": [5]},
     {"milestones": [{"date": "2026-01-01"}]},
@@ -139,6 +148,7 @@ VALIDATOR_ONLY = [
 NEITHER = [
     {}, {"verification": DROP}, {"effective_date": DROP}, {"last_verified": "needs_verification"},
     {"source_url": "https://example.gov?bill=1"}, {"source_url": "http://example.gov/x"},
+    {"source_url": "https://example.gov/x#section-2"}, {"source_url": "https://example.gov/?bill=1#top"},
     {"signatories": 28}, {"enforcement": {"fines": 1}}, {"covered_decisions": []},
     {"principles": ["Fairness"]}, {"type": "statute"}, {"milestones": GOOD_MILESTONES},
     {"status": "vetoed", "veto_reason": "Too broad"},
@@ -223,13 +233,52 @@ class SourceUrlRuleTests(unittest.TestCase):
         "https:///x", "https://?", "HTTPS://example.gov/x", " https://example.gov/x", "https://example.gov/ ",
         "https://example.gov/\n", "https://example.gov/x\ny", "https://a/b?c#d", "https://a#frag", "https://a/#frag",
         "", "https", "https://example.gov:8443/doc.pdf", "https://example.gov/a%20b", "https://xn--e1afmkfd.example/x",
+        "https://example.gov/#main-content", "https://example.gov/#?x=1", "https://example.gov/?#x",
+        "https://example.gov/??", "https://example.gov/x#section-2", "https://example.gov/\u00a0",
+        "https://example.gov/\u2028", "https://example.gov/\ufeff", "https://example.gov/a b", "https://ex\tample.gov/x",
     ]
 
+    pattern = SCHEMA["$defs"]["record"]["properties"]["source_url"]["pattern"]
+
+    def agree(self, url):
+        schema_says = validate._pattern_matches(self.pattern, url)
+        self.assertEqual(re.search(self.pattern, url) is not None, schema_says, url)
+        self.assertEqual(schema_says, validate.is_specific_url(url), url)
+        return schema_says
+
     def test_pattern_and_function_agree(self):
-        pattern = SCHEMA["$defs"]["record"]["properties"]["source_url"]["pattern"]
         for url in self.URLS:
             with self.subTest(url=url):
-                self.assertEqual(re.search(pattern, url) is not None, validate.is_specific_url(url))
+                self.agree(url)
+
+    def test_they_agree_on_generated_urls(self):
+        hosts = ["", "a", "a.gov", "a:8080", "u@a"]
+        paths = ["", "/", "//", "/x", "//x", "/x/", "/%20", "/?"]
+        queries = ["", "?", "?q", "??", "?#"]
+        fragments = ["", "#", "#f", "#/x", "#?q"]
+        extras = ["", " ", "\t", "\n", "\u00a0", "\u2028", "\u3000", "\ufeff", "\x7f", "\x85", "x"]
+        count = 0
+        for scheme in ("https://", "http://", "HTTP://", "ftp://"):
+            for host in hosts:
+                for path in paths:
+                    for query in queries:
+                        for fragment in fragments:
+                            for extra in extras:
+                                for url in (scheme + host + path + query + fragment + extra,
+                                            scheme + host + extra + path + query + fragment):
+                                    self.agree(url)
+                                    count += 1
+        self.assertGreater(count, 20000)
+
+    def test_verdicts(self):
+        """Agreement alone would pass if both copies of the rule were wrong."""
+        for url in ("https://example.gov/#main-content", "https://example.gov/ ", "https://example.gov/\n",
+                    "https://example.gov/?", "https://example.gov", "https://example.gov/#/bill/1",
+                    "https://example.gov/\u00a0", " https://example.gov/x", "https://exa mple.gov/x"):
+            self.assertFalse(self.agree(url), url)
+        for url in ("https://example.gov/x", "https://example.gov/?bill=1", "https://example.gov?bill=1",
+                    "https://example.gov/x#top", "https://example.gov/a%20b", "http://example.gov//x"):
+            self.assertTrue(self.agree(url), url)
 
 
 class SchemaMatchesValidatorTests(unittest.TestCase):
@@ -311,6 +360,30 @@ class CheckerTests(unittest.TestCase):
     def test_dollar_means_the_very_end(self):
         self.assertEqual(validate.schema_errors("ab", {"pattern": "^ab$"}, {}), [])
         self.assertNotEqual(validate.schema_errors("ab\n", {"pattern": "^ab$"}, {}), [])
+        # An escaped backslash before the final "$" leaves it an anchor.
+        self.assertEqual(validate.schema_errors("a\\", {"pattern": "^a\\\\$"}, {}), [])
+        self.assertNotEqual(validate.schema_errors("a\\\n", {"pattern": "^a\\\\$"}, {}), [])
+        # A literal dollar is just a character.
+        self.assertEqual(validate.schema_errors("a$b", {"pattern": "^a\\$b"}, {}), [])
+        self.assertEqual(validate.schema_errors("a$", {"pattern": "^a[$]"}, {}), [])
+        self.assertEqual(validate.schema_errors("]$", {"pattern": "^[]$]+"}, {}), [])
+
+    def test_a_dollar_anchor_before_the_end_is_refused(self):
+        for pattern in ("^a$|^ab$", "^(a$)", "^(?:a$|b)", "a$|b"):
+            with self.subTest(pattern=pattern):
+                with self.assertRaises(validate.SchemaError):
+                    validate.schema_errors("a", {"pattern": pattern}, {})
+
+    def test_equality_is_json_equality_at_any_depth(self):
+        reject = [({"const": [1]}, [True]), ({"const": {"a": True}}, {"a": 1}), ({"enum": [[1, 2]]}, [True, 2]),
+                  ({"const": [False]}, [0]), ({"const": [[True]]}, [[1]]), ({"const": [1]}, 1),
+                  ({"const": {"a": 1}}, {"a": 1, "b": 2}), ({"const": [1, 2]}, [1])]
+        accept = [({"const": [1]}, [1.0]), ({"const": {"a": [True, None]}}, {"a": [True, None]}),
+                  ({"enum": ["x", [1, {"b": False}]]}, [1.0, {"b": False}])]
+        for schema, value in reject:
+            self.assertNotEqual(validate.schema_errors(value, schema, {}), [], (schema, value))
+        for schema, value in accept:
+            self.assertEqual(validate.schema_errors(value, schema, {}), [], (schema, value))
 
     def test_json_number_and_boolean_rules(self):
         self.assertEqual(validate.schema_errors(28, {"type": "integer"}, {}), [])

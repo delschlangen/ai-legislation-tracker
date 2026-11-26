@@ -222,12 +222,17 @@ class DashboardTests(unittest.TestCase):
         total = sum(len(r) for r in load_records().values())
         self.assertIn(f"**Total Items Tracked:** {total}", text(done)[0])
 
-    def test_every_status_in_the_data_is_counted(self):
-        done = run(SRC / "generate_dashboard.py")
-        out = text(done)[0]
+    SECTIONS = {"us_federal_actions": "## US Federal Actions", "us_state_bills": "## US State Legislation",
+                "international_frameworks": "## International Frameworks"}
+
+    def test_every_status_in_the_data_is_counted_in_its_own_section(self):
+        out = text(run(SRC / "generate_dashboard.py"))[0]
         for filename, records in load_records().items():
-            for status in {r["status"] for r in records}:
-                self.assertIn(f"**{status.title()}:**", out, f"{filename}: status '{status}' not summarised")
+            section = out.split(self.SECTIONS[filename] + "\n", 1)[1]
+            counts_line = section.strip().splitlines()[0]
+            written = {status: int(n) for status, n in re.findall(r"\*\*([A-Za-z]+):\*\* (\d+)", counts_line)}
+            expected = {status.title(): n for status, n in Counter(r["status"] for r in records).items()}
+            self.assertEqual(written, expected, f"{filename}: status counts")
 
     def test_survives_a_legacy_windows_console(self):
         done = run(SRC / "generate_dashboard.py", env_extra={"PYTHONIOENCODING": "cp1252"})
@@ -240,21 +245,45 @@ class DashboardTests(unittest.TestCase):
             self.assertEqual(generate_dashboard.key_dates(record), [("2030-01-01", "Takes effect")], repr(bad))
 
     def test_upcoming_dates_skip_laws_that_are_not_in_force(self):
-        data = {"us_state_bills": [
-            {"id": "state-001", "state": "A", "title": "Dead", "status": "superseded", "effective_date": "2999-01-01"},
-            {"id": "state-002", "state": "B", "title": "Live", "status": "enacted", "effective_date": "2999-01-01",
-             "milestones": [{"date": "2999-06-01", "description": "Second stage"}]},
-        ]}
-        rows = generate_dashboard.upcoming_effective_dates(data, "2026-01-01")
-        self.assertEqual([(r[2], r[3]) for r in rows], [("Live", "Takes effect"), ("Live", "Second stage")])
+        for status in ("pending", "vetoed", "rescinded", "superseded", "expired", "enjoined", "unknown"):
+            data = {"us_state_bills": [
+                {"id": "state-001", "state": "A", "title": "Dead", "status": status, "effective_date": "2999-01-01"},
+                {"id": "state-002", "state": "B", "title": "Live", "status": "enacted", "effective_date": "2999-01-01",
+                 "milestones": [{"date": "2999-01-01", "description": "First stage"},
+                                {"date": "2999-06-01", "description": "Second stage"}]},
+            ]}
+            rows = generate_dashboard.upcoming_effective_dates(data, "2026-01-01")
+            self.assertEqual([(r[2], r[3]) for r in rows], [("Live", "First stage"), ("Live", "Second stage")], status)
+
+    def test_upcoming_dates_are_future_soonest_first_and_ten_at_most(self):
+        stages = [{"date": f"20{year}-01-01", "description": f"Stage {year}"} for year in range(40, 20, -1)]
+        data = {"international_frameworks": [
+            {"id": "intl-001", "jurisdiction": "Testland", "title": "Phased", "status": "adopted",
+             "effective_date": "2021-01-01", "milestones": sorted(stages, key=lambda m: m["date"])}]}
+        rows = generate_dashboard.upcoming_effective_dates(data, "2026-06-01")
+        self.assertEqual([r[0] for r in rows], [f"20{year}-01-01" for year in range(27, 37)])
+        # A stage dated today is not "upcoming".
+        self.assertEqual(generate_dashboard.upcoming_effective_dates(data, "2026-01-01")[0][0], "2027-01-01")
 
     def test_committed_example_matches_the_data(self):
+        """The whole file, regenerated as of the date it says it was generated,
+        so this never starts failing just because a day passes."""
         example = (ROOT / "examples" / "current_landscape.md").read_text(encoding="utf-8")
-        total = sum(len(r) for r in load_records().values())
-        self.assertTrue(
-            f"**Total Items Tracked:** {total}" in example,
-            "examples/current_landscape.md is stale. Regenerate it: "
-            "python3 src/generate_dashboard.py examples/current_landscape.md")
+        generated = re.search(r"\*\*Report generated:\*\* (\d{4}-\d{2}-\d{2})", example)
+        self.assertIsNotNone(generated, "examples/current_landscape.md has no 'Report generated' date")
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "out.md"
+            done = run(SRC / "generate_dashboard.py", "--today", generated.group(1), str(target))
+            self.assertEqual(done.returncode, 0, text(done))
+            fresh = target.read_text(encoding="utf-8")
+        self.assertEqual(fresh, example,
+                         "examples/current_landscape.md is stale. Regenerate it: "
+                         "python3 src/generate_dashboard.py examples/current_landscape.md")
+
+    def test_today_must_be_a_real_date(self):
+        for bad in ("2026-02-30", "2026-1-1", "soon", "\u0662\u0660\u0662\u0666-01-01"):
+            done = run(SRC / "generate_dashboard.py", "--today", bad)
+            self.assertEqual(done.returncode, 2, bad)
 
 
 class ExportTests(unittest.TestCase):
@@ -290,6 +319,42 @@ class ExportTests(unittest.TestCase):
         for record in records:
             expected = " | ".join(f"{m['date']}: {m['description']}" for m in record["milestones"])
             self.assertEqual(by_id[record["id"]]["milestones"], expected)
+
+    @staticmethod
+    def expected_cell(value):
+        """What a cell should hold, worked out here rather than with the exporter's code."""
+        if value is None:
+            return ""
+        if isinstance(value, list):
+            return " | ".join(
+                f"{item['date']}: {item['description']}" if isinstance(item, dict) and set(item) == {"date", "description"}
+                else json.dumps(item, ensure_ascii=False, sort_keys=True) if isinstance(item, dict)
+                else str(item)
+                for item in value)
+        if isinstance(value, dict):
+            return json.dumps(value, ensure_ascii=False, sort_keys=True)
+        return str(value)
+
+    def test_every_cell_round_trips(self):
+        """Every field of every record, compared cell by cell."""
+        _, rows = self.export()
+        by_id = {r["id"]: r for r in rows}
+        stems = {"us_federal_actions": "federal", "us_state_bills": "state", "international_frameworks": "international"}
+        compared = 0
+        for stem, records in load_records().items():
+            for record in records:
+                row = by_id[record["id"]]
+                for field, value in record.items():
+                    if field == "state":
+                        continue   # becomes the jurisdiction column, checked below
+                    self.assertIn(field, row, f"{record['id']}: field '{field}' has no column")
+                    self.assertEqual(row[field], self.expected_cell(value), f"{record['id']}: {field}")
+                    compared += 1
+                self.assertEqual(row["jurisdiction_type"], stems[stem], record["id"])
+                self.assertEqual(row["title"], record["title"], record["id"])
+                jurisdiction = record.get("state") or record.get("jurisdiction") or ("US Federal" if stem == "us_federal_actions" else "")
+                self.assertEqual(row["jurisdiction"], jurisdiction, record["id"])
+        self.assertGreater(compared, 500)
 
     def test_dates_and_reasons_survive(self):
         records = [r for rs in load_records().values() for r in rs]
@@ -348,9 +413,18 @@ class RepoConsistencyTests(unittest.TestCase):
                              "(total, enacted/active/adopted, pending, the rest)")
         self.assertEqual(seen, set(files), "README 'At a glance' table is missing a row")
 
-    def upcoming_table(self):
-        return Counter((when.isoformat(), cells[0])
-                       for when, cells in maintenance_report.readme_upcoming_rows(self.readme))
+    RECORD_LINK = re.compile(r"\]\(https://delschlangen\.github\.io/ai-legislation-tracker/#((?:fed|state|intl)-\d{3})\)")
+
+    def upcoming_rows(self):
+        """(date, jurisdiction, record id) for each README row. A row is matched
+        to its record by the link in its Legislation cell."""
+        rows = []
+        for when, cells in maintenance_report.readme_upcoming_rows(self.readme):
+            link = self.RECORD_LINK.search(cells[1]) if len(cells) > 1 else None
+            self.assertIsNotNone(link, f"README upcoming row {when} {cells} does not link to its record")
+            rows.append((when.isoformat(), cells[0], link.group(1)))
+        self.assertTrue(rows, "README 'Upcoming effective dates' table not found")
+        return rows
 
     def dated_stages(self):
         every = [r for records in load_records().values() for r in records]
@@ -360,19 +434,19 @@ class RepoConsistencyTests(unittest.TestCase):
     def test_every_readme_upcoming_row_is_a_date_in_the_data(self):
         """Catches a README row left behind when a law's date changes or the law
         is superseded, which is how the Colorado entry went stale."""
-        in_data = Counter((when, where) for when, where, _, _ in self.dated_stages())
-        extra = sorted((self.upcoming_table() - in_data).elements())
-        self.assertEqual(extra, [], "README 'Upcoming effective dates' rows with no matching date "
-                                    "(date, jurisdiction) in the data: remove or correct them")
+        in_data = Counter((when, where, rid) for when, where, rid, _ in self.dated_stages())
+        extra = sorted((Counter(self.upcoming_rows()) - in_data).elements())
+        self.assertEqual(extra, [], "README 'Upcoming effective dates' rows with no matching dated stage "
+                                    "(date, jurisdiction, record) in the data: remove or correct them")
 
     def test_every_future_date_in_the_data_has_a_readme_row(self):
         """Only ever fails when the data or the README changes: as time passes,
         dates move into the past and stop being required."""
         today = datetime.date.today().isoformat()
         future = [stage for stage in self.dated_stages() if stage[0] > today]
-        missing = Counter((when, where) for when, where, _, _ in future) - self.upcoming_table()
+        missing = Counter((when, where, rid) for when, where, rid, _ in future) - Counter(self.upcoming_rows())
         details = [f"{when} | {where} | {rid}: {what}" for when, where, rid, what in future
-                   if missing[(when, where)] > 0]
+                   if missing[(when, where, rid)] > 0]
         self.assertEqual(details, [], "Add a row to README 'Upcoming effective dates' for each of these")
 
 

@@ -34,7 +34,7 @@ The three data files are `us_federal_actions.json` (ids `fed-NNN`), `us_state_bi
 python3 validate.py                      # check the data; run after ANY edit to data/
 python3 -m unittest discover -s tests    # tests; run after any edit to src/, validate.py or data/
 python3 src/query_legislation.py --search "colorado"
-python3 src/generate_dashboard.py [out.md]
+python3 src/generate_dashboard.py [out.md]   # --today YYYY-MM-DD reproduces an earlier day's report
 python3 src/export_csv.py [out.csv | -]
 python3 scripts/maintenance_report.py    # what the weekly report would flag, offline
 ```
@@ -56,8 +56,8 @@ python3 -m http.server 8000     # then open http://localhost:8000/docs/
 - **Phased laws use `milestones`**, a list of `{"date", "description"}`, oldest first. The validator requires `effective_date` to equal the first milestone's date. Only record a stage you have read a source for, and word it as the source does: a milestone is a factual claim like any other field.
 - **A law blocked by a court is `enjoined`** and needs `injunction` (court, case, date). Add `date_enjoined` too; the validator does not require it.
 - **Log every data change** with an entry at the top of `data/meta/changelog.json`: `date`, `summary`, and the ids in `added` or `updated`. The validator checks that ids exist and dates run newest first. Do not log purely structural edits that change no fact.
-- **Dates are `YYYY-MM-DD`, zero-padded.** Only `last_verified` may instead be the literal `needs_verification`.
-- **`source_url` must be a specific document**, never a bare agency homepage. Prefer the official legislature, agency or gazette. News is never the citation.
+- **Dates are `YYYY-MM-DD`, zero-padded, in ASCII digits.** Only `last_verified` may instead be the literal `needs_verification`. In Python, write `[0-9]`, not `\d`, which also matches digits from other scripts.
+- **`source_url` must be a specific document**, never a bare agency homepage. The validator wants a path segment or a query; a fragment such as `#main-content` does not count, and whitespace is refused. A search-results page passes the validator but is still not a document. Prefer the official legislature, agency or gazette. News is never the citation.
 - **Tags are lowercase with underscores.** Reuse existing tags (`python3 src/query_legislation.py --list-tags`) instead of inventing synonyms.
 - Per-file required fields, and the status rules (`superseded` needs `superseded_by`, `vetoed` needs `veto_reason`, `enjoined` needs `injunction`), are enforced by `validate.py`. Read it rather than guessing.
 
@@ -79,7 +79,7 @@ Only change these when you actually performed the check, and set `verification` 
 Adding a record, or changing a status or a date, changes things that are written by hand. Update all of these in the same change. The tests check the first four and say which is wrong; the rest you must remember:
 
 1. README badges (`Legislation Tracked`, `Jurisdictions`), the "N entries across M jurisdictions" line, and the "At a glance" table
-2. README "Upcoming effective dates" table. It must have one row for every future dated stage of an enacted, active or adopted record, and no row for a date the data does not have
+2. README "Upcoming effective dates" table. It must have one row for every future dated stage of an enacted, active or adopted record, and no row for a date the data does not have. Each row's Legislation cell links to its record (`...github.io/ai-legislation-tracker/#state-011`); the tests match rows to records by that link
 3. `examples/current_landscape.md`, by regenerating it: `python3 src/generate_dashboard.py examples/current_landscape.md`
 4. `data/meta/changelog.json`, for any change of fact. The validator checks its shape
 5. `MAINTENANCE.md` review history, if you did a review pass

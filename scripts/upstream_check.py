@@ -53,7 +53,7 @@ import timebox
 ROOT = Path(__file__).resolve().parent.parent
 FILES = ("us_federal_actions", "us_state_bills", "international_frameworks")
 USER_AGENT = "Mozilla/5.0 (compatible; upstream-check/1.0)"
-DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})")
+DATE_RE = re.compile(r"^([0-9]{4}-[0-9]{2}-[0-9]{2})")   # ASCII digits only
 
 
 class FetchError(Exception):

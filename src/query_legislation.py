@@ -35,7 +35,8 @@ STATUS_EMOJI = {
 
 # Statuses that mean the instrument is law or policy now, if its date has come.
 IN_FORCE_STATUSES = {"enacted", "active", "adopted"}
-DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# ASCII digits only, as on the site: Python's \d also accepts digits from other scripts.
+DATE_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 
 # Federal records carry issuing_body but no jurisdiction or state, so the file
 # they came from is what says they are federal.

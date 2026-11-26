@@ -137,16 +137,30 @@ def is_valid_date(value, field):
         return False
 
 
+# Characters that never belong in a URL as written: ASCII controls and the
+# space, DEL and the C1 controls, and every character JavaScript's trim()
+# removes. The site trims a link before using it, so "https://www.ftc.gov/ "
+# would quietly become the agency's homepage.
+URL_FORBIDDEN = re.compile("[\x00-\x20\x7f-\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]")
+
+
 def is_specific_url(url):
     """Reject bare domains like https://www.sec.gov that cite no document.
+
+    The URL needs a path segment or a query string. A fragment does not count,
+    so "https://www.sec.gov/#main-content" is still the homepage, and
+    whitespace or control characters are refused outright.
 
     The source_url pattern in the schema expresses the same rule;
     tests/test_schema.py checks the two agree."""
     if not isinstance(url, str) or not url.startswith(("http://", "https://")):
         return False
-    remainder = url.split("://", 1)[1]
-    path = remainder.split("/", 1)[1] if "/" in remainder else ""
-    return bool(path.strip("/")) or "?" in url
+    if URL_FORBIDDEN.search(url):
+        return False
+    remainder = url.split("://", 1)[1].split("#", 1)[0]
+    before_query, _, query = remainder.partition("?")
+    path = before_query.split("/", 1)[1] if "/" in before_query else ""
+    return bool(path.strip("/")) or bool(query)
 
 
 def is_text(value):
@@ -186,18 +200,56 @@ class SchemaError(ValueError):
 
 
 def _json_equal(a, b):
-    """Equality as JSON sees it: true is not 1, but 1 and 1.0 are the same number."""
+    """Equality as JSON Schema defines it, at any depth: true is not 1, and a
+    list or object equals only one with equal members, but 1 and 1.0 are the
+    same number."""
     if isinstance(a, bool) or isinstance(b, bool):
-        return a is b
+        return isinstance(a, bool) and isinstance(b, bool) and a == b
+    if isinstance(a, list) or isinstance(b, list):
+        return (isinstance(a, list) and isinstance(b, list) and len(a) == len(b)
+                and all(_json_equal(x, y) for x, y in zip(a, b)))
+    if isinstance(a, dict) or isinstance(b, dict):
+        return (isinstance(a, dict) and isinstance(b, dict) and set(a) == set(b)
+                and all(_json_equal(a[key], b[key]) for key in a))
     return a == b
 
 
+def _python_pattern(pattern):
+    """A JSON Schema pattern, written for Python's re module.
+
+    Schema patterns follow JavaScript, where "$" means the very end. In Python
+    "$" also matches before a final newline, so a final "$" becomes \\Z. A "$"
+    anchor anywhere else would need the same care inside the pattern, so it is
+    refused rather than checked wrongly. Escapes and character classes are
+    followed, so "\\$" and "[$]" stay literal and "\\\\$" is still an anchor."""
+    out = []
+    escaped = in_class = False
+    class_start = -1
+    for index, char in enumerate(pattern):
+        if escaped:
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif in_class:
+            # A "]" straight after "[" or "[^" is a literal, as in Python.
+            if char == "]" and index > class_start:
+                in_class = False
+        elif char == "[":
+            in_class = True
+            class_start = index + 1
+            if pattern[index + 1:index + 2] == "^":
+                class_start += 1
+        elif char == "$":
+            if index != len(pattern) - 1:
+                raise SchemaError(f"a '$' anchor is supported only at the end of a pattern, not in {pattern!r}")
+            out.append(r"\Z")
+            continue
+        out.append(char)
+    return "".join(out)
+
+
 def _pattern_matches(pattern, value):
-    # JSON Schema patterns follow JavaScript, where "$" means the very end.
-    # In Python "$" also matches before a final newline, so use \Z instead.
-    if pattern.endswith("$") and not pattern.endswith("\\$"):
-        pattern = pattern[:-1] + r"\Z"
-    return re.search(pattern, value) is not None
+    return re.search(_python_pattern(pattern), value) is not None
 
 
 def _resolve(ref, root):
@@ -267,12 +319,24 @@ def schema_errors(value, schema, root, path="$"):
     return found
 
 
+def _reject_constant(name):
+    raise ValueError(f"{name} is not valid JSON")
+
+
+def read_json(path):
+    """Parse a JSON file the way a browser does. Python's json module accepts
+    NaN, Infinity and -Infinity, which are not JSON (RFC 8259); a data file
+    holding one passes every check and then fails to load on the site.
+    Raises ValueError (which covers bad JSON and bad UTF-8) or OSError."""
+    return json.loads(Path(path).read_text(encoding="utf-8"), parse_constant=_reject_constant)
+
+
 def load_schema(path=None):
     """Returns (schema, problem). Exactly one of the two is None."""
     path = SCHEMA_PATH if path is None else path
     try:
-        return json.loads(Path(path).read_text(encoding="utf-8")), None
-    except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
+        return read_json(path), None
+    except (ValueError, OSError) as exc:
         return None, f"schema/{Path(path).name}: cannot read as JSON - {exc}"
 
 
@@ -445,8 +509,8 @@ def check_changelog(path, records_by_id, problems):
         return
     label = f"meta/{path.name}"
     try:
-        entries = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
+        entries = read_json(path)
+    except (ValueError, OSError) as exc:
         problems.append(f"{label}: cannot read as JSON - {exc}")
         return
     if not isinstance(entries, list):
@@ -536,8 +600,8 @@ def main(argv=None):
 
     for path in files:
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
+            data = read_json(path)
+        except (ValueError, OSError) as exc:
             problems.append(f"{path.name}: cannot read as JSON - {exc}")
             continue
 
