@@ -202,6 +202,23 @@ class SearchMatchesTheSiteTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
         self.assertTrue(text.endswith("last"), "last_verified must stay at the very end")
 
+    def site_search_function(self):
+        self.assertIn("function matchesFilters(item) {", self.app)
+        return self.app.split("function matchesFilters(item) {", 1)[1].split("\n  function ", 1)[0]
+
+    def test_list_fields_add_the_same_values(self):
+        """Order alone is not enough: each list must add what searchable_text
+        adds (provisions, tags as written, tags and type as displayed,
+        milestone descriptions)."""
+        self.assertIn("const tags = Array.isArray(item.tags) ? item.tags : [];", self.site_search_function())
+        block = self.site_block()
+        for expression in (
+                "...(Array.isArray(item.key_provisions) ? item.key_provisions : []),",
+                "...tags,",
+                "...tags.concat(item.type || []).map(t => String(t).replace(/_/g, ' ')),",
+                "...(Array.isArray(item.milestones) ? item.milestones.map(m => m && m.description) : [])"):
+            self.assertIn(expression, block)
+
     def test_the_site_gives_federal_records_the_same_jurisdiction(self):
         self.assertIn("jurisdiction: record.jurisdiction || record.state ||", self.app)
         self.assertIn("(source.jurisdiction_type === 'federal' ? 'US Federal' : '')", self.app)

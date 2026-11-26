@@ -34,16 +34,19 @@
 
   // A record's own dates, in the order they usually happen: the field, what to
   // call it once the date has come, and what to call it while it is still ahead.
+  // The last name is for a date still to come that the record's status says
+  // will not arrive, such as the expiry date of a bill that was vetoed.
   const LIFECYCLE_DATES = [
-    ['date_introduced', 'Introduced', 'To be introduced'],
-    ['date_issued', 'Issued', 'To be issued'],
-    ['date_adopted', 'Adopted', 'To be adopted'],
-    ['date_enacted', 'Enacted', 'To be enacted'],
-    ['date_vetoed', 'Vetoed', 'To be vetoed'],
-    ['date_enjoined', 'Enforcement blocked by a court', 'Enforcement to be blocked by a court'],
-    ['date_rescinded', 'Rescinded', 'To be rescinded'],
-    ['date_superseded', 'Superseded', 'To be superseded'],
-    ['date_expired', 'Expired', 'Expires']
+    ['date_introduced', 'Introduced', 'To be introduced', 'Introduction date in the text'],
+    ['date_issued', 'Issued', 'To be issued', 'Issue date in the text'],
+    ['date_adopted', 'Adopted', 'To be adopted', 'Adoption date in the text'],
+    ['date_enacted', 'Enacted', 'To be enacted', 'Enactment date in the text'],
+    ['date_vetoed', 'Vetoed', 'To be vetoed', 'Veto date in the text'],
+    ['date_enjoined', 'Enforcement blocked by a court', 'Enforcement to be blocked by a court',
+     'Injunction date in the text'],
+    ['date_rescinded', 'Rescinded', 'To be rescinded', 'Rescission date in the text'],
+    ['date_superseded', 'Superseded', 'To be superseded', 'Supersession date in the text'],
+    ['date_expired', 'Expired', 'Expires', 'Expiry date in the text']
   ];
 
   // How Key Dates words a stage (an effective date, a full-application date or
@@ -53,12 +56,18 @@
   const AS_WRITTEN = { 'Takes effect': 'Effective date in the text',
                        'Applies in full': 'Full application date in the text' };
 
-  // The date a law stopped applying, by status. A stage dated before it was
-  // reached. Pending and vetoed are absent: none of their stages ever arrived.
+  // The date a record stopped applying, by status. A stage dated before it was
+  // reached, if the record also shows the law was made by then. "expired" also
+  // covers a bill that died without being enacted, which reached no stage.
+  // Pending and vetoed are absent: none of their stages ever arrived.
   const END_DATE_BY_STATUS = new Map([
     ['enjoined', 'date_enjoined'], ['rescinded', 'date_rescinded'],
     ['superseded', 'date_superseded'], ['expired', 'date_expired']
   ]);
+
+  // Dates that show a record became law. Adopting a treaty does not bring it
+  // into force, so date_adopted does not count for a treaty.
+  const BECAME_LAW_DATES = ['date_enacted', 'date_issued', 'date_adopted'];
 
   // The overview lists that hold links to records. See describeLink().
   const LINK_LISTS = ['upcoming-list', 'changes-list'];
@@ -776,7 +785,9 @@
     if (IN_FORCE_STATUSES.has(status)) return 'live';
     const endField = END_DATE_BY_STATUS.get(status);
     const ended = endField ? item[endField] : null;
-    return isIsoDate(ended) && date < ended && date < TODAY ? 'reached' : 'moot';
+    const becameLaw = BECAME_LAW_DATES.some(field =>
+      isIsoDate(item[field]) && item[field] <= date && !(field === 'date_adopted' && item.type === 'treaty'));
+    return becameLaw && isIsoDate(ended) && date < ended && date < TODAY ? 'reached' : 'moot';
   }
 
   // Every date a record carries, one row per date, oldest first: its own
@@ -792,9 +803,19 @@
       if (!entry.what.includes(what)) entry.what.push(what);
       if (expected) entry.expected = true;
     };
-    LIFECYCLE_DATES.forEach(([field, past, future]) => {
+    // A lifecycle date still to come is expected only for a law in force, or
+    // as the record's own end date, such as a supersession already scheduled.
+    const status = String(item.status || '').toLowerCase();
+    const ownEnd = status === 'vetoed' ? 'date_vetoed' : END_DATE_BY_STATUS.get(status);
+    LIFECYCLE_DATES.forEach(([field, past, future, asWritten]) => {
       const date = item[field];
-      add(date, date > TODAY ? future : past, true);
+      if (!(date > TODAY)) {
+        add(date, past, true);
+      } else if (IN_FORCE_STATUSES.has(status) || field === ownEnd) {
+        add(date, future, true);
+      } else {
+        add(date, asWritten, false);
+      }
     });
     keyDates(item).forEach(d => {
       if (!d.what) return;
@@ -882,16 +903,22 @@
 
   // Be explicit about how an entry was checked. "secondary" means it was
   // confirmed against published legal analyses rather than the primary text.
+  // Every record says how it was last checked, so the least-checked entries
+  // never look like the best-checked ones. MAINTENANCE.md defines each level.
   function renderVerificationNote(item) {
-    if (item.verification === 'secondary') {
-      return '<p class="verification-note">Checked against secondary legal sources; ' +
-             'confirm against the official source before relying on it.</p>';
+    switch (item.verification) {
+      case 'primary':
+        return '<p class="verification-note">Confirmed against the official text.</p>';
+      case 'secondary':
+        return '<p class="verification-note">Checked against secondary legal sources; ' +
+               'confirm against the official source before relying on it.</p>';
+      case 'unconfirmed':
+        return '<p class="verification-note unconfirmed">Not yet confirmed. ' +
+               'Treat this entry as provisional.</p>';
+      default:
+        return '<p class="verification-note unchecked">Not re-checked since it was first recorded; ' +
+               'confirm against the official source before relying on it.</p>';
     }
-    if (item.verification === 'unconfirmed') {
-      return '<p class="verification-note unconfirmed">Not yet confirmed. ' +
-             'Treat this entry as provisional.</p>';
-    }
-    return '';
   }
 
   // ---------------------------------------------------------------------------
@@ -1112,8 +1139,9 @@
     if (!id) return;
     const from = describeLink(link);
     // A search still being typed is part of the view being left. Apply it now,
-    // or the step back would return to a view without it.
-    settleSearch();
+    // or the step back would return to a view without it. Keep the open record
+    // open if the search still lists it: the link may be inside it.
+    settleSearch({ keepHash: true });
 
     if (id === hashId()) {
       // Already the record in the address, so there is no step to add.
@@ -1186,8 +1214,39 @@
     window.setTimeout(() => {
       const openRow = id ? findRow(id) : null;
       const target = findLink(state && state.returnTo) || (openRow && openRow.querySelector('.row-toggle'));
-      if (target) focusInView(target);
+      if (target) {
+        focusInView(target);
+        return;
+      }
+      // Nothing to return to. Do not leave focus on a control that the
+      // restored scroll position has moved out of sight: the next Tab would
+      // jump the page away from what the reader is looking at. Blurring is not
+      // enough, because browsers start the next Tab from where focus was.
+      const active = document.activeElement;
+      if (active && active !== document.body && !isPartlyInView(active)) {
+        const visible = firstControlInView();
+        if (visible) visible.focus({ preventScroll: true });
+      }
     }, 0);
+  }
+
+  function isPartlyInView(element) {
+    const box = element.getBoundingClientRect();
+    return box.height > 0 && box.bottom > 0 && box.top < window.innerHeight;
+  }
+
+  function isWhollyInView(element) {
+    const box = element.getBoundingClientRect();
+    return box.height > 0 && box.top >= 0 && box.bottom <= window.innerHeight;
+  }
+
+  // The first record title on screen, or failing that any control on screen.
+  function firstControlInView() {
+    const row = Array.from(tableBody.querySelectorAll('.row-toggle')).find(isWhollyInView);
+    if (row) return row;
+    const controls = document.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled])');
+    return Array.from(controls).find(control => !control.hidden && isWhollyInView(control)) || null;
   }
 
   // ---------------------------------------------------------------------------
@@ -1216,18 +1275,19 @@
   // Apply the text in the search box. Returns true if that rebuilt the table.
   // Text that is already applied changes nothing, so a late timer can never
   // close the open record for no reason.
-  function applySearchBox() {
+  function applySearchBox(options) {
     cancelSearch();
     const text = searchBoxText();
     if (text === activeFilters.search) return false;
     activeFilters.search = text;
-    applyFilters();
+    applyFilters(options);
     return true;
   }
 
-  // Apply a search that is still being typed, if there is one.
-  function settleSearch() {
-    return searchTimer !== null && applySearchBox();
+  // Apply a search that is still being typed, if there is one. Options are
+  // passed on to applyFilters.
+  function settleSearch(options) {
+    return searchTimer !== null && applySearchBox(options);
   }
 
   // The visual state and the accessible state of a filter button always change together.

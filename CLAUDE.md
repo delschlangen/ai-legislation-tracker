@@ -81,7 +81,7 @@ Adding a record, or changing a status or a date, changes things that are written
 1. README badges (`Legislation Tracked`, `Jurisdictions`), the "N entries across M jurisdictions" line, and the "At a glance" table
 2. README "Upcoming effective dates" table. It must have one row for every future dated stage of an enacted, active or adopted record, and no row for a date the data does not have. Each row's Legislation cell links to its record (`...github.io/ai-legislation-tracker/#state-011`); the tests match rows to records by that link
 3. `examples/current_landscape.md`, by regenerating it: `python3 src/generate_dashboard.py examples/current_landscape.md`
-4. `data/meta/changelog.json`, for any change of fact. The validator checks its shape
+4. `data/meta/changelog.json`, for any change of fact. The validator checks its shape and that every record is listed as added once. It cannot tell whether a correction to an existing record was logged: that part is on you
 5. `MAINTENANCE.md` review history, if you did a review pass
 6. `CITATION.md` and `CITATION.cff` (`date-released`, "data current as of") after a review pass
 
@@ -115,7 +115,8 @@ If a record gains a field the CSV does not know, add it to `COLUMNS` in `src/exp
 - **A search still being typed is never left half applied.** The box is applied 300 ms after the last key. Anything that changes or leaves the view in that gap first applies the pending text (`settleSearch`, and `applyFilters` does it itself) or drops it (`cancelSearch`, for Back and Clear).
 - **Search is the same on the site and in the CLI.** `matchesFilters` in `docs/app.js` and `searchable_text` in `src/query_legislation.py` join the same fields in the same order, because a query like "Colorado SB 24-205" spans two of them; the CLI adds only `last_verified`, at the end. Change both together. A test compares the two lists.
 - **Nothing date-dependent is hand-written on the site.** "Coming up", "Not yet in force", "Next stage" and "In force today" are computed from the data and the reader's date. "In force" means status `enacted`, `active` or `adopted` with no effective date still to come; the CLI and dashboard use the same rule.
-- **Key Dates states a stage as fact only where the status supports it** (`stageStanding`). A pending or vetoed bill never "took effect", and a law that was enjoined, rescinded, superseded or expired reached only the stages dated before that. Other stage dates are worded as dates in the text and carry no countdown.
+- **Key Dates states a stage as fact only where the status supports it** (`stageStanding`). A pending or vetoed bill never "took effect". A law that was enjoined, rescinded, superseded or expired reached only the stages dated before that, and only if the record shows it became law (`expired` also covers bills that died unenacted). Other stage dates are worded as dates in the text and carry no countdown, and so is a future lifecycle date the status rules out, such as the expiry date of a vetoed bill.
+- **Every record says how it was checked** (`renderVerificationNote`), including records with no `verification` field, which read as not re-checked since first recorded. The least-checked entries must never look like the best-checked ones.
 - Below 640px the table becomes stacked cards. Explicit `role` attributes keep table semantics, so keep them when editing the row template.
 - Text on coloured backgrounds must stay at 4.5:1 contrast or better.
 

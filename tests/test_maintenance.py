@@ -9,6 +9,7 @@ import http.client
 import io
 import json
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -479,6 +480,23 @@ class TimeboxTests(unittest.TestCase):
             return "on time"
         out = timebox.run_all(work, ["first", "second"], seconds=1.0, workers=1)
         self.assertEqual(out, {"first": (timebox.GAVE_UP, None), "second": (timebox.DONE, "on time")})
+
+    def test_an_answer_that_came_in_time_is_never_given_up_on(self):
+        """The loop used to read one answer, then give up on every call past its
+        deadline, throwing away answers already waiting. With a pause while
+        calls run, that hit the second call every time."""
+        out = timebox.run_all(lambda n: n * 10, range(4), seconds=1.0, workers=4, pause=0.6)
+        self.assertEqual(out, {n: (timebox.DONE, n * 10) for n in range(4)})
+
+    def test_an_abandoned_call_does_not_keep_the_process_alive(self):
+        """Its thread must be a daemon, or a server that never finishes keeps the
+        report job running until GitHub stops it, and nothing is published."""
+        code = ("import sys, threading; sys.path.insert(0, 'scripts'); import timebox; "
+                "print(timebox.run_all(lambda n: threading.Event().wait(), [1], seconds=0.1))")
+        done = subprocess.run([sys.executable, "-c", code], cwd=str(ROOT), timeout=30,
+                              stdout=subprocess.PIPE, universal_newlines=True)
+        self.assertEqual(done.returncode, 0)
+        self.assertIn("gave up", done.stdout)
 
     def test_calls_run_side_by_side_up_to_the_number_of_workers(self):
         began = time.monotonic()

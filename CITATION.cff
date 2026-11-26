@@ -12,9 +12,9 @@ license: MIT
 abstract: >-
   A structured, machine-readable dataset tracking AI legislation, regulation
   and governance frameworks across US federal, US state and international
-  jurisdictions. Each record carries a permanent id, a last_verified date,
-  a verification level (primary, secondary or unconfirmed) and supersession
-  links showing what replaced what. Includes CLI tools for querying and
+  jurisdictions. Each record carries a permanent id and a last_verified date,
+  and may carry a verification level (primary, secondary or unconfirmed) and
+  supersession links showing what replaced what. Includes CLI tools for querying and
   a browser interface.
 keywords:
   - artificial-intelligence

@@ -51,9 +51,9 @@ This repo provides:
 
 > **Last full review: September 2026. 47 entries across 22 jurisdictions.**
 >
-> A targeted update on 2026-11-24 added three entries and corrected one. Every other entry was last checked in September 2026 or earlier.
+> A targeted update on 2026-11-24 added three entries and corrected one. Each entry's own `last_verified` date says when it was last checked; the site shows the range, and the weekly report lists any entry not checked in six months.
 
-Each entry carries its own `last_verified` date and a `verification` field saying how it was checked:
+Each entry carries its own `last_verified` date and may carry a `verification` field saying how it was checked:
 
 | `verification` | Meaning |
 |:---|:---|
@@ -83,7 +83,7 @@ This project is built around two things those cannot offer:
 
 **1. The data is yours.** MIT licensed, plain JSON, fetchable from a stable URL. Load it into a notebook, a spreadsheet, a compliance tool or a retrieval index without asking anyone.
 
-**2. Records have a history.** Ids are permanent. `state-001` means Colorado SB 24-205 forever, including now that it has been repealed — the record stays, its status becomes `superseded`, and `superseded_by` points at the statute that replaced it. A citation written in 2024 still resolves, and tells you what changed underneath it. Every change is a git commit with a source link.
+**2. Records have a history.** Ids are permanent. `state-001` means Colorado SB 24-205 forever, including now that it has been repealed — the record stays, its status becomes `superseded`, and `superseded_by` points at the statute that replaced it. A citation written before the repeal still resolves, and tells you what changed underneath it. Every change is a git commit with a source link.
 
 This dataset deliberately tracks **notable frameworks and instruments with operative legal effect**, not every introduced bill. Depth and accuracy over volume.
 
@@ -110,7 +110,7 @@ Enacted does not always mean in force yet: some enacted laws have an effective d
 | **Colorado SB 26-189** | CO | Enacted | Replaced the repealed Colorado AI Act with a narrower transparency regime. Effective Jan 2027. |
 | **California SB 53** | CA | Enacted | First US state frontier AI safety law. In force since Jan 2026. |
 | **Texas HB 149 (TRAIGA)** | TX | Enacted | Third state comprehensive AI law, built on intent rather than risk tiers. |
-| **Connecticut CART Act** | CT | Enacted | Broadest US state AI law to date. First obligations were scheduled for Oct 2026. |
+| **Connecticut CART Act** | CT | Enacted | One of the most comprehensive US state AI laws. First obligations were scheduled for Oct 2026. |
 | **TAKE IT DOWN Act** | US Federal | Enacted | First federal statute placing AI duties on private platforms. |
 | **South Korea AI Framework Act** | KR | Enacted | World's second comprehensive national AI statute. In force since Jan 2026. |
 

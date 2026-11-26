@@ -1126,16 +1126,20 @@ tr.expanded .expand-icon {
   }
 }
 
-/* Provenance note shown when an entry was checked against secondary sources
-   rather than the primary legal text. */
+/* How the entry was last checked, shown on every record. Entries never
+   re-checked, or not yet confirmed, carry the warning colour. */
 .verification-note {
   margin-top: 0.25rem;
   font-size: 0.8125rem;
   color: var(--color-gray-500);
 }
 
-.verification-note.unconfirmed {
-  color: var(--color-warning, #b45309);
+/* A darker amber than --color-warning, which is too light for small text:
+   this one stays above 4.5:1 on the detail panel's background. */
+.verification-note.unconfirmed,
+.verification-note.unchecked {
+  color: #92400e;
+  font-weight: 500;
 }
 
 /* Shown when one data file fails to load but the others succeeded. */

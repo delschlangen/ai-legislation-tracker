@@ -504,7 +504,8 @@ def check_milestones(where, record, problems):
 
 
 def check_changelog(path, records_by_id, problems):
-    """data/meta/changelog.json: newest first, real dates, ids that exist."""
+    """data/meta/changelog.json: newest first, real dates, ids that exist, and
+    every record listed as added exactly once."""
     if not path.exists():
         return
     label = f"meta/{path.name}"
@@ -558,6 +559,13 @@ def check_changelog(path, records_by_id, problems):
                     first_added[rid] = where
         if not ids_seen:
             problems.append(f"{where}: name at least one record in 'added' or 'updated'")
+
+    # Every record was published at some point, so every record is listed as
+    # added once. (Whether a correction to an existing record was logged cannot
+    # be checked: that is up to whoever makes it.)
+    for rid in sorted(records_by_id):
+        if rid not in first_added:
+            problems.append(f"{label}: {rid} is never listed as added. Add it to the entry that first published it")
 
 
 def check_cross_references(records_by_id, problems):

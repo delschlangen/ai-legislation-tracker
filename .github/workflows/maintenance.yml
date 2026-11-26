@@ -9,8 +9,8 @@
 # What it can and cannot do:
 # - It NEVER edits data or commits. Changing a record stays a human decision.
 # - The "report" job only reads. Only the "publish" job may write, and only to
-#   issues. It does not run on pull requests, so a PR can test the report but
-#   cannot post anything.
+#   issues. It runs only on the schedule and when started by hand, never for a
+#   pull request, so a PR can test the report but cannot post anything.
 # - It only ever updates an issue that this workflow's own bot account opened.
 #   An issue someone else opens under the same title is ignored.
 # - It needs no secrets and no setup. Congress.gov is queried with
@@ -69,7 +69,7 @@ jobs:
 
   publish:
     needs: report
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

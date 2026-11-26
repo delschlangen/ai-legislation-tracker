@@ -13,7 +13,7 @@ This is a single-maintainer project. The schedule below is what can realisticall
 | **Twice yearly** | Re-check every entry's status, effective date and source link |
 | **On report** | Any entry flagged through an issue is checked as soon as practical |
 
-Earlier versions of this file promised quarterly reviews and one-week turnarounds on major events. That commitment was not met — seven consecutive quarterly reviews were missed between December 2024 and September 2026, during which the Colorado entry went stale while the statute it described was delayed, enforcement-stayed and finally repealed. A promise the project cannot keep is worse than an honest one, so the cadence above replaces it.
+Earlier versions of this file promised quarterly reviews and one-week turnarounds on major events. That commitment was not met. The three quarterly reviews scheduled after the first release in December 2025 (January, April and July 2026) did not happen, and the Colorado entry kept its original 2026-02-01 effective date while the statute it described was delayed, enforcement-stayed and finally repealed. A promise the project cannot keep is worse than an honest one, so the cadence above replaces it.
 
 **The dataset tells you its own age.** Every entry carries `last_verified`. The site shows the range, and `python3 src/generate_dashboard.py` prints it. Trust that field over anything written in prose.
 
@@ -72,8 +72,8 @@ python3 scripts/maintenance_report.py --links --upstream  # also links and offic
 | Review | Date | Scope |
 |:-------|:-----|:------|
 | Targeted update | 2026-11-24 | 3 entries added (Illinois SB 315, California AI Transparency Act, EO 14409) and 1 corrected (New York RAISE Act), all checked against published legal analyses and official bill pages. **Not a full review:** every other entry keeps its earlier `last_verified` date |
-| Full dataset review | 2026-09-17 | 30 of 44 entries corrected or added; schema extended for supersession |
-| Full dataset review | 2024-12-24 | Original 28 entries verified |
+| Full dataset review | 2026-09-17 | 31 of 44 entries corrected or added (15 added, 15 corrected, and the TAKE IT DOWN Act added); schema extended for supersession |
+| First release | 2025-12-24 | 28 entries published. They were given `last_verified` 2024-12-24, a year before the repository existed; 13 still carry that date until someone re-checks them |
 
 ---
 
@@ -147,7 +147,7 @@ Then set `last_verified` to the date of the check and `verification` to the meth
 3. Create the successor as a new record with `supersedes` pointing back. The validator fails a link recorded on only one side
 4. Update the old record's summary to explain what happened
 
-This is deliberate. A citation to `state-001` written in 2024 still resolves today and now tells the reader that Colorado SB 24-205 was repealed before it ever took effect. Deleting the record would break that.
+This is deliberate. A citation to `state-001` written before the repeal still resolves today and now tells the reader that Colorado SB 24-205 was repealed before it ever took effect. Deleting the record would break that.
 
 ## Handling Enjoined Law
 
@@ -186,10 +186,11 @@ Include the entry id or title, what is wrong, what it should say, and an officia
 1. Edit the relevant file in `data/`
 2. Update `last_verified` and `verification`, if you actually re-checked the entry
 3. Add an entry at the top of `data/meta/changelog.json` saying what changed. The site shows the latest ones under "Recently changed"
-4. Run `python3 validate.py`
-5. Open a pull request
+4. If you changed a status or a date, update the hand-written copies too: the README's counts and its "Upcoming effective dates" table, and `examples/current_landscape.md`. The [Verification Checklist](CONTRIBUTING.md#verification-checklist) lists them all
+5. Run `python3 validate.py` and `python3 -m unittest discover -s tests`. The tests say which hand-written copy is out of step
+6. Open a pull request
 
-The website reads `data/*.json` directly, so there is no second copy to keep in sync. The same validator runs automatically on pull requests; it only reads files and reports problems, and never changes anything.
+The website reads `data/*.json` directly, so it never needs a second copy. The validator and the tests run automatically on every pull request; they only read files and report problems, and never change anything.
 
 ---
 

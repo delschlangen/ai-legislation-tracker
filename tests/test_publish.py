@@ -311,11 +311,53 @@ def run_blocks(text):
         yield index + 1, "\n".join(block)
 
 
+EXPRESSION = re.compile(r"\$\{\{(.*?)\}\}", re.S)
+WRITE_SCOPE = re.compile(r"""[A-Za-z_-]+['"]?\s*:\s*['"]?write['"]?(?![\w-])""")
+
+
+def without_full_line_comments(text):
+    return "\n".join("" if line.lstrip().startswith("#") else line for line in text.splitlines())
+
+
+def lines_with_expressions(text):
+    """(line number, line) for every line holding a ${{ }} expression, comments included:
+    inside a run block GitHub expands an expression even on a line the shell treats as a comment."""
+    return [(number, line) for number, line in enumerate(text.splitlines(), 1) if "${{" in line]
+
+
+def triggers(text):
+    """The event names under the workflow's on: key, in block or flow style."""
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        match = re.match(r"""^['"]?on['"]?\s*:(.*)$""", line)
+        if not match:
+            continue
+        inline = match.group(1).split("#", 1)[0].strip()
+        if inline:
+            return set(re.findall(r"[A-Za-z_]+", inline))
+        names = set()
+        for later in lines[index + 1:]:
+            if later.strip() and not later.startswith((" ", "\t")) and not later.lstrip().startswith("#"):
+                break
+            key = re.match(r"^  ([A-Za-z_]+)\s*:", later)
+            if key:
+                names.add(key.group(1))
+        return names
+    return set()
+
+
 class WorkflowTests(unittest.TestCase):
     """The workflow file itself, read as text: the project has no YAML parser."""
 
     text = (ROOT / ".github" / "workflows" / "maintenance.yml").read_text(encoding="utf-8")
     code = without_comments(text)
+    # The only places an expression may appear, and what each may say.
+    EXPRESSIONS = {
+        "group": "github.event_name == 'pull_request' && github.ref || 'publish'",
+        "cancel-in-progress": "github.event_name == 'pull_request'",
+        "GH_TOKEN": "github.token",
+        "GH_REPO": "github.repository",
+    }
 
     def job(self, name):
         start = self.code.index(f"\n  {name}:")
@@ -323,23 +365,64 @@ class WorkflowTests(unittest.TestCase):
         return self.code[start:start + 1 + following.start()] if following else self.code[start:]
 
     def test_only_the_publish_job_can_write_and_only_issues(self):
-        writes = re.findall(r"[a-z-]+\s*:\s*write\b", self.code)
+        # Quotes allowed, as YAML allows them: id-token: 'write' is still a write.
+        code = without_full_line_comments(self.text)
+        writes = WRITE_SCOPE.findall(code)
         self.assertEqual(writes, ["issues: write"])
         self.assertIn("issues: write", self.job("publish"))
-        self.assertNotIn("write-all", self.code)
-        self.assertNotIn("read-all", self.code)
+        self.assertNotIn("write-all", code)
+        self.assertNotIn("read-all", code)
         # The default for every job is read-only.
         top = self.code[:self.code.index("\njobs:")]
         self.assertIn("permissions:\n  contents: read", top)
 
-    def test_publish_never_runs_on_pull_requests(self):
-        self.assertIn("if: github.event_name != 'pull_request'", self.job("publish"))
+    def test_publish_runs_only_on_the_schedule_or_by_hand(self):
+        """An allowlist, so a new trigger such as pull_request_target cannot reach it."""
+        self.assertIn("if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'",
+                      self.job("publish"))
+
+    def test_the_triggers_are_the_expected_ones(self):
+        self.assertEqual(triggers(self.text), {"schedule", "workflow_dispatch", "pull_request"})
+        for dangerous in ("pull_request_target", "workflow_run", "issue_comment"):
+            self.assertNotIn(dangerous, self.code)
 
     def test_nothing_is_interpolated_into_a_shell_command(self):
-        blocks = list(run_blocks(self.code))
+        # The raw text: inside a run block a "#" hides nothing from GitHub.
+        blocks = list(run_blocks(self.text))
         self.assertGreaterEqual(len(blocks), 3)
         for line, block in blocks:
             self.assertNotIn("${{", block, f"line {line}")
+
+    def test_expressions_appear_only_where_expected(self):
+        """Whatever the step is written as (block, flow mapping, quoted), an
+        expression anywhere else fails here."""
+        found = {}
+        for number, line in lines_with_expressions(self.text):
+            key = re.match(r"^\s*([A-Za-z_-]+)\s*:", line)
+            self.assertIsNotNone(key, f"line {number}: an expression outside a plain key: {line.strip()}")
+            self.assertIn(key.group(1), self.EXPRESSIONS, f"line {number}: an expression in '{key.group(1)}'")
+            found[key.group(1)] = [e.strip() for e in EXPRESSION.findall(line)]
+        self.assertEqual(found, {key: [value] for key, value in self.EXPRESSIONS.items()})
+
+    def test_the_guards_catch_edits_that_slipped_past_them_before(self):
+        """Each of these got past an earlier version of the checks above."""
+        bypasses = [
+            "      - name: Say which issue\n        run: |\n          echo \"Updated issue #${{ github.event.head_commit.message }}\"\n",
+            "      - run: |\n          # echo \"${{ github.event.head_commit.message }}\"\n",
+            "      - { name: Echo, run: \"echo ${{ github.event.head_commit.message }}\" }\n",
+            "      - run: echo \"step #1\" ${{ secrets.PAT }}\n",
+        ]
+        for snippet in bypasses:
+            with self.subTest(snippet=snippet):
+                edited = self.text + snippet
+                in_run = any("${{" in block for _, block in run_blocks(edited))
+                elsewhere = any(not re.match(r"^\s*(group|cancel-in-progress|GH_TOKEN|GH_REPO)\s*:", line)
+                                for _, line in lines_with_expressions(edited))
+                self.assertTrue(in_run or elsewhere)
+        for line in ("      id-token: 'write'", '      contents: "write"', "      checks: write"):
+            self.assertEqual(len(WRITE_SCOPE.findall(line)), 1, line)
+        self.assertEqual(triggers("on:\n  push:\n  pull_request_target:\n"), {"push", "pull_request_target"})
+        self.assertEqual(triggers("on: [push, pull_request_target]\n"), {"push", "pull_request_target"})
 
     def test_the_run_scanner_sees_every_way_of_writing_a_step(self):
         sample = ("steps:\n      - run: echo \"${{ github.event.head_commit.message }}\"\n"
@@ -350,7 +433,9 @@ class WorkflowTests(unittest.TestCase):
         self.assertNotIn("github.token", "".join(found))
 
     def test_no_secrets_are_used(self):
-        self.assertNotIn("secrets", self.code.lower())
+        for expression in EXPRESSION.findall(self.text):
+            self.assertNotIn("secrets", expression.lower())
+        self.assertNotIn("secrets", without_full_line_comments(self.text).lower())
 
     def test_pull_requests_do_not_share_the_publishing_queue(self):
         self.assertIn("github.event_name == 'pull_request' && github.ref || 'publish'", self.text)
@@ -384,9 +469,21 @@ class ValidateWorkflowTests(unittest.TestCase):
         self.assertIn("pull_request:", self.code)
 
     def test_read_only(self):
-        self.assertNotRegex(self.code, r":\s*write\b")
-        self.assertNotIn("secrets", self.code.lower())
+        code = without_full_line_comments(self.text)
+        self.assertEqual(WRITE_SCOPE.findall(code), [])
+        self.assertNotIn("write-all", code)
+        self.assertNotIn("secrets", code.lower())
+        for expression in EXPRESSION.findall(self.text):
+            self.assertNotIn("secrets", expression.lower())
         self.assertIn("permissions:\n  contents: read", self.code)
+
+    def test_triggers_and_expressions(self):
+        self.assertEqual(triggers(self.text), {"pull_request", "push", "workflow_dispatch"})
+        for number, line in lines_with_expressions(self.text):
+            key = re.match(r"^\s*([A-Za-z_-]+)\s*:", line)
+            self.assertIn(key.group(1) if key else None, ("runs-on", "python-version"), f"line {number}")
+        for _, block in run_blocks(self.text):
+            self.assertNotIn("${{", block)
 
 
 if __name__ == "__main__":

@@ -256,7 +256,7 @@ If you added a record, or changed a status or a date, these hand-written places 
 3. Add `supersedes` on the new record pointing back. `validate.py` fails if either side is missing
 4. Rewrite the old summary to say what happened
 
-Colorado `state-001` is the worked example: SB 24-205 was delayed, enforcement-stayed and then repealed before it ever took effect, so it is marked `superseded` and points at `state-011`. Anyone who cited it in 2024 can still resolve that id and see what changed.
+Colorado `state-001` is the worked example: SB 24-205 was delayed, enforcement-stayed and then repealed before it ever took effect, so it is marked `superseded` and points at `state-011`. Anyone who cited it before the repeal can still resolve that id and see what changed.
 
 ---
 

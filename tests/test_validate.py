@@ -394,6 +394,15 @@ class ValidatorTests(unittest.TestCase):
         self.assert_fails_with({"us_state_bills.json": Raw("[{,]")}, "cannot read as JSON")
         self.assert_fails_with({"us_state_bills.json": b"[\xff\xfe]"}, "cannot read as JSON")   # not UTF-8
 
+    def test_every_record_must_be_listed_as_added(self):
+        records = [state(id="state-001"), state(id="state-002", title="Second Act")]
+        self.assert_fails_with(self.with_changelog([
+            {"date": "2026-01-01", "summary": "x", "added": ["state-001"]}], records), "state-002 is never listed as added")
+        code, output = self.run_validator(self.with_changelog([
+            {"date": "2026-02-01", "summary": "y", "added": ["state-002"], "updated": ["state-001"]},
+            {"date": "2026-01-01", "summary": "x", "added": ["state-001"]}], records))
+        self.assertEqual(code, 0, output)
+
     def test_changelog_rejects_unknown_fields(self):
         self.assert_fails_with(self.with_changelog([
             {"date": "2026-01-01", "summary": "x", "updated": ["state-001"], "author": "me"}]), "unexpected field")
