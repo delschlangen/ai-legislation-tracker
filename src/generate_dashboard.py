@@ -8,6 +8,7 @@ from the JSON data files.
 Usage:
     python3 src/generate_dashboard.py              # print to the terminal
     python3 src/generate_dashboard.py report.md    # write to a file
+    python3 src/generate_dashboard.py --today 2026-11-25 report.md   # as of a given date
 """
 
 import argparse
@@ -18,7 +19,13 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# ASCII digits only, as on the site: Python's \d also accepts digits from other scripts.
+DATE_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+
+# Only instruments that are law or policy have dates still to come. A superseded
+# or vetoed law's old effective date will never arrive. The website and
+# scripts/maintenance_report.py use the same rule.
+IN_FORCE_STATUSES = {"enacted", "active", "adopted"}
 
 # One map for every table, so a status never prints with a blank glyph in one
 # place and a symbol in another.
@@ -27,6 +34,7 @@ STATUS_EMOJI = {
     "pending": "⏳",
     "vetoed": "❌", "rescinded": "❌",
     "superseded": "📦", "expired": "⌛",
+    "enjoined": "⚖️",
 }
 
 
@@ -118,8 +126,26 @@ def generate_summary_stats(data: dict) -> dict:
     return stats
 
 
-def upcoming_effective_dates(data: dict, today: str) -> list:
-    """Records whose effective date is still in the future, soonest first."""
+def key_dates(item: dict) -> list:
+    """(date, what happens) for every dated stage of a record."""
+    dates = []
+    # Tolerate a malformed value: the validator reports it, and a report that
+    # crashed instead would hide everything else.
+    milestones = item.get("milestones")
+    for milestone in (milestones if isinstance(milestones, list) else []):
+        if isinstance(milestone, dict) and is_iso_date(milestone.get("date")):
+            dates.append((milestone["date"], str(milestone.get("description") or "")))
+    recorded = {d for d, _ in dates}
+    for field, label in (("effective_date", "Takes effect"), ("full_application_date", "Applies in full")):
+        when = item.get(field)
+        if is_iso_date(when) and when not in recorded:
+            dates.append((when, label))
+            recorded.add(when)
+    return sorted(dates)
+
+
+def upcoming_effective_dates(data: dict, today: str, limit: int = 10) -> list:
+    """(date, jurisdiction, title, what happens) still in the future, soonest first."""
     upcoming = []
     for filename, jurisdiction_of in (
         ("us_federal_actions", lambda i: "US Federal"),
@@ -127,14 +153,19 @@ def upcoming_effective_dates(data: dict, today: str) -> list:
         ("international_frameworks", lambda i: i.get("jurisdiction") or "—"),
     ):
         for item in data.get(filename, []):
-            when = item.get("full_application_date") or item.get("effective_date")
-            if is_iso_date(when) and when > today:
-                upcoming.append((when, jurisdiction_of(item), title_of(item)))
-    return sorted(upcoming)[:10]
+            if status_of(item).lower() not in IN_FORCE_STATUSES:
+                continue
+            for when, what in key_dates(item):
+                if when > today:
+                    upcoming.append((when, jurisdiction_of(item), title_of(item), what))
+    return sorted(upcoming)[:limit]
 
 
-def generate_dashboard(data: dict, stats: dict) -> str:
-    """Generate the markdown dashboard."""
+def generate_dashboard(data: dict, stats: dict, today: str = None) -> str:
+    """Generate the markdown dashboard as of `today` (YYYY-MM-DD; default: the
+    real date). The header and the upcoming dates both use it, so the same day
+    always gives the same report."""
+    today = today or datetime.now().strftime("%Y-%m-%d")
     federal = data.get("us_federal_actions", [])
     states = data.get("us_state_bills", [])
     international = data.get("international_frameworks", [])
@@ -143,7 +174,7 @@ def generate_dashboard(data: dict, stats: dict) -> str:
 
     # Header
     lines.append("# AI Legislation Landscape Dashboard")
-    lines.append(f"\n**Report generated:** {datetime.now().strftime('%Y-%m-%d')}")
+    lines.append(f"\n**Report generated:** {today}")
     lines.append(f"\n**Total Items Tracked:** {stats['total']}")
 
     # Verification date range
@@ -204,11 +235,10 @@ def generate_dashboard(data: dict, stats: dict) -> str:
 
     # Timeline of key dates
     lines.append("\n## Upcoming Effective Dates\n")
-    lines.append("| Date | Jurisdiction | Item |")
-    lines.append("|------|--------------|------|")
-    today = datetime.now().strftime("%Y-%m-%d")
-    for date, jurisdiction, title in upcoming_effective_dates(data, today):
-        lines.append(f"| {date} | {md_cell(jurisdiction)} | {md_cell(title[:50])} |")
+    lines.append("| Date | Jurisdiction | Item | What happens |")
+    lines.append("|------|--------------|------|--------------|")
+    for date, jurisdiction, title, what in upcoming_effective_dates(data, today):
+        lines.append(f"| {date} | {md_cell(jurisdiction)} | {md_cell(title[:50])} | {md_cell(what)} |")
 
     # Footer
     lines.append("\n---")
@@ -220,7 +250,16 @@ def generate_dashboard(data: dict, stats: dict) -> str:
 def main():
     parser = argparse.ArgumentParser(description="Generate a markdown dashboard from data/*.json.")
     parser.add_argument("output", nargs="?", help="write to this file instead of the terminal")
+    parser.add_argument("--today", help="report as of this date (YYYY-MM-DD) instead of the real date; "
+                                        "the tests use it to regenerate the committed example exactly")
     args = parser.parse_args()
+    if args.today is not None:
+        try:
+            datetime.strptime(args.today, "%Y-%m-%d")
+        except ValueError:
+            parser.error("--today must be a YYYY-MM-DD date")
+        if not DATE_RE.match(args.today):
+            parser.error("--today must be a YYYY-MM-DD date")
 
     # The report contains emoji. Without this, a console using a legacy code page
     # (common on Windows) raises UnicodeEncodeError instead of printing.
@@ -240,7 +279,7 @@ def main():
         return 1
 
     stats = generate_summary_stats(data)
-    dashboard = generate_dashboard(data, stats)
+    dashboard = generate_dashboard(data, stats, args.today)
 
     if args.output:
         output_path = Path(args.output)

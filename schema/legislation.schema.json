@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/delschlangen/ai-legislation-tracker/main/schema/legislation.schema.json",
+  "title": "AI Legislation Tracker records",
+  "description": "Schema for the three files in data/. Validate a whole file against #/$defs/federalFile, #/$defs/stateFile or #/$defs/internationalFile, or one record against the matching *Record definition. The root accepts any of the three files. validate.py, which CI runs, checks every record against this schema and then adds rules a schema cannot express: real calendar dates, mutual supersession and amendment links, milestone order, and a phased law's first milestone matching effective_date.",
+  "type": "array",
+  "items": {
+    "anyOf": [
+      { "$ref": "#/$defs/federalRecord" },
+      { "$ref": "#/$defs/stateRecord" },
+      { "$ref": "#/$defs/internationalRecord" }
+    ]
+  },
+  "$defs": {
+    "date": {
+      "description": "A calendar date, zero-padded: 2026-01-05.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "recordId": {
+      "description": "Permanent record id. Never reused or renumbered.",
+      "type": "string",
+      "pattern": "^(fed|state|intl)-[0-9]{3,}$"
+    },
+    "nonEmptyString": {
+      "description": "A string with at least one character that is not white space.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "milestone": {
+      "description": "One phase of a law that applies in stages.",
+      "type": "object",
+      "required": ["date", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "date": { "$ref": "#/$defs/date" },
+        "description": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "record": {
+      "description": "Fields shared by every record. Every field a record may carry is listed here; anything else is rejected, which catches misspelled field names.",
+      "type": "object",
+      "required": ["id", "title", "status", "summary", "key_provisions", "source_url", "tags", "last_verified"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/recordId" },
+        "title": { "$ref": "#/$defs/nonEmptyString" },
+        "type": {
+          "description": "Kind of instrument, for example statute, regulation, executive_order, guidance, framework.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "status": {
+          "enum": ["enacted", "active", "adopted", "pending", "vetoed", "rescinded", "superseded", "expired", "enjoined"]
+        },
+        "state": { "description": "US state, or city for local law. State file only.", "$ref": "#/$defs/nonEmptyString" },
+        "bill_number": { "$ref": "#/$defs/nonEmptyString" },
+        "jurisdiction": { "description": "Country or organisation. International file only.", "$ref": "#/$defs/nonEmptyString" },
+        "issuing_body": { "description": "Agency, office or Congress. Federal file only.", "$ref": "#/$defs/nonEmptyString" },
+
+        "date_issued": { "$ref": "#/$defs/date" },
+        "date_introduced": { "$ref": "#/$defs/date" },
+        "date_enacted": { "$ref": "#/$defs/date" },
+        "date_adopted": { "$ref": "#/$defs/date" },
+        "effective_date": { "description": "When obligations begin. For a law that applies in stages, the first stage, which is also the first milestone.", "$ref": "#/$defs/date" },
+        "full_application_date": { "description": "When the last stage applies.", "$ref": "#/$defs/date" },
+        "date_rescinded": { "$ref": "#/$defs/date" },
+        "date_vetoed": { "$ref": "#/$defs/date" },
+        "date_superseded": { "$ref": "#/$defs/date" },
+        "date_expired": { "$ref": "#/$defs/date" },
+        "date_enjoined": { "$ref": "#/$defs/date" },
+
+        "milestones": {
+          "description": "Phased application dates, oldest first. Requires effective_date, which must equal the first milestone's date.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/milestone" }
+        },
+
+        "superseded_by": { "description": "Must be mirrored by supersedes on the target.", "$ref": "#/$defs/recordId" },
+        "supersedes": { "description": "Must be mirrored by superseded_by on the target.", "$ref": "#/$defs/recordId" },
+        "amends": { "description": "Must be mirrored by amended_by on the target.", "$ref": "#/$defs/recordId" },
+        "amended_by": { "description": "Must be mirrored by amends on the target.", "$ref": "#/$defs/recordId" },
+
+        "veto_reason": { "$ref": "#/$defs/nonEmptyString" },
+        "injunction": { "description": "The court action blocking enforcement: court, case and date.", "$ref": "#/$defs/nonEmptyString" },
+
+        "summary": { "$ref": "#/$defs/nonEmptyString" },
+        "key_provisions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonEmptyString" }
+        },
+        "covered_decisions": { "type": "array", "items": { "$ref": "#/$defs/nonEmptyString" } },
+        "principles": { "type": "array", "items": { "$ref": "#/$defs/nonEmptyString" } },
+        "signatories": { "type": "integer" },
+        "enforcement": { "type": "object" },
+
+        "source_url": {
+          "description": "A specific document, never a bare domain: an http(s) URL with a host, then a path segment or a query string. A fragment does not count, and whitespace, control characters and backslashes are not allowed.",
+          "type": "string",
+          "pattern": "^(?![\\s\\S]*[\\x00-\\x20\\x7f-\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff\\\\])https?://[^/?#]+(/+[^/?#]|/*[?][^#])"
+        },
+        "tags": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^[a-z0-9_]+$" }
+        },
+        "last_verified": {
+          "description": "When the entry was last checked, or needs_verification if never.",
+          "anyOf": [{ "$ref": "#/$defs/date" }, { "const": "needs_verification" }]
+        },
+        "verification": {
+          "description": "How the entry was last checked. Absent means not re-checked since first recorded.",
+          "enum": ["primary", "secondary", "unconfirmed"]
+        }
+      },
+      "dependentRequired": {
+        "milestones": ["effective_date"]
+      },
+      "allOf": [
+        { "if": { "properties": { "status": { "const": "superseded" } }, "required": ["status"] }, "then": { "required": ["superseded_by"] } },
+        { "if": { "properties": { "status": { "const": "vetoed" } }, "required": ["status"] }, "then": { "required": ["veto_reason"] } },
+        { "if": { "properties": { "status": { "const": "enjoined" } }, "required": ["status"] }, "then": { "required": ["injunction"] } },
+        { "if": { "properties": { "last_verified": { "const": "needs_verification" } }, "required": ["last_verified"] }, "then": { "not": { "required": ["verification"] } } }
+      ]
+    },
+    "federalRecord": {
+      "allOf": [
+        { "$ref": "#/$defs/record" },
+        {
+          "required": ["type", "issuing_body", "date_issued"],
+          "properties": { "id": { "pattern": "^fed-[0-9]{3,}$" } }
+        }
+      ]
+    },
+    "stateRecord": {
+      "allOf": [
+        { "$ref": "#/$defs/record" },
+        {
+          "required": ["state", "bill_number"],
+          "properties": { "id": { "pattern": "^state-[0-9]{3,}$" } }
+        }
+      ]
+    },
+    "internationalRecord": {
+      "allOf": [
+        { "$ref": "#/$defs/record" },
+        {
+          "required": ["jurisdiction", "type"],
+          "properties": { "id": { "pattern": "^intl-[0-9]{3,}$" } }
+        }
+      ]
+    },
+    "federalFile": { "type": "array", "items": { "$ref": "#/$defs/federalRecord" } },
+    "stateFile": { "type": "array", "items": { "$ref": "#/$defs/stateRecord" } },
+    "internationalFile": { "type": "array", "items": { "$ref": "#/$defs/internationalRecord" } }
+  }
+}

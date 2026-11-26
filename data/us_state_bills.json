@@ -440,6 +440,16 @@
     "status": "enacted",
     "date_enacted": "2026-06-02",
     "effective_date": "2026-10-01",
+    "milestones": [
+      {
+        "date": "2026-10-01",
+        "description": "First obligations begin"
+      },
+      {
+        "date": "2028-01-01",
+        "description": "Last of the staggered obligations begin"
+      }
+    ],
     "summary": "Enacted as Public Act 26-15, one of the most comprehensive US state AI laws. Covers automated employment decisions, AI companions, frontier model safety, content provenance and online platforms used by minors, with obligations staggered from 2026-10-01 into 2028.",
     "key_provisions": [
       "Written notice before automated tools drive major employment decisions",
@@ -496,6 +506,20 @@
     "status": "enacted",
     "date_enacted": "2024-09-19",
     "effective_date": "2026-08-02",
+    "milestones": [
+      {
+        "date": "2026-08-02",
+        "description": "Generative AI provider disclosure and detection-tool duties begin"
+      },
+      {
+        "date": "2027-01-01",
+        "description": "Large online platform and generative AI hosting platform duties begin"
+      },
+      {
+        "date": "2028-01-01",
+        "description": "Makers of devices that capture images or audio must offer a latent disclosure option"
+      }
+    ],
     "summary": "Requires providers of generative AI systems to mark AI-generated image, video and audio content and to offer a free detection tool. AB 853, signed 2025-10-13, delayed the start from 2026-01-01 to 2026-08-02 and added duties for large online platforms, generative AI hosting platforms and capture-device makers on later dates. A further amending bill, SB 1000, was pending in mid-2026; its outcome was not confirmed.",
     "key_provisions": [
       "Covered generative AI providers must include latent disclosures in AI-generated image, video and audio content",

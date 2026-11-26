@@ -1,0 +1,91 @@
+# Weekly maintenance report.
+#
+# Builds a checklist of what in the dataset needs a human to look at it: stale
+# entries, dates that just passed, README dates in the past, broken source
+# links, and anything official APIs report as newer than the record. It posts
+# the checklist as a single GitHub issue titled "Maintenance report", updating
+# that issue each week instead of opening new ones.
+#
+# What it can and cannot do:
+# - It NEVER edits data or commits. Changing a record stays a human decision.
+# - The "report" job only reads. Only the "publish" job may write, and only to
+#   issues. It runs only on the schedule and when started by hand, never for a
+#   pull request, so a PR can test the report but cannot post anything.
+# - It only ever updates an issue that this workflow's own bot account opened.
+#   An issue someone else opens under the same title is ignored.
+# - It needs no secrets and no setup. Congress.gov is queried with
+#   api.data.gov's public DEMO_KEY; the Federal Register needs no key.
+#
+# GitHub pauses scheduled workflows in a repository with no activity for 60
+# days. If the report stops arriving, re-enable it from the Actions tab.
+name: Maintenance report
+
+on:
+  schedule:
+    - cron: '23 14 * * 1'   # Mondays, 14:23 UTC
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/maintenance.yml'
+
+permissions:
+  contents: read
+
+# Runs that publish wait their turn in one shared group. A pull request gets a
+# group of its own, so a dry run can never displace the weekly report.
+concurrency:
+  group: maintenance-report-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build the report
+        run: >
+          python3 scripts/maintenance_report.py --links --upstream
+          --output report.md --attention-file attention.txt
+
+      - name: Show the report on the run page and in the log
+        run: |
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+          cat report.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: maintenance-report
+          path: |
+            report.md
+            attention.txt
+          retention-days: 30
+
+  publish:
+    needs: report
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: maintenance-report
+
+      # The logic lives in a script so the test suite covers it. The report
+      # reaches gh as a file; nothing here is interpolated into a command.
+      - name: Open or update the "Maintenance report" issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: python3 scripts/publish_report.py report.md attention.txt

@@ -125,7 +125,9 @@ For international:
 | `tags` | Yes | 2-5 relevant topic tags, lowercase with underscores |
 | `last_verified` | Yes | `YYYY-MM-DD` date you checked it, or `needs_verification` |
 | `verification` | No | `primary`, `secondary` or `unconfirmed` — how you checked it |
-| `effective_date` | If enacted | When obligations begin |
+| `effective_date` | If enacted | When obligations begin. For a law that applies in stages, the first stage |
+| `milestones` | If phased | Every stage, oldest first: `[{"date": "2027-01-01", "description": "Platform duties begin"}]`. The first stage's date must equal `effective_date`. Only record a stage you have read a source for |
+| `injunction` / `date_enjoined` | If enjoined | The court, case and date of the order blocking enforcement |
 | `superseded_by` / `supersedes` | If applicable | The id of the related record. Set both sides: the validator fails a one-way link |
 | `amends` / `amended_by` | If applicable | The id of the related record. Also set on both sides |
 
@@ -137,7 +139,7 @@ A few fields are required per file as well:
 | `us_state_bills.json` | `state`, `bill_number` |
 | `international_frameworks.json` | `jurisdiction`, `type` |
 
-A record with status `superseded` must have `superseded_by`, and one with status `vetoed` must have `veto_reason`. Dates must be zero-padded (`2026-01-05`, not `2026-1-5`), and `tags` and `key_provisions` must be lists.
+A record with status `superseded` must have `superseded_by`, one with status `vetoed` must have `veto_reason`, and one with status `enjoined` must have `injunction`. Any field not in [`schema/legislation.schema.json`](schema/legislation.schema.json) is rejected, which catches misspellings such as `efective_date`. Dates must be zero-padded (`2026-01-05`, not `2026-1-5`), and `tags` and `key_provisions` must be lists.
 
 ### Step 4: Valid Status Values
 
@@ -151,6 +153,7 @@ A record with status `superseded` must have `superseded_by`, and one with status
 | `adopted` | International agreements, resolutions |
 | `superseded` | Replaced by a later instrument. Set `superseded_by` to its id |
 | `expired` | Died without being enacted, or lapsed. For example a bill that died at prorogation |
+| `enjoined` | A court has blocked enforcement. Set `injunction` and `date_enjoined` |
 
 ### Step 5: Use Existing Tags When Possible
 
@@ -178,12 +181,19 @@ A record with status `superseded` must have `superseded_by`, and one with status
 
 ## Updating Existing Entries
 
-When legislation status changes (enacted, vetoed, rescinded):
+When legislation status changes (enacted, vetoed, rescinded, enjoined):
 
 1. Update the `status` field
-2. Add relevant date field (`date_enacted`, `date_vetoed`, `date_rescinded`)
-3. If vetoed, add `veto_reason` field with brief explanation
+2. Add relevant date field (`date_enacted`, `date_vetoed`, `date_rescinded`, `date_enjoined`)
+3. If vetoed, add `veto_reason`. If enjoined, add `injunction`
 4. Update `summary` if needed
+5. Add an entry at the top of `data/meta/changelog.json`:
+
+```json
+{"date": "2026-12-01", "summary": "Recorded the veto of Example HB 1.", "updated": ["state-020"]}
+```
+
+Use `added` instead of `updated` for a new record. The site shows the latest entries under "Recently changed".
 
 Example:
 ```json
@@ -204,7 +214,17 @@ Before submitting:
 - [ ] `summary` is factual and neutral (no advocacy)
 - [ ] `key_provisions` has 3-6 items
 - [ ] Tags use existing tags where applicable
+- [ ] An entry at the top of `data/meta/changelog.json` says what you added or changed
 - [ ] Run `python3 validate.py` and fix everything it reports
+- [ ] Run `python3 -m unittest discover -s tests`. It checks the hand-written numbers below against the data and says which one is out of date
+
+If you added a record, or changed a status or a date, these hand-written places must follow. The tests fail until they do:
+
+- [ ] README badges at the top: `Legislation Tracked`, and `Jurisdictions` if the jurisdiction is new
+- [ ] README "Data Currency" line: "N entries across M jurisdictions"
+- [ ] README "At a glance" table
+- [ ] README "Upcoming effective dates" table: one row for each future date, including each milestone, with the Legislation cell linking to the record on the site (copy an existing row). Remove the row if the date changed or the law was superseded
+- [ ] `examples/current_landscape.md`: regenerate it with `python3 src/generate_dashboard.py examples/current_landscape.md`
 
 ---
 
@@ -236,7 +256,7 @@ Before submitting:
 3. Add `supersedes` on the new record pointing back. `validate.py` fails if either side is missing
 4. Rewrite the old summary to say what happened
 
-Colorado `state-001` is the worked example: SB 24-205 was delayed, enforcement-stayed and then repealed before it ever took effect, so it is marked `superseded` and points at `state-011`. Anyone who cited it in 2024 can still resolve that id and see what changed.
+Colorado `state-001` is the worked example: SB 24-205 was delayed, enforcement-stayed and then repealed before it ever took effect, so it is marked `superseded` and points at `state-011`. Anyone who cited it before the repeal can still resolve that id and see what changed.
 
 ---
 
@@ -256,7 +276,8 @@ python3 src/generate_dashboard.py
 # Check tag assignment
 python3 src/query_legislation.py --list-tags
 
-# Only if you changed code in src/ or validate.py
+# Run this after any change to data/, schema/ or code. It also checks the
+# README's counts and its upcoming-dates table against the data.
 python3 -m unittest discover -s tests
 ```
 
@@ -274,7 +295,7 @@ Your entry appears on the site as soon as the change is on `main`.
 1. Fork the repository
 2. Create a branch: `git checkout -b add-virginia-hb1234`
 3. Make your changes
-4. Run `python3 validate.py` and fix anything it reports
+4. Run `python3 validate.py` and `python3 -m unittest discover -s tests`, and fix anything they report
 5. Commit: `git commit -m "Add Virginia HB 1234: AI Transparency Requirements"`
 6. Push and open a Pull Request
 

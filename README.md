@@ -51,9 +51,9 @@ This repo provides:
 
 > **Last full review: September 2026. 47 entries across 22 jurisdictions.**
 >
-> A targeted update on 2026-11-24 added three entries and corrected one. Every other entry was last checked in September 2026 or earlier.
+> A targeted update on 2026-11-24 added three entries and corrected one. Each entry's own `last_verified` date says when it was last checked; the site shows the range, and the weekly report lists any entry not checked in six months.
 
-Each entry carries its own `last_verified` date and a `verification` field saying how it was checked:
+Each entry carries its own `last_verified` date and may carry a `verification` field saying how it was checked:
 
 | `verification` | Meaning |
 |:---|:---|
@@ -69,6 +69,9 @@ Each entry carries its own `last_verified` date and a `verification` field sayin
 | [CITATION.md](CITATION.md) | How to cite this dataset |
 | [MAINTENANCE.md](MAINTENANCE.md) | Review cadence, verification method, status vocabulary |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to add or correct an entry |
+| [Change log](data/meta/changelog.json) | What was added or corrected, and when |
+
+**The dataset checks itself every week.** A scheduled job opens a GitHub issue titled "Maintenance report" listing stale entries, dates that just passed, broken source links, and anything the Federal Register or Congress.gov report as newer than the record. It needs no API keys or setup, and it never edits the data: every change is still made, and verified, by a person. See [MAINTENANCE.md](MAINTENANCE.md#automated-maintenance-report).
 
 ---
 
@@ -80,7 +83,7 @@ This project is built around two things those cannot offer:
 
 **1. The data is yours.** MIT licensed, plain JSON, fetchable from a stable URL. Load it into a notebook, a spreadsheet, a compliance tool or a retrieval index without asking anyone.
 
-**2. Records have a history.** Ids are permanent. `state-001` means Colorado SB 24-205 forever, including now that it has been repealed — the record stays, its status becomes `superseded`, and `superseded_by` points at the statute that replaced it. A citation written in 2024 still resolves, and tells you what changed underneath it. Every change is a git commit with a source link.
+**2. Records have a history.** Ids are permanent. `state-001` means Colorado SB 24-205 forever, including now that it has been repealed — the record stays, its status becomes `superseded`, and `superseded_by` points at the statute that replaced it. A citation written before the repeal still resolves, and tells you what changed underneath it. Every change is a git commit with a source link.
 
 This dataset deliberately tracks **notable frameworks and instruments with operative legal effect**, not every introduced bill. Depth and accuracy over volume.
 
@@ -90,12 +93,14 @@ This dataset deliberately tracks **notable frameworks and instruments with opera
 
 ### At a glance
 
-| Category | Total | In force / active | Pending | Superseded, expired, vetoed or rescinded |
-|:---------|:-----:|:-----------------:|:-------:|:----------------------------------------:|
+| Category | Total | Enacted, active or adopted | Pending | Superseded, expired, vetoed, rescinded or enjoined |
+|:---------|:-----:|:--------------------------:|:-------:|:--------------------------------------------------:|
 | US Federal | 13 | 11 | — | 2 |
 | US State | 19 | 17 | — | 2 |
 | International | 15 | 12 | 2 | 1 |
 | **Total** | **47** | **40** | **2** | **5** |
+
+Enacted does not always mean in force yet: some enacted laws have an effective date still to come. For what applies today, use the "In force today" filter on the [live site](https://delschlangen.github.io/ai-legislation-tracker/) or `python3 src/query_legislation.py --in-force`.
 
 ### Key legislation you should know
 
@@ -105,7 +110,7 @@ This dataset deliberately tracks **notable frameworks and instruments with opera
 | **Colorado SB 26-189** | CO | Enacted | Replaced the repealed Colorado AI Act with a narrower transparency regime. Effective Jan 2027. |
 | **California SB 53** | CA | Enacted | First US state frontier AI safety law. In force since Jan 2026. |
 | **Texas HB 149 (TRAIGA)** | TX | Enacted | Third state comprehensive AI law, built on intent rather than risk tiers. |
-| **Connecticut CART Act** | CT | Enacted | Broadest US state AI law to date. First obligations were scheduled for Oct 2026. |
+| **Connecticut CART Act** | CT | Enacted | One of the most comprehensive US state AI laws. First obligations were scheduled for Oct 2026. |
 | **TAKE IT DOWN Act** | US Federal | Enacted | First federal statute placing AI duties on private platforms. |
 | **South Korea AI Framework Act** | KR | Enacted | World's second comprehensive national AI statute. In force since Jan 2026. |
 
@@ -113,14 +118,18 @@ This dataset deliberately tracks **notable frameworks and instruments with opera
 
 | Date | Jurisdiction | Legislation | What happens |
 |:-----|:-------------|:------------|:-------------|
-| **2027-01-01** | Colorado | SB 26-189 | Replacement AI law takes effect |
-| **2027-01-01** | New York | RAISE Act | Frontier model safety duties begin |
-| **2027-01-01** | Illinois | SB 315 | Frontier AI safety duties and third-party audits begin |
-| **2027-01-01** | California | AI Transparency Act | Large online platform and hosting platform duties begin |
-| **2027-12-02** | European Union | EU AI Act | Annex III stand-alone high-risk obligations apply |
-| **2028-08-02** | European Union | EU AI Act | Annex I embedded high-risk obligations apply |
+| **2026-12-02** | European Union | [EU AI Act](https://delschlangen.github.io/ai-legislation-tracker/#intl-001) | Prohibitions on non-consensual intimate imagery and CSAM-generating systems apply |
+| **2027-01-01** | Colorado | [SB 26-189](https://delschlangen.github.io/ai-legislation-tracker/#state-011) | Replacement AI law takes effect |
+| **2027-01-01** | New York | [RAISE Act](https://delschlangen.github.io/ai-legislation-tracker/#state-016) | Frontier model safety duties begin |
+| **2027-01-01** | Illinois | [SB 315](https://delschlangen.github.io/ai-legislation-tracker/#state-018) | Frontier AI safety duties and third-party audits begin |
+| **2027-01-01** | California | [AI Transparency Act](https://delschlangen.github.io/ai-legislation-tracker/#state-019) | Large online platform and hosting platform duties begin |
+| **2027-08-02** | European Union | [EU AI Act](https://delschlangen.github.io/ai-legislation-tracker/#intl-001) | National regulatory sandboxes due |
+| **2027-12-02** | European Union | [EU AI Act](https://delschlangen.github.io/ai-legislation-tracker/#intl-001) | Annex III stand-alone high-risk obligations apply |
+| **2028-01-01** | California | [AI Transparency Act](https://delschlangen.github.io/ai-legislation-tracker/#state-019) | Capture-device makers must offer a latent disclosure option |
+| **2028-01-01** | Connecticut | [CART Act](https://delschlangen.github.io/ai-legislation-tracker/#state-017) | Last of the staggered obligations begin |
+| **2028-08-02** | European Union | [EU AI Act](https://delschlangen.github.io/ai-legislation-tracker/#intl-001) | Annex I embedded high-risk obligations apply |
 
-Run `python3 src/generate_dashboard.py` for the current version of this table, generated from the data.
+This table is the one list of dates kept by hand, so two things guard it. Each row links to its record, and the tests fail if a row names a date that record does not have, or if the data has a future date with no row here. The weekly maintenance report flags a row once its date has passed. The [live site](https://delschlangen.github.io/ai-legislation-tracker/) computes the next six dates from the data on every visit, and `python3 src/generate_dashboard.py` prints the next ten.
 
 ---
 
@@ -138,6 +147,7 @@ python3 src/query_legislation.py --tag employment
 python3 src/query_legislation.py --status superseded
 python3 src/query_legislation.py --jurisdiction Colorado
 python3 src/query_legislation.py --search "frontier"
+python3 src/query_legislation.py --in-force --jurisdiction California
 python3 src/query_legislation.py --list-tags
 
 # Check the data is well formed
@@ -148,6 +158,9 @@ python3 -m unittest discover -s tests
 
 # Export everything to one CSV for a spreadsheet
 python3 src/export_csv.py
+
+# The weekly maintenance report, offline parts only
+python3 scripts/maintenance_report.py
 ```
 
 **Requirements:** Python 3.7+. No external dependencies.
@@ -177,6 +190,20 @@ for law in state:
 
 Prefer a spreadsheet? `python3 src/export_csv.py` flattens all three files into one CSV. It is generated on demand rather than committed, so there is never a stale second copy of the data in the repository.
 
+Validating your own copy or a fork? [`schema/legislation.schema.json`](schema/legislation.schema.json) is a JSON Schema (draft 2020-12) for all three files. Use `#/$defs/federalFile`, `#/$defs/stateFile` or `#/$defs/internationalFile` for one file. It lists every field a record may carry, so a misspelled field fails validation. `validate.py` checks every record against this schema, so nothing the schema rejects can pass it. It then adds rules a schema cannot express: real calendar dates, mutual supersession and amendment links, milestones in date order, and a phased law's first milestone matching `effective_date`.
+
+### Using the site
+
+The [live site](https://delschlangen.github.io/ai-legislation-tracker/) needs no install. Beyond search and filters:
+
+- **Coming up** lists the next effective dates and phased obligations, computed from the data each time the page loads.
+- **Recently changed** shows the latest entries in the change log.
+- **In force today** narrows the list to laws and policies that apply now. A law that is enacted but not yet effective is marked "Not yet in force".
+- **Sort by** effective date, jurisdiction, name or status.
+- **Every view is a link.** Filters and sort order live in the address bar, so a copied URL reproduces what you see. Adding `#state-001` opens that record.
+- **Each record** lists every date it carries, from introduction to each stage of a phased law, with a countdown for those still to come. A stage is stated as fact only where the status supports it: for a bill that is pending or was vetoed, or a law that was blocked, repealed or replaced first, the date is shown as the date in the text, with no countdown. Each record also shows the full line of succession and any amendments, with links to each.
+- **Back returns from a record you followed a link to.** Following a link to a record, from Coming up, Recently changed or another record, adds a step to the browser's history. Back returns to the view you left, with keyboard focus on the link you used. Filters, sorting, search and opening a row by clicking it update the address in place and add no step, so Back does not undo them.
+
 ### Record schema
 
 ```json
@@ -201,16 +228,20 @@ Prefer a spreadsheet? `python3 src/export_csv.py` flattens all three files into 
 |:------|:--------:|:------|
 | `id` | Yes | Permanent. Never reused or renumbered. `fed-`, `state-` or `intl-` plus digits |
 | `title` | Yes | Official name |
-| `status` | Yes | `enacted`, `active`, `adopted`, `pending`, `vetoed`, `rescinded`, `superseded`, `expired` |
+| `status` | Yes | `enacted`, `active`, `adopted`, `pending`, `vetoed`, `rescinded`, `superseded`, `expired`, `enjoined` |
 | `summary` | Yes | One to three sentences |
 | `key_provisions` | Yes | Array of the main obligations |
 | `source_url` | Yes | A specific document, never a bare agency homepage |
 | `tags` | Yes | Lowercase with underscores |
 | `last_verified` | Yes | `YYYY-MM-DD`, or `needs_verification` |
 | `verification` | No | `primary`, `secondary` or `unconfirmed` |
-| `effective_date` | If enacted | When obligations begin |
+| `effective_date` | If enacted | When obligations begin. For a phased law, the first stage |
+| `milestones` | No | Phased dates, oldest first: a list of `{"date", "description"}` |
+| `injunction` | If enjoined | The court action blocking enforcement: court, case and date |
 | `superseded_by` / `supersedes` | If applicable | The id of the related record. Recorded on both sides |
 | `amends` / `amended_by` | If applicable | The id of the related record. Recorded on both sides |
+
+The full vocabulary, including per-file fields such as `state`, `bill_number`, `jurisdiction` and `issuing_body`, is in [`schema/legislation.schema.json`](schema/legislation.schema.json).
 
 ---
 
@@ -221,7 +252,9 @@ ai-legislation-tracker/
 ├── data/                            # The dataset — the single source of truth
 │   ├── us_federal_actions.json
 │   ├── us_state_bills.json
-│   └── international_frameworks.json
+│   ├── international_frameworks.json
+│   └── meta/changelog.json          # What changed and when; shown on the site
+├── schema/legislation.schema.json   # JSON Schema for the three data files
 ├── docs/                            # GitHub Pages site; reads data/ at runtime
 │   ├── index.html
 │   ├── app.js
@@ -230,9 +263,17 @@ ai-legislation-tracker/
 │   ├── generate_dashboard.py        # Markdown summary report
 │   ├── query_legislation.py         # CLI filtering and search
 │   └── export_csv.py                # Flatten the dataset to CSV on demand
+├── scripts/                         # Weekly maintenance report (read-only)
+│   ├── maintenance_report.py        # Stale entries, passed dates, README dates
+│   ├── link_check.py                # Do the source links still answer?
+│   ├── upstream_check.py            # Federal Register and Congress.gov, no keys
+│   ├── timebox.py                   # A time limit on each network check
+│   └── publish_report.py            # Posts the report as one GitHub issue
 ├── .github/
 │   ├── ISSUE_TEMPLATE/              # Forms for reporting or suggesting entries
-│   └── workflows/validate.yml       # Read-only data check and tests on pull requests
+│   └── workflows/
+│       ├── validate.yml             # Read-only data check and tests on every pull request
+│       └── maintenance.yml          # Weekly report, posted as a GitHub issue
 ├── examples/current_landscape.md    # Sample generated dashboard
 ├── tests/                           # Standard-library unittest suite (run by CI)
 ├── validate.py                      # Data validator (read-only)
@@ -264,8 +305,10 @@ If you would rather edit the data directly, see [CONTRIBUTING.md](CONTRIBUTING.m
 - [x] ~~Read-only validation on pull requests~~
 - [x] ~~Issue forms for non-technical contributors~~
 - [x] ~~CSV export for spreadsheet users~~
+- [x] ~~Publish a JSON Schema file~~
+- [x] ~~Weekly automated report: stale entries, broken links, upstream changes~~
+- [x] ~~Phased dates, an `enjoined` status, and a change log~~
 - [ ] Re-verify every entry against primary sources and move `verification` to `primary`
-- [ ] Publish a JSON Schema file
 - [ ] Broaden state coverage, prioritising laws with operative obligations
 
 ---

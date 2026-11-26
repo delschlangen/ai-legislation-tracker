@@ -11,6 +11,7 @@ Usage:
     python3 src/query_legislation.py --jurisdiction federal
     python3 src/query_legislation.py --search "frontier"
     python3 src/query_legislation.py --search "SB 24-205"
+    python3 src/query_legislation.py --in-force --jurisdiction California
     python3 src/query_legislation.py --list-tags
 
 Filters combine: each one narrows the results of the one before it.
@@ -18,7 +19,9 @@ Filters combine: each one narrows the results of the one before it.
 
 import argparse
 import json
+import re
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Dict, List
 
@@ -27,7 +30,13 @@ STATUS_EMOJI = {
     "pending": "⏳",
     "vetoed": "❌", "rescinded": "❌",
     "superseded": "📦", "expired": "⌛",
+    "enjoined": "⚖️",
 }
+
+# Statuses that mean the instrument is law or policy now, if its date has come.
+IN_FORCE_STATUSES = {"enacted", "active", "adopted"}
+# ASCII digits only, as on the site: Python's \d also accepts digits from other scripts.
+DATE_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 
 # Federal records carry issuing_body but no jurisdiction or state, so the file
 # they came from is what says they are federal.
@@ -61,6 +70,19 @@ def jurisdiction_names(item: Dict) -> List[str]:
     return [str(n) for n in names if n]
 
 
+def is_in_force(item: Dict, today: str) -> bool:
+    """In force today: an in-force status, and no effective date still to come.
+    The website uses the same rule."""
+    if str(item.get("status", "")).lower() not in IN_FORCE_STATUSES:
+        return False
+    effective = item.get("effective_date")
+    return not (isinstance(effective, str) and DATE_RE.match(effective) and effective > today)
+
+
+def filter_in_force(items: List[Dict], today: str) -> List[Dict]:
+    return [i for i in items if is_in_force(i, today)]
+
+
 def filter_by_tag(items: List[Dict], tag: str) -> List[Dict]:
     """Filter items by tag."""
     wanted = tag.lower()
@@ -81,25 +103,44 @@ def filter_by_jurisdiction(items: List[Dict], jurisdiction: str) -> List[Dict]:
     ]
 
 
+# The single-value fields a search looks through, in the order they are joined.
+# The order matters: a query such as "Colorado SB 24-205" spans two fields and
+# matches only when they sit next to each other. matchesFilters in docs/app.js
+# joins the same fields in the same order, and tests/test_scripts.py compares
+# the two lists, so the site and this tool return the same records.
+SEARCH_FIELDS = ("title", "name", "summary", "state", "jurisdiction", "issuing_body",
+                 "bill_number", "id", "type", "verification", "injunction")
+
+
+def searchable_text(item: Dict) -> str:
+    """Everything a search looks through, lower-cased and joined by spaces.
+
+    This is the website's search plus one field at the very end, last_verified,
+    so that `--search needs_verification` finds unchecked entries. Tags and
+    types are searchable as written ("frontier_ai") and as displayed
+    ("frontier ai")."""
+    values = dict(item)
+    # The site gives every record a jurisdiction: its own, else its state, else
+    # "US Federal" for federal records, which carry only an issuing body.
+    values["jurisdiction"] = (item.get("jurisdiction") or item.get("state")
+                              or ("US Federal" if item.get("_source") == FEDERAL_SOURCE else ""))
+    tags = [str(t) for t in as_list(item.get("tags"))]
+    kind = [str(item["type"])] if item.get("type") else []
+    parts = (
+        [values.get(field) for field in SEARCH_FIELDS]
+        + as_list(item.get("key_provisions"))
+        + tags
+        + [t.replace("_", " ") for t in tags + kind]
+        + [m.get("description") for m in as_list(item.get("milestones")) if isinstance(m, dict)]
+        + [item.get("last_verified")]
+    )
+    return " ".join(str(part) for part in parts if part).lower()
+
+
 def search_text(items: List[Dict], query: str) -> List[Dict]:
-    """Full-text search. Covers the same fields as the website's search box."""
-    results = []
-    query = query.lower()
-
-    for item in items:
-        searchable = " ".join(
-            [str(item.get(field, "")) for field in (
-                "id", "title", "name", "summary", "bill_number", "type",
-                "state", "jurisdiction", "issuing_body",
-                "verification", "last_verified")]
-            + [str(p) for p in as_list(item.get("key_provisions"))]
-            + [str(t) for t in as_list(item.get("tags"))]
-        ).lower()
-
-        if query in searchable:
-            results.append(item)
-
-    return results
+    """Full-text search over the fields listed in searchable_text."""
+    query = query.lower().strip()
+    return [item for item in items if query in searchable_text(item)]
 
 
 def get_all_tags(items: List[Dict]) -> Dict[str, int]:
@@ -135,12 +176,23 @@ def format_item(item: Dict) -> str:
         lines.append(f"📁 Type: {item['type']}")
 
     for field, label in (
-        ("date_issued", "Issued"), ("date_enacted", "Enacted"), ("date_adopted", "Adopted"),
-        ("effective_date", "Effective"), ("date_vetoed", "Vetoed"),
-        ("date_rescinded", "Rescinded"), ("date_superseded", "Superseded"),
+        ("date_introduced", "Introduced"), ("date_issued", "Issued"), ("date_adopted", "Adopted"),
+        ("date_enacted", "Enacted"), ("effective_date", "Effective"),
+        ("full_application_date", "Applies in full"), ("date_vetoed", "Vetoed"),
+        ("date_enjoined", "Enjoined"), ("date_rescinded", "Rescinded"),
+        ("date_superseded", "Superseded"), ("date_expired", "Expired"),
     ):
         if item.get(field):
             lines.append(f"📅 {label}: {item[field]}")
+
+    milestones = [m for m in as_list(item.get("milestones")) if isinstance(m, dict)]
+    if milestones:
+        lines.append("🗓️  Key dates:")
+        for milestone in milestones:
+            lines.append(f"   {milestone.get('date', '?')}  {milestone.get('description', '')}")
+
+    if item.get("injunction"):
+        lines.append(f"⚖️  Injunction: {item['injunction']}")
 
     for field, label in (
         ("superseded_by", "Superseded by"), ("supersedes", "Replaces"),
@@ -180,14 +232,17 @@ def main():
     parser.add_argument("--tag", "-t", help="Filter by tag (see --list-tags)")
     parser.add_argument(
         "--status", "-s",
-        help="Filter by status: enacted, active, adopted, pending, vetoed, rescinded, superseded, expired")
+        help="Filter by status: enacted, active, adopted, pending, vetoed, rescinded, superseded, expired, enjoined")
+    parser.add_argument(
+        "--in-force", action="store_true",
+        help="Only records in force today: enacted, active or adopted, with no effective date still to come")
     parser.add_argument(
         "--jurisdiction", "-j",
         help="Filter by state, country, issuing body, or 'federal'. Matches part of a name.")
     parser.add_argument(
         "--search", "-q",
-        help="Full-text search across title, summary, provisions, tags, id, bill number, "
-             "jurisdiction and verification (try 'secondary' or 'needs_verification')")
+        help="Full-text search across title, summary, provisions, key dates, tags, id, bill number, "
+             "jurisdiction and verification (try 'us federal', 'secondary' or 'needs_verification')")
     parser.add_argument("--list-tags", action="store_true", help="List all tags with counts")
     parser.add_argument("--count", action="store_true", help="Show only count, not details")
 
@@ -230,6 +285,10 @@ def main():
     if args.search:
         results = search_text(results, args.search)
         print(f"Search for '{args.search}': {len(results)} results")
+
+    if args.in_force:
+        results = filter_in_force(results, date.today().isoformat())
+        print(f"In force today: {len(results)} results")
 
     if args.count:
         print(f"\nTotal matching items: {len(results)}")

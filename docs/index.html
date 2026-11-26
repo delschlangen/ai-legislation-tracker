@@ -88,7 +88,7 @@
           </div>
         </div>
 
-        <div class="filter-group">
+        <div class="filter-group filter-group--wide">
           <span class="filter-label" id="status-label">Status</span>
           <div class="filter-buttons" id="status-filters" role="group" aria-labelledby="status-label">
             <button type="button" class="filter-btn active" data-filter="all" aria-pressed="true">All</button>
@@ -100,6 +100,15 @@
             <button type="button" class="filter-btn" data-filter="rescinded" aria-pressed="false">Rescinded</button>
             <button type="button" class="filter-btn" data-filter="superseded" aria-pressed="false">Superseded</button>
             <button type="button" class="filter-btn" data-filter="expired" aria-pressed="false">Expired</button>
+            <button type="button" class="filter-btn" data-filter="enjoined" aria-pressed="false" hidden>Enjoined</button>
+          </div>
+        </div>
+
+        <div class="filter-group filter-group--compact">
+          <span class="filter-label" id="show-label">Show</span>
+          <div class="toggle-buttons" role="group" aria-labelledby="show-label">
+            <button type="button" class="filter-btn" id="in-force-toggle" aria-pressed="false"
+                    title="Enacted, active or adopted, with no effective date still to come">In force today</button>
           </div>
         </div>
 
@@ -111,8 +120,31 @@
         </div>
       </div>
 
-      <div class="results-count" id="results-count" role="status" aria-live="polite" aria-atomic="true">
-        Showing <span id="visible-count">—</span> of <span id="total-count">—</span> items
+      <div class="results-bar">
+        <div class="results-count" id="results-count" role="status" aria-live="polite" aria-atomic="true">
+          Showing <span id="visible-count">—</span> of <span id="total-count">—</span> items
+        </div>
+        <label class="sort-control">
+          <span>Sort by</span>
+          <select id="sort-select" class="sort-select"></select>
+        </label>
+      </div>
+    </section>
+
+    <!-- Computed from the data on every page load, so these never go stale -->
+    <section class="overview-section" aria-label="Dates and changes">
+      <div class="overview-card">
+        <h2 class="overview-title">Coming up</h2>
+        <p class="overview-hint">Upcoming effective dates and phased obligations, computed from the data.</p>
+        <ol class="timeline" id="upcoming-list">
+          <li class="overview-empty">Loading…</li>
+        </ol>
+      </div>
+      <div class="overview-card" id="changes-card" hidden>
+        <h2 class="overview-title">Recently changed</h2>
+        <p class="overview-hint">What was added or corrected, and when.
+          <a href="https://github.com/delschlangen/ai-legislation-tracker/blob/main/data/meta/changelog.json" target="_blank" rel="noopener">Full change log</a></p>
+        <ol class="change-list" id="changes-list"></ol>
       </div>
     </section>
 

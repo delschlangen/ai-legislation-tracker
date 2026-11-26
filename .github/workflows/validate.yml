@@ -8,25 +8,16 @@
 # The tests run the command-line tools against the real data, so a record that
 # passes validation but would crash a tool, or a committed file that has drifted
 # from the data it was generated from, fails here instead of after merge.
+#
+# It runs on every pull request and every push to main, whatever changed. The
+# tests also read the README, the docs and both workflow files, and a check
+# that only runs for some changes cannot be made a required check.
 name: Validate data
 
 on:
   pull_request:
-    paths:
-      - 'data/**'
-      - 'src/**'
-      - 'tests/**'
-      - 'validate.py'
-      - 'README.md'
-      - 'examples/**'
-      - '.github/workflows/validate.yml'
   push:
     branches: [main]
-    paths:
-      - 'data/**'
-      - 'src/**'
-      - 'tests/**'
-      - 'validate.py'
   workflow_dispatch:
 
 permissions:

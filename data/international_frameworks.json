@@ -6,6 +6,40 @@
     "status": "enacted",
     "date_adopted": "2024-03-13",
     "full_application_date": "2028-08-02",
+    "milestones": [
+      {
+        "date": "2024-08-01",
+        "description": "Regulation enters into force"
+      },
+      {
+        "date": "2025-02-02",
+        "description": "Prohibited practices and AI literacy duties apply"
+      },
+      {
+        "date": "2025-08-02",
+        "description": "General-purpose AI model obligations apply"
+      },
+      {
+        "date": "2026-08-02",
+        "description": "Article 50 transparency obligations apply"
+      },
+      {
+        "date": "2026-12-02",
+        "description": "Prohibitions on non-consensual intimate imagery and CSAM-generating systems apply, added by Regulation (EU) 2026/1744"
+      },
+      {
+        "date": "2027-08-02",
+        "description": "National regulatory sandboxes due, moved by Regulation (EU) 2026/1744"
+      },
+      {
+        "date": "2027-12-02",
+        "description": "Annex III stand-alone high-risk obligations apply, deferred by Regulation (EU) 2026/1744"
+      },
+      {
+        "date": "2028-08-02",
+        "description": "Annex I high-risk obligations for regulated products apply, deferred by Regulation (EU) 2026/1744"
+      }
+    ],
     "summary": "First comprehensive horizontal AI regulation. Risk-based framework with prohibited practices, high-risk system duties, general-purpose AI model obligations and transparency rules. Amended by Regulation (EU) 2026/1744 (the Digital Omnibus on AI), which deferred the high-risk obligations.",
     "key_provisions": [
       "Prohibited practices and AI literacy duties applicable since 2025-02-02",
@@ -348,7 +382,6 @@
     "type": "treaty",
     "status": "pending",
     "date_adopted": "2024-05-17",
-    "date_introduced": "2024-09-05",
     "summary": "The first binding international treaty on AI, opened for signature on 2024-09-05. Signatories include the European Union, the United Kingdom and the United States. Not yet in force as of September 2026, pending the required ratifications.",
     "key_provisions": [
       "Binding obligations to protect human rights, democracy and the rule of law in the AI lifecycle",
