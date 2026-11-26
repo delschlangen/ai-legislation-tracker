@@ -10,19 +10,23 @@ library only. Run by the weekly maintenance workflow, or by hand:
 Outcomes:
 - ok:          the page answered
 - moved:       it answered, but only after redirecting to a different site
-- broken:      404 or 410 to a full request, or the host does not exist, on two
-               tries. Needs a new link
+- broken:      404 or 410 to a full request, or two tries that both say the
+               host does not exist. Needs a new link
 - blocked:     the site refused an automated request (401, 403, 429, 451, 503).
                Common for government sites; open the link in a browser to check
 - unreachable: a timeout, a connection or DNS fault, or a garbled response,
-               after one retry
+               after one retry; or a site that was still answering when the
+               time allowed for one link ran out
 
 Only "broken" counts as an action item. "blocked" and "unreachable" are often
 the site's bot protection or a passing outage, so they are listed separately
 rather than reported as failures.
 
-Nothing a server sends can stop the run: every failure for one link becomes
-that link's outcome, and the other links are still checked.
+Nothing a server sends can stop the run. Every failure for one link becomes
+that link's outcome, and the other links are still checked. That includes a
+server that never finishes: the network timeout only limits each wait on the
+socket, so each link also has a limit on the whole of its check, and the run
+has a limit on all of them (see timebox.py).
 """
 
 import json
@@ -31,9 +35,10 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from urllib.parse import urlsplit
+
+import timebox
 
 ROOT = Path(__file__).resolve().parent.parent
 FILES = ("us_federal_actions", "us_state_bills", "international_frameworks")
@@ -49,6 +54,19 @@ RETRY_WITH_GET = {400, 403, 404, 405, 410, 501}
 # Resolver answers that mean the host really does not exist. Any other
 # resolver error ("try again", "server failure") is treated as temporary.
 PERMANENT_DNS_ERRORS = {socket.EAI_NONAME, getattr(socket, "EAI_NODATA", socket.EAI_NONAME)}
+HOST_NOT_FOUND = "host not found"
+
+# The longest all the links together may take before no further link is
+# started. A report with some links unchecked is worth more than no report:
+# the weekly job allows 15 minutes for everything, and tests/test_publish.py
+# checks that this, the upstream budget and their deadlines fit inside it.
+RUN_BUDGET_SECONDS = 300
+
+
+def link_deadline(timeout, pause):
+    """How long one link may take in all. Two tries that each time out fit
+    inside it, so the ordinary outcomes are still reported in their own words."""
+    return max(30.0, 3 * timeout + pause)
 
 
 def _request(url, method, timeout, opener):
@@ -67,9 +85,14 @@ def check_url(url, timeout=20, opener=urllib.request.urlopen, retries=1, pause=2
 
     A definite answer (the page, a 404 to a GET, a refusal) is returned at once.
     Anything that could be a passing fault is tried again first, and the last
-    attempt's outcome is what is reported. No exception leaves this function."""
+    attempt's outcome is what is reported. The exception is "host not found":
+    one such answer proves little, so the link is broken only if every try
+    said so. No exception leaves this function."""
     result = {"url": url, "outcome": "unreachable", "status": None, "final_url": None, "detail": ""}
-    for attempt in range(retries + 1):
+    tries = retries + 1
+    not_found = 0        # how many tries were told the host does not exist
+    other_detail = ""    # what the latest try that failed some other way said
+    for attempt in range(tries):
         result.update(status=None, final_url=None)
         try:
             try:
@@ -96,8 +119,9 @@ def check_url(url, timeout=20, opener=urllib.request.urlopen, retries=1, pause=2
             reason = exc.reason
             if isinstance(reason, socket.gaierror):
                 if reason.errno in PERMANENT_DNS_ERRORS:
-                    # Reported as broken only if the retry gets the same answer.
-                    result.update(outcome="broken", detail="host not found")
+                    # Broken only if every try gets this answer; settled below.
+                    result.update(outcome="broken", detail=HOST_NOT_FOUND)
+                    not_found += 1
                 else:
                     result.update(outcome="unreachable",
                                   detail=f"DNS lookup failed ({reason.strerror or reason})")
@@ -117,27 +141,57 @@ def check_url(url, timeout=20, opener=urllib.request.urlopen, retries=1, pause=2
             detail = str(exc).strip()
             result.update(outcome="unreachable",
                           detail=f"{type(exc).__name__}: {detail}" if detail else type(exc).__name__)
+        if result["detail"] != HOST_NOT_FOUND:
+            other_detail = result["detail"]
         if attempt < retries:
             time.sleep(pause)
+    if 0 < not_found < tries:
+        # The tries disagreed, so this is a fault to look at, not a dead link.
+        result.update(outcome="unreachable", status=None,
+                      detail=f"{HOST_NOT_FOUND} on {not_found} of {tries} tries, so not counted as broken "
+                             f"(the other result: {other_detail})")
     return result
 
 
-def check_all(records, timeout=20, workers=8, opener=urllib.request.urlopen, pause=2.0):
+def unreachable(url, detail):
+    return {"url": url, "outcome": "unreachable", "status": None, "final_url": None, "detail": detail}
+
+
+def check_all(records, timeout=20, workers=8, opener=urllib.request.urlopen, pause=2.0,
+              deadline=None, budget=RUN_BUDGET_SECONDS):
     """Check each distinct source_url once. Returns a list of results, each with
-    the ids of the records that cite it."""
+    the ids of the records that cite it.
+
+    deadline: seconds one link may take in all (default: link_deadline()).
+    budget:   seconds all of them may take; links not started by then are
+              reported as not checked."""
     by_url = {}
     for record in records:
         url = record.get("source_url")
         if isinstance(url, str) and url:
             by_url.setdefault(url, []).append(record.get("id"))
+    if deadline is None:
+        deadline = link_deadline(timeout, pause)
 
-    def run(url):
-        result = check_url(url, timeout=timeout, opener=opener, pause=pause)
+    outcomes = timebox.run_all(
+        lambda url: check_url(url, timeout=timeout, opener=opener, pause=pause),
+        sorted(by_url), seconds=deadline, workers=workers, budget=budget)
+
+    results = []
+    for url in sorted(by_url):
+        state, value = outcomes[url]
+        if state == timebox.DONE:
+            result = value
+        elif state == timebox.GAVE_UP:
+            result = unreachable(url, f"no complete answer within {deadline:g} seconds")
+        elif state == timebox.OUT_OF_TIME:
+            result = unreachable(url, "not checked: this run had used up its time on other links")
+        else:
+            detail = str(value).strip()
+            result = unreachable(url, f"{type(value).__name__}: {detail}" if detail else type(value).__name__)
         result["ids"] = by_url[url]
-        return result
-
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        return list(pool.map(run, sorted(by_url)))
+        results.append(result)
+    return results
 
 
 def render_markdown(results):

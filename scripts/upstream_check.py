@@ -23,6 +23,10 @@ Sources, matched from each record's source_url (and bill_number for states):
   the report says so and checks again next week. Reports public-law status
   and any action newer than the record's last check.
 
+Every record's check has a time limit on the whole of it, and the run has a
+limit on all of them (see timebox.py), so a server that never finishes
+answering costs that record its check, not the week's report.
+
 Nothing here needs an API key or any setup. State bills are not checked:
 every free source of state bill data needs a personal key, and the state
 legislature sites refuse automated requests. State records are still covered
@@ -38,12 +42,13 @@ import http.client
 import json
 import re
 import sys
-import time
 import urllib.error
 import urllib.request
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlencode
+
+import timebox
 
 ROOT = Path(__file__).resolve().parent.parent
 FILES = ("us_federal_actions", "us_state_bills", "international_frameworks")
@@ -106,6 +111,17 @@ def newer_than_check(action_date, record):
     checked = day(record.get("last_verified"))
     action = day(action_date)
     return bool(action and (not checked or action > checked))
+
+
+# The longest all the checks together may take before no further check is
+# started. See RUN_BUDGET_SECONDS in link_check.py.
+RUN_BUDGET_SECONDS = 180
+
+
+def record_deadline(timeout):
+    """How long one record's check may take in all. Looking up an executive
+    order can take three requests, each allowed the network timeout."""
+    return max(30.0, 4 * timeout)
 
 
 def result(record, source, **fields):
@@ -192,28 +208,47 @@ def check_federal_register(record, fetch, timeout):
     signing = day(doc.get("signing_date"))
     published = day(doc.get("publication_date"))
     kind_of_document = doc.get("type") or "document"
+    is_order = bool(doc.get("executive_order_number"))
+    # Only what was actually set against the record counts as a check. An
+    # answer that leaves nothing to compare is an error, not a match.
+    compared = False
 
-    if doc.get("executive_order_number"):
-        if signing and issued and signing != issued:
-            findings.append(f"Signed {signing} according to the Federal Register; "
-                            f"the record says date_issued {issued}")
-        summary = f"EO {doc['executive_order_number']}, {kind_of_document} {doc['document_number']}, " \
-                  f"{'signed ' + signing if signing else 'published ' + str(published)}"
+    if is_order:
+        if signing and issued:
+            compared = True
+            if signing != issued:
+                findings.append(f"Signed {signing} according to the Federal Register; "
+                                f"the record says date_issued {issued}")
+        summary = f"EO {doc['executive_order_number']}, {kind_of_document} {doc['document_number']}"
+        if signing:
+            summary += f", signed {signing}"
+        elif published:
+            summary += f", published {published}"
     else:
         gap = days_between(published, issued)
-        if gap is not None and gap > RULE_DATE_TOLERANCE_DAYS:
-            findings.append(f"Published {published} in the Federal Register, but the record says "
-                            f"date_issued {issued}, {gap} days apart. Check the date and the link")
+        if gap is not None:
+            compared = True
+            if gap > RULE_DATE_TOLERANCE_DAYS:
+                findings.append(f"Published {published} in the Federal Register, but the record says "
+                                f"date_issued {issued}, {gap} days apart. Check the date and the link")
         effective = day(doc.get("effective_on"))
         recorded = day(record.get("effective_date"))
-        if effective and recorded and effective != recorded:
-            findings.append(f"Effective {effective} according to the Federal Register; "
-                            f"the record says effective_date {recorded}")
-        summary = f"{kind_of_document} {doc['document_number']}, published {published}"
+        if effective and recorded:
+            compared = True
+            if effective != recorded:
+                findings.append(f"Effective {effective} according to the Federal Register; "
+                                f"the record says effective_date {recorded}")
+        summary = f"{kind_of_document} {doc['document_number']}"
+        if published:
+            summary += f", published {published}"
         if effective:
             summary += f", effective {effective}"
 
     notes = disposition_notes(doc)
+    # Notes that are there were read for a revocation, which is a check of the
+    # record's status even when they name none.
+    if notes:
+        compared = True
     dispositions = DISPOSITION.findall(notes)
     for verb, target in dispositions:
         verb_l = verb.lower()
@@ -223,6 +258,15 @@ def check_federal_register(record, fetch, timeout):
             findings.append(f"Federal Register notes say \"{verb} {target.strip()}\"; the record has no amended_by link")
     if dispositions:
         summary += ". " + "; ".join(f"{verb} {target.strip()}" for verb, target in dispositions)
+    if not compared:
+        if not issued:
+            missing = "the record has no date_issued to compare"
+        elif is_order:
+            missing = "the Federal Register answer has no signing date and no notes to compare with the record"
+        else:
+            missing = "the Federal Register answer has no publication or effective date to compare with the record"
+        return result(record, "Federal Register", upstream_url=doc.get("html_url"), summary=summary,
+                      error=f"nothing to compare: {missing}")
     return result(record, "Federal Register", upstream_url=doc.get("html_url"), summary=summary, findings=findings)
 
 
@@ -300,29 +344,48 @@ def check_congress(record, fetch, timeout, api_key=CONGRESS_DEMO_KEY):
 # Orchestration and report
 # ---------------------------------------------------------------------------
 
-def check_all(records, fetch=None, timeout=20, pause=0.5):
-    """Check every record a source covers. Returns one result per record."""
-    fetch = fetch or fetch_json
+def check_all(records, fetch=None, timeout=20, pause=0.5, deadline=None, budget=RUN_BUDGET_SECONDS):
+    """Check every record a source covers. Returns one result per record, in
+    the order given.
 
-    results = []
-    for record in records:
+    The checks run one at a time, with `pause` seconds between them.
+    deadline: seconds one record's check may take in all (default: record_deadline()).
+    budget:   seconds all of them may take; records not started by then are
+              reported as not checked."""
+    fetch = fetch or fetch_json
+    if deadline is None:
+        deadline = record_deadline(timeout)
+
+    results = [None] * len(records)
+    planned = {}   # index -> (source, check)
+    for index, record in enumerate(records):
         if federal_register_target(record):
-            source, check = "Federal Register", check_federal_register
+            planned[index] = ("Federal Register", check_federal_register)
         elif congress_target(record):
-            source, check = "Congress.gov", check_congress
+            planned[index] = ("Congress.gov", check_congress)
         else:
             reason = ("state bills have no free official API; covered by the staleness and date checks"
                       if record.get("state") else "no official API covers this source")
-            results.append(result(record, None, skipped=reason))
-            continue
-        try:
-            results.append(check(record, fetch, timeout))
-        except Exception as exc:  # noqa: BLE001 - one odd response must not stop the report
-            detail = str(exc).strip()
-            results.append(result(record, source, error="unexpected response: "
-                                  + (f"{type(exc).__name__}: {detail}" if detail else type(exc).__name__)))
-        if pause:
-            time.sleep(pause)
+            results[index] = result(record, None, skipped=reason)
+
+    outcomes = timebox.run_all(lambda index: planned[index][1](records[index], fetch, timeout),
+                               sorted(planned), seconds=deadline, workers=1, pause=pause, budget=budget)
+
+    for index, (source, _) in planned.items():
+        state, value = outcomes[index]
+        record = records[index]
+        if state == timebox.DONE:
+            results[index] = value
+        elif state == timebox.GAVE_UP:
+            results[index] = result(record, source, error=f"no complete answer within {deadline:g} seconds")
+        elif state == timebox.OUT_OF_TIME:
+            results[index] = result(record, source,
+                                    error="not checked: this run had used up its time on other records")
+        else:
+            # One odd response must not stop the report.
+            detail = str(value).strip()
+            results[index] = result(record, source, error="unexpected response: "
+                                    + (f"{type(value).__name__}: {detail}" if detail else type(value).__name__))
     return results
 
 

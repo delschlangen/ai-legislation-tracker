@@ -267,11 +267,12 @@ ai-legislation-tracker/
 │   ├── maintenance_report.py        # Stale entries, passed dates, README dates
 │   ├── link_check.py                # Do the source links still answer?
 │   ├── upstream_check.py            # Federal Register and Congress.gov, no keys
+│   ├── timebox.py                   # A time limit on each network check
 │   └── publish_report.py            # Posts the report as one GitHub issue
 ├── .github/
 │   ├── ISSUE_TEMPLATE/              # Forms for reporting or suggesting entries
 │   └── workflows/
-│       ├── validate.yml             # Read-only data check and tests on pull requests
+│       ├── validate.yml             # Read-only data check and tests on every pull request
 │       └── maintenance.yml          # Weekly report, posted as a GitHub issue
 ├── examples/current_landscape.md    # Sample generated dashboard
 ├── tests/                           # Standard-library unittest suite (run by CI)

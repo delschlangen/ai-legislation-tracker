@@ -10,6 +10,8 @@ import io
 import json
 import socket
 import sys
+import threading
+import time
 import unittest
 import urllib.error
 from datetime import date
@@ -21,6 +23,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 import link_check  # noqa: E402
 import maintenance_report as report  # noqa: E402
+import timebox  # noqa: E402
 import upstream_check as upstream  # noqa: E402
 
 TODAY = date(2026, 11, 25)
@@ -247,6 +250,31 @@ class LinkCheckTests(unittest.TestCase):
         self.assertEqual((result["outcome"], result["detail"]), ("broken", "host not found"))
         self.assertEqual(len(calls), 2)
 
+    def test_one_host_not_found_among_other_failures_is_not_broken(self):
+        """Both tries must say the host does not exist. A timeout, a temporary
+        DNS fault or a server error on the other try leaves it unreachable."""
+        not_found = urllib.error.URLError(socket.gaierror(socket.EAI_NONAME, "Name or service not known"))
+        others = (socket.timeout("timed out"),
+                  urllib.error.URLError(socket.gaierror(socket.EAI_AGAIN, "Temporary failure in name resolution")),
+                  ConnectionRefusedError("refused"), "HTTP 500")
+        for other in others:
+            for order in ((other, not_found), (not_found, other)):
+                calls = []
+
+                def flaky(request, order=order):
+                    calls.append(1)
+                    step = order[len(calls) - 1]
+                    if step == "HTTP 500":
+                        return http_error(500)(request)
+                    raise step
+                result = self.check({"HEAD": flaky})
+                label = f"{order[0]!r} then {order[1]!r}"
+                self.assertEqual(result["outcome"], "unreachable", label)
+                self.assertIsNone(result["status"], label)
+                self.assertIn("host not found on 1 of 2 tries", result["detail"], label)
+                result["ids"] = ["fed-001"]
+                self.assertEqual(link_check.render_markdown([result])[1], 0, label)
+
     def test_host_that_resolves_on_the_second_try_is_ok(self):
         calls = []
 
@@ -346,6 +374,130 @@ class LinkCheckTests(unittest.TestCase):
         results = link_check.check_all(records, opener=opener_for({"HEAD": head}))
         self.assertEqual(len(seen), 1)
         self.assertEqual(results[0]["ids"], ["state-001", "state-002"])
+
+
+class Gate:
+    """Something a fake server can be held at. Released when the test ends, so
+    no thread is left waiting."""
+
+    def __init__(self, test):
+        self.event = threading.Event()
+        test.addCleanup(self.event.set)
+
+    def hold(self, limit=10):
+        self.event.wait(limit)
+
+
+class LinkDeadlineTests(unittest.TestCase):
+    """The network timeout limits one wait on a socket. A server that keeps
+    sending a byte at a time never trips it, so each link also has a limit on
+    the whole of its check, and the run has a limit on all of them."""
+
+    def test_a_link_that_never_finishes_is_given_up_on_and_the_rest_are_checked(self):
+        gate = Gate(self)
+
+        def head(request):
+            if "slow" in request.full_url:
+                gate.hold()
+            return FakeResponse(request.full_url)
+        records = [rec(id="state-001", source_url="https://ok.example/a"),
+                   rec(id="state-002", source_url="https://slow.example/b"),
+                   rec(id="state-003", source_url="https://ok.example/c")]
+        began = time.monotonic()
+        results = link_check.check_all(records, opener=opener_for({"HEAD": head}), pause=0, deadline=0.3)
+        self.assertLess(time.monotonic() - began, 5)
+        by_id = {r["ids"][0]: r for r in results}
+        self.assertEqual(by_id["state-002"]["outcome"], "unreachable")
+        self.assertEqual(by_id["state-002"]["detail"], "no complete answer within 0.3 seconds")
+        self.assertEqual((by_id["state-001"]["outcome"], by_id["state-003"]["outcome"]), ("ok", "ok"))
+        text, broken = link_check.render_markdown(results)
+        self.assertEqual(broken, 0)
+        self.assertIn("Could not check automatically (1)", text)
+
+    def test_once_the_run_budget_is_spent_no_further_link_is_started(self):
+        gate = Gate(self)
+        started = []
+
+        def head(request):
+            started.append(request.full_url)
+            gate.hold()
+        records = [rec(id=f"state-00{n}", source_url=f"https://slow.example/{n}") for n in range(1, 6)]
+        began = time.monotonic()
+        results = link_check.check_all(records, opener=opener_for({"HEAD": head}), pause=0, workers=1,
+                                       deadline=0.2, budget=0.3)
+        self.assertLess(time.monotonic() - began, 5)
+        details = [r["detail"] for r in results]
+        self.assertEqual(len(results), 5)
+        self.assertIn("no complete answer within 0.2 seconds", details)
+        self.assertIn("not checked: this run had used up its time on other links", details)
+        self.assertLess(len(started), 5)
+        self.assertTrue(all(r["outcome"] == "unreachable" for r in results))
+
+    def test_the_default_limit_leaves_room_for_two_tries_that_time_out(self):
+        for timeout, pause in ((20, 2.0), (3, 0), (60, 2.0)):
+            self.assertGreaterEqual(link_check.link_deadline(timeout, pause), 2 * timeout + pause)
+
+
+class TimeboxTests(unittest.TestCase):
+    def test_answers_and_failures_come_back_for_every_item(self):
+        def work(n):
+            if n == 3:
+                raise ValueError("three")
+            return n * 10
+        out = timebox.run_all(work, [1, 2, 3, 4], seconds=5, workers=2)
+        self.assertEqual({k: v[0] for k, v in out.items()},
+                         {1: timebox.DONE, 2: timebox.DONE, 3: timebox.FAILED, 4: timebox.DONE})
+        self.assertEqual(out[4][1], 40)
+        self.assertIsInstance(out[3][1], ValueError)
+        self.assertEqual(timebox.run_all(work, [], seconds=5), {})
+
+    def test_a_late_answer_does_not_change_the_outcome(self):
+        gate, finished = Gate(self), threading.Event()
+
+        def slow(n):
+            gate.hold()
+            finished.set()
+            return "late"
+        out = timebox.run_all(slow, ["x"], seconds=0.2)
+        self.assertEqual(out, {"x": (timebox.GAVE_UP, None)})
+        gate.event.set()
+        self.assertTrue(finished.wait(5))
+        self.assertEqual(out, {"x": (timebox.GAVE_UP, None)})
+
+    def test_a_late_answer_while_other_calls_run_is_ignored(self):
+        """The first call is given up on at 1 s and answers at 1.5 s, while the
+        second is still running. That answer must change nothing."""
+        first_answered = threading.Event()
+
+        def work(name):
+            if name == "first":
+                time.sleep(1.5)
+                first_answered.set()
+                return "late"
+            first_answered.wait(5)
+            time.sleep(0.1)
+            return "on time"
+        out = timebox.run_all(work, ["first", "second"], seconds=1.0, workers=1)
+        self.assertEqual(out, {"first": (timebox.GAVE_UP, None), "second": (timebox.DONE, "on time")})
+
+    def test_calls_run_side_by_side_up_to_the_number_of_workers(self):
+        began = time.monotonic()
+        out = timebox.run_all(lambda n: time.sleep(0.5), range(4), seconds=5, workers=4)
+        self.assertLess(time.monotonic() - began, 1.5)   # one after another would take 2 seconds
+        self.assertEqual({v[0] for v in out.values()}, {timebox.DONE})
+
+    def test_the_pause_comes_between_calls(self):
+        began = time.monotonic()
+        timebox.run_all(lambda n: n, range(3), seconds=5, pause=0.1)
+        self.assertGreaterEqual(time.monotonic() - began, 0.2)
+
+    def test_the_budget_stops_new_calls_but_reports_every_item(self):
+        gate = Gate(self)
+        out = timebox.run_all(lambda n: gate.hold(), range(6), seconds=0.15, workers=2, budget=0.2)
+        states = [out[n][0] for n in range(6)]
+        self.assertIn(timebox.GAVE_UP, states)
+        self.assertIn(timebox.OUT_OF_TIME, states)
+        self.assertEqual(set(states), {timebox.GAVE_UP, timebox.OUT_OF_TIME})
 
 
 # ---------------------------------------------------------------------------
@@ -601,6 +753,100 @@ class OddResponseTests(unittest.TestCase):
         text, count = upstream.render_markdown(out)
         self.assertIn("Could not check (1)", text)
         self.assertIn("Matched with no change (1)", text)
+
+
+class NothingToCompareTests(unittest.TestCase):
+    """A record is "matched with no change" only if something was set against
+    it. An answer with no date to compare, and no notes, is an error."""
+
+    order = rec(id="fed-010", status="active", date_issued="2025-12-11",
+                source_url="https://www.federalregister.gov/documents/2025/12/16/2025-23092/x")
+    rule = rec(id="fed-008", status="active", date_issued="2024-10-01",
+               source_url="https://www.federalregister.gov/documents/2023/10/25/2023-23055/x")
+
+    def check(self, record, doc):
+        number = doc.get("document_number", "none")
+        out = upstream.check_all([record], fetch=fake_fetch([(f"documents/{number}.json", doc)]), pause=0)
+        return out[0]
+
+    def test_a_rule_with_no_dates_is_not_a_match(self):
+        for doc in ({"document_number": "2023-23055", "type": "Rule"},
+                    {"document_number": "2023-23055", "type": "Rule", "publication_date": None},
+                    {"document_number": "2023-23055", "type": "Rule", "publication_date": "soon"},
+                    {"document_number": "2023-23055", "type": "Rule", "effective_on": "2023-11-17"}):
+            out = self.check(self.rule, doc)
+            self.assertIn("nothing to compare", out["error"] or "", doc)
+            self.assertEqual(out["findings"], [], doc)
+            text, count = upstream.render_markdown([out])
+            self.assertIn("Could not check (1)", text)
+            self.assertIn("Matched with no change (0)", text)
+            self.assertNotIn("None", out["summary"])
+
+    def test_a_rule_compared_by_effective_date_alone_is_a_match(self):
+        doc = {"document_number": "2023-23055", "type": "Rule", "effective_on": "2023-11-17"}
+        out = self.check(dict(self.rule, effective_date="2023-11-17"), doc)
+        self.assertIsNone(out["error"])
+        self.assertEqual(out["summary"], "Rule 2023-23055, effective 2023-11-17")
+
+    def test_an_order_with_no_signing_date_and_no_notes_is_not_a_match(self):
+        doc = {"document_number": "2025-23092", "executive_order_number": 14365, "type": "Presidential Document",
+               "publication_date": "2025-12-16"}
+        out = self.check(self.order, doc)
+        self.assertIn("no signing date and no notes", out["error"] or "")
+        self.assertEqual(out["summary"], "EO 14365, Presidential Document 2025-23092, published 2025-12-16")
+
+    def test_an_order_whose_notes_were_read_is_a_match(self):
+        doc = {"document_number": "2025-23092", "executive_order_number": 14365,
+               "executive_order_notes": "See: EO 14179"}
+        out = self.check(self.order, doc)
+        self.assertIsNone(out["error"])
+        self.assertEqual(out["findings"], [])
+
+    def test_a_record_without_date_issued_says_so(self):
+        doc = {"document_number": "2023-23055", "type": "Rule", "publication_date": "2023-10-25"}
+        record = dict(self.rule)
+        del record["date_issued"]
+        self.assertEqual(self.check(record, doc)["error"], "nothing to compare: the record has no date_issued to compare")
+
+
+class UpstreamDeadlineTests(unittest.TestCase):
+    def test_a_record_whose_check_never_finishes_is_given_up_on(self):
+        gate = Gate(self)
+
+        def fetch(url, headers=None, timeout=20):
+            if "2023-24283" in url:
+                gate.hold()
+            return {"document_number": "2025-02172", "executive_order_number": 14179, "signing_date": "2025-01-23"}
+        records = [rec(id="fed-001", status="rescinded", date_issued="2023-10-30",
+                       source_url="https://www.federalregister.gov/documents/2023/11/01/2023-24283/x"),
+                   rec(id="fed-009", status="active", date_issued="2025-01-23",
+                       source_url="https://www.federalregister.gov/documents/2025/01/31/2025-02172/y"),
+                   rec(id="state-001")]
+        began = time.monotonic()
+        out = upstream.check_all(records, fetch=fetch, pause=0, deadline=0.3)
+        self.assertLess(time.monotonic() - began, 5)
+        self.assertEqual([r["id"] for r in out], ["fed-001", "fed-009", "state-001"])
+        self.assertEqual(out[0]["error"], "no complete answer within 0.3 seconds")
+        self.assertIsNone(out[1]["error"])
+        self.assertTrue(out[2]["skipped"])
+
+    def test_once_the_budget_is_spent_the_rest_are_listed_as_not_checked(self):
+        gate = Gate(self)
+
+        def fetch(url, headers=None, timeout=20):
+            gate.hold()
+        records = [rec(id=f"fed-00{n}", status="active", date_issued="2023-10-30",
+                       source_url=f"https://www.federalregister.gov/documents/2023/11/01/2023-2428{n}/x")
+                   for n in range(1, 5)]
+        out = upstream.check_all(records, fetch=fetch, pause=0, deadline=0.2, budget=0.1)
+        errors = [r["error"] for r in out]
+        self.assertEqual(errors[0], "no complete answer within 0.2 seconds")
+        self.assertEqual(set(errors[1:]), {"not checked: this run had used up its time on other records"})
+
+    def test_the_default_limit_covers_an_executive_order_lookup(self):
+        # Two searches and the document itself, each allowed the network timeout.
+        for timeout in (3, 20, 60):
+            self.assertGreaterEqual(upstream.record_deadline(timeout), 3 * timeout)
 
 
 class CongressTests(unittest.TestCase):

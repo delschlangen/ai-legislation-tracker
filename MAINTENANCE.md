@@ -33,8 +33,8 @@ It only ever updates an issue that its own bot account opened. An issue anyone e
 | Stale entries | Not verified in the last 183 days | Re-check the entry, then update `last_verified` and `verification` |
 | Dates that just passed | An effective date or phase arrived in the last 60 days, and the entry has not been verified since | Confirm the law took effect as recorded and was not delayed or enjoined, then update `last_verified`. An entry verified on or after the date drops off the list |
 | README dates now in the past | A row in the README's hand-written upcoming table has passed | Remove or update the row |
-| Broken source links | The page answers 404 or 410 to a full request, or the host does not exist, on two tries | Find the current URL for the same document |
-| Could not check automatically | The site refused an automated request, timed out, had a temporary DNS fault or sent a garbled answer | Usually bot protection or a passing fault. Open the link in a browser if in doubt |
+| Broken source links | The page answers 404 or 410 to a full request, or both tries say the host does not exist | Find the current URL for the same document |
+| Could not check automatically | The site refused an automated request, timed out, had a temporary DNS fault, sent a garbled answer, or did not finish answering within the time allowed for one link | Usually bot protection or a passing fault. Open the link in a browser if in doubt |
 
 **It never edits the data.** An API knows a bill had an action. It does not know that a court enjoined the law or a different bill delayed it, and it cannot judge what counts as AI law. So the report says "look at this", and a person decides. A record's `last_verified` date moves only when someone actually checked it.
 
@@ -46,7 +46,9 @@ It only ever updates an issue that its own bot account opened. An issue anyone e
 | Federal Register | Rules whose `source_url` is on federalregister.gov | The publication date is compared with `date_issued` and flagged when they are more than 30 days apart, since a rule is normally issued shortly before it is published. The effective date is compared when both sides record one. Rules carry no revocation notes |
 | Congress.gov | Federal bills whose `source_url` is on congress.gov | Public-law status, and any action newer than the last check |
 
-One failed check never costs the rest. A site that sends a garbled or truncated answer, or an API that returns something unexpected, is listed under "Could not check" for that record, and every other section is still published.
+One failed check never costs the rest. A site that sends a garbled or truncated answer, or an API that returns something unexpected, is listed under "Could not check" for that record, and every other section is still published. So is an answer that leaves nothing to compare, such as a Federal Register document with no dates: a record is listed as matched only when something was actually compared.
+
+Every check also has a time limit on the whole of it, and each run a limit on all of its checks, so a server that keeps a connection open without ever finishing costs that one record its check and never the week's report. Records the run had no time left for are listed as not checked. The limits fit inside the time GitHub allows the job, and a test keeps it that way.
 
 **No setup and no API keys.** The Federal Register needs no key. Congress.gov is queried with api.data.gov's public `DEMO_KEY`, which needs no account. It is rate-limited; if a week's run hits the limit, the report says so and the next week tries again.
 

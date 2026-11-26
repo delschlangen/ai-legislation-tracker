@@ -19,7 +19,7 @@ This is a research tool, not legal advice. Never write copy that implies otherwi
 | `src/query_legislation.py` | CLI filtering and search |
 | `src/generate_dashboard.py` | Markdown summary report |
 | `src/export_csv.py` | Flattens the data to CSV on demand (never committed) |
-| `scripts/` | The weekly maintenance report: `maintenance_report.py`, `link_check.py`, `upstream_check.py`, and `publish_report.py`, which posts it as an issue |
+| `scripts/` | The weekly maintenance report: `maintenance_report.py`, `link_check.py`, `upstream_check.py`, `timebox.py`, which puts a time limit on each network check, and `publish_report.py`, which posts it as an issue |
 | `tests/` | Standard-library `unittest` suite |
 | `docs/` | GitHub Pages site: `index.html`, `app.js`, `styles.css`. No build step |
 | `examples/current_landscape.md` | A committed copy of generated dashboard output |
@@ -95,12 +95,13 @@ If a record gains a field the CSV does not know, add it to `COLUMNS` in `src/exp
 - **Python 3.7+ syntax.** No walrus operator, `match`, dict union (`|`) or `str.removeprefix`. CI runs 3.7 (pinned to ubuntu-22.04, the last image with a 3.7 build) and 3.12, so the floor is tested for real.
 - **Read files and write output as UTF-8** (`encoding="utf-8"`, and `sys.stdout.reconfigure` for emoji output). Without it the tools crash on Windows consoles.
 - **Tools must not crash on odd data.** Use `.get()` for optional fields. The validator is the gatekeeper, but the tools should still degrade gracefully.
-- **CI is read-only.** `validate.yml` must not need secrets, fetch external data, or edit and commit files. Keep it that way.
+- **CI is read-only.** `validate.yml` must not need secrets, fetch external data, or edit and commit files. Keep it that way. It runs on every pull request and push to main, with no path filters, so it can be a required check.
 - **The maintenance workflow is the one exception, and a narrow one.** `maintenance.yml` fetches official APIs and source links. It uses no secrets: the Federal Register needs no key and Congress.gov is queried with api.data.gov's public `DEMO_KEY`. **The maintainer has decided not to manage API keys**, so do not add a check that needs one. State bills stay unchecked upstream for that reason. Only its `publish` job has a write permission, `issues: write`, and it never runs on pull requests. It must never edit data or commit. The publishing logic lives in `scripts/publish_report.py` so the tests cover it: it only updates an open issue that `github-actions[bot]` itself opened, because anyone can open an issue with the same title. Pass untrusted text (API responses, record content) to `gh` as files, never through a shell and never through `${{ }}` in a `run:` line. `tests/test_publish.py` checks these guarantees against the workflow file.
 - **Automation reports; people edit.** No script may change a record or bump `last_verified`. An API can say a bill had an action; only a person reading the source can say what the law now is.
 - **The maintenance scripts take an injectable `fetch` or `opener`.** Tests must not touch the network. Add a fake response to `tests/test_maintenance.py` for any new upstream check.
 - **One bad answer must never cost the whole report.** A garbled response, an odd JSON shape or a failed lookup becomes that record's outcome ("could not check"), and everything else is still published. `http.client` errors are not `OSError`; catch broadly at those boundaries, and never report a guess: a malformed answer is "unreadable", not "no change".
-- **Only report what was compared.** A record goes under "Matched with no change" only if something was actually checked against it.
+- **Only report what was compared.** A record goes under "Matched with no change" only if something was actually checked against it. An answer with nothing to compare is an error for that record.
+- **Every network check runs through `timebox.run_all`**, with a deadline for the whole of each check and a budget for the run. A socket timeout alone does not stop a server that sends one byte at a time. `tests/test_publish.py` checks that the budgets and deadlines fit inside the report job's `timeout-minutes`; change them together.
 - Keep the three CLIs consistent. A filter or search that works on the site should work in `query_legislation.py`, across all three files, which use different field names (`state` vs `jurisdiction` vs `issuing_body`).
 
 ## Rules for the website (`docs/`)
