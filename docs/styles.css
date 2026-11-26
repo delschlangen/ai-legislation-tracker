@@ -562,6 +562,13 @@ tr.expanded .row-toggle:focus-visible {
   outline-color: white;
 }
 
+/* A row gets focus only after Back or Forward, to keep the reader's place
+   when the control that had focus is gone. */
+.data-row:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
 .title-cell .bill-number {
   display: block;
   font-size: 0.75rem;

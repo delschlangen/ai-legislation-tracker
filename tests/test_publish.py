@@ -319,6 +319,24 @@ def without_full_line_comments(text):
     return "\n".join("" if line.lstrip().startswith("#") else line for line in text.splitlines())
 
 
+def without_trailing_comments(text):
+    """Full-line comments removed, and a trailing " # ..." comment removed when
+    nothing before it could have started a quoted or flow value. A plain YAML
+    value cannot contain " #", so such a " #" starts a comment, or sits inside
+    a block scalar, where it is not a key either. Used for the permission and
+    secrets checks, so a note such as "# never contents: write" is no alarm."""
+    out = []
+    for line in text.splitlines():
+        if line.lstrip().startswith("#"):
+            out.append("")
+            continue
+        hit = re.search(r"\s#", line)
+        if hit and not re.search(r"""['"{\[]""", line[:hit.start()]):
+            line = line[:hit.start()]
+        out.append(line)
+    return "\n".join(out)
+
+
 def lines_with_expressions(text):
     """(line number, line) for every line holding a ${{ }} expression, comments included:
     inside a run block GitHub expands an expression even on a line the shell treats as a comment."""
@@ -366,7 +384,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_only_the_publish_job_can_write_and_only_issues(self):
         # Quotes allowed, as YAML allows them: id-token: 'write' is still a write.
-        code = without_full_line_comments(self.text)
+        code = without_trailing_comments(self.text)
         writes = WRITE_SCOPE.findall(code)
         self.assertEqual(writes, ["issues: write"])
         self.assertIn("issues: write", self.job("publish"))
@@ -377,9 +395,19 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("permissions:\n  contents: read", top)
 
     def test_publish_runs_only_on_the_schedule_or_by_hand(self):
-        """An allowlist, so a new trigger such as pull_request_target cannot reach it."""
-        self.assertIn("if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'",
-                      self.job("publish"))
+        """An allowlist, so a new trigger such as pull_request_target cannot reach it.
+        The whole job-level condition is compared, with any more-indented lines
+        YAML folds into it, so an extra || clause cannot pass as a longer allowlist."""
+        lines = self.job("publish").splitlines()
+        starts = [i for i, line in enumerate(lines) if re.match(r"^    if\s*:", line)]
+        self.assertEqual(len(starts), 1, "the publish job needs exactly one job-level if:")
+        value = [lines[starts[0]].split(":", 1)[1].split(" #", 1)[0]]
+        for line in lines[starts[0] + 1:]:
+            if line.strip() and not line.startswith("     "):
+                break
+            value.append(line)
+        self.assertEqual(" ".join(" ".join(value).split()),
+                         "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'")
 
     def test_the_triggers_are_the_expected_ones(self):
         self.assertEqual(triggers(self.text), {"schedule", "workflow_dispatch", "pull_request"})
@@ -395,7 +423,9 @@ class WorkflowTests(unittest.TestCase):
 
     def test_expressions_appear_only_where_expected(self):
         """Whatever the step is written as (block, flow mapping, quoted), an
-        expression anywhere else fails here."""
+        expression anywhere else fails here. Comment lines are included on
+        purpose: without a YAML parser a "#" line cannot be told apart from
+        content of a block scalar, where GitHub expands the expression."""
         found = {}
         for number, line in lines_with_expressions(self.text):
             key = re.match(r"^\s*([A-Za-z_-]+)\s*:", line)
@@ -435,7 +465,16 @@ class WorkflowTests(unittest.TestCase):
     def test_no_secrets_are_used(self):
         for expression in EXPRESSION.findall(self.text):
             self.assertNotIn("secrets", expression.lower())
-        self.assertNotIn("secrets", without_full_line_comments(self.text).lower())
+        self.assertNotIn("secrets", without_trailing_comments(self.text).lower())
+
+    def test_comment_only_edits_are_no_alarm(self):
+        """Notes the project's rules invite must not fail the guards above."""
+        self.assertEqual(WRITE_SCOPE.findall(without_trailing_comments(
+            "      issues: write   # to post the report; never contents: write")), ["issues: write"])
+        self.assertNotIn("secrets", without_trailing_comments(
+            "        run: python3 validate.py   # reads files only; needs no secrets"))
+        # Still caught: a quote before the " #" means the rest may be a value.
+        self.assertIn("secrets", without_trailing_comments('      - run: echo "step #1" ${{ secrets.PAT }}'))
 
     def test_pull_requests_do_not_share_the_publishing_queue(self):
         self.assertIn("github.event_name == 'pull_request' && github.ref || 'publish'", self.text)
@@ -469,7 +508,7 @@ class ValidateWorkflowTests(unittest.TestCase):
         self.assertIn("pull_request:", self.code)
 
     def test_read_only(self):
-        code = without_full_line_comments(self.text)
+        code = without_trailing_comments(self.text)
         self.assertEqual(WRITE_SCOPE.findall(code), [])
         self.assertNotIn("write-all", code)
         self.assertNotIn("secrets", code.lower())

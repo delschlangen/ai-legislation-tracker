@@ -97,9 +97,9 @@
         "enforcement": { "type": "object" },
 
         "source_url": {
-          "description": "A specific document, never a bare domain: an http(s) URL with a path segment or a query string. A fragment does not count, and whitespace and control characters are not allowed.",
+          "description": "A specific document, never a bare domain: an http(s) URL with a host, then a path segment or a query string. A fragment does not count, and whitespace, control characters and backslashes are not allowed.",
           "type": "string",
-          "pattern": "^(?![\\s\\S]*[\\x00-\\x20\\x7f-\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff])https?://[^/?#]*(/+[^/?#]|/*[?][^#])"
+          "pattern": "^(?![\\s\\S]*[\\x00-\\x20\\x7f-\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff\\\\])https?://[^/?#]+(/+[^/?#]|/*[?][^#])"
         },
         "tags": {
           "type": "array",
@@ -121,7 +121,8 @@
       "allOf": [
         { "if": { "properties": { "status": { "const": "superseded" } }, "required": ["status"] }, "then": { "required": ["superseded_by"] } },
         { "if": { "properties": { "status": { "const": "vetoed" } }, "required": ["status"] }, "then": { "required": ["veto_reason"] } },
-        { "if": { "properties": { "status": { "const": "enjoined" } }, "required": ["status"] }, "then": { "required": ["injunction"] } }
+        { "if": { "properties": { "status": { "const": "enjoined" } }, "required": ["status"] }, "then": { "required": ["injunction"] } },
+        { "if": { "properties": { "last_verified": { "const": "needs_verification" } }, "required": ["last_verified"] }, "then": { "not": { "required": ["verification"] } } }
       ]
     },
     "federalRecord": {

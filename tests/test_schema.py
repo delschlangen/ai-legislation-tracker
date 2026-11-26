@@ -125,6 +125,11 @@ BOTH = [
     {"source_url": "https://example.gov/\n"}, {"source_url": "https://example.gov/?"},
     {"source_url": "https://example.gov/\u00a0"}, {"source_url": "https://example.gov/\ufeff"},
     {"source_url": "https://example.gov/#?x=1"}, {"source_url": "https://example.gov/a b"},
+    # A host written as a path, or no host at all: browsers open the homepage.
+    {"source_url": "https:///example.gov"}, {"source_url": "https:////example.gov/"},
+    {"source_url": "https://?q"}, {"source_url": "https://\\/example.gov"},
+    # needs_verification says nobody checked the entry, so it cannot also say how.
+    {"last_verified": "needs_verification"}, {"last_verified": "needs_verification", "verification": "primary"},
     {"efective_date": "2026-01-01"}, {"name": "Old Name"}, {"date_effective": "2026-01-01"},
     {"milestones": []}, {"milestones": "x"}, {"milestones": [5]},
     {"milestones": [{"date": "2026-01-01"}]},
@@ -146,7 +151,8 @@ VALIDATOR_ONLY = [
 
 # Accepted by both.
 NEITHER = [
-    {}, {"verification": DROP}, {"effective_date": DROP}, {"last_verified": "needs_verification"},
+    {}, {"verification": DROP}, {"effective_date": DROP},
+    {"last_verified": "needs_verification", "verification": DROP},
     {"source_url": "https://example.gov?bill=1"}, {"source_url": "http://example.gov/x"},
     {"source_url": "https://example.gov/x#section-2"}, {"source_url": "https://example.gov/?bill=1#top"},
     {"signatories": 28}, {"enforcement": {"fines": 1}}, {"covered_decisions": []},
@@ -256,7 +262,7 @@ class SourceUrlRuleTests(unittest.TestCase):
         paths = ["", "/", "//", "/x", "//x", "/x/", "/%20", "/?"]
         queries = ["", "?", "?q", "??", "?#"]
         fragments = ["", "#", "#f", "#/x", "#?q"]
-        extras = ["", " ", "\t", "\n", "\u00a0", "\u2028", "\u3000", "\ufeff", "\x7f", "\x85", "x"]
+        extras = ["", " ", "\t", "\n", "\u00a0", "\u2028", "\u3000", "\ufeff", "\x7f", "\x85", "x", "\\"]
         count = 0
         for scheme in ("https://", "http://", "HTTP://", "ftp://"):
             for host in hosts:
@@ -274,7 +280,8 @@ class SourceUrlRuleTests(unittest.TestCase):
         """Agreement alone would pass if both copies of the rule were wrong."""
         for url in ("https://example.gov/#main-content", "https://example.gov/ ", "https://example.gov/\n",
                     "https://example.gov/?", "https://example.gov", "https://example.gov/#/bill/1",
-                    "https://example.gov/\u00a0", " https://example.gov/x", "https://exa mple.gov/x"):
+                    "https://example.gov/\u00a0", " https://example.gov/x", "https://exa mple.gov/x",
+                    "https:///www.sec.gov", "https:////www.sec.gov", "https://?q", "https://\\/www.sec.gov"):
             self.assertFalse(self.agree(url), url)
         for url in ("https://example.gov/x", "https://example.gov/?bill=1", "https://example.gov?bill=1",
                     "https://example.gov/x#top", "https://example.gov/a%20b", "http://example.gov//x"):
@@ -309,6 +316,8 @@ class SchemaMatchesValidatorTests(unittest.TestCase):
     def test_status_rules_match(self):
         rules = {}
         for rule in self.record["allOf"]:
+            if "status" not in rule["if"]["properties"]:
+                continue   # the needs_verification rule, tested in the table
             status = rule["if"]["properties"]["status"]["const"]
             rules[status] = rule["then"]["required"]
         self.assertEqual(rules, validate.REQUIRED_BY_STATUS)
@@ -340,7 +349,7 @@ class CheckerTests(unittest.TestCase):
             for name in ("$defs", "properties"):
                 for key, sub in node.get(name, {}).items():
                     walk(sub, f"{where}/{name}/{key}")
-            for name in ("items", "if", "then"):
+            for name in ("items", "if", "then", "not"):
                 if name in node:
                     walk(node[name], f"{where}/{name}")
             for name in ("allOf", "anyOf"):
@@ -392,6 +401,11 @@ class CheckerTests(unittest.TestCase):
         self.assertNotEqual(validate.schema_errors(2.5, {"type": "integer"}, {}), [])
         self.assertNotEqual(validate.schema_errors(1, {"const": True}, {}), [])
         self.assertEqual(validate.schema_errors(1.0, {"enum": [1]}, {}), [])
+
+    def test_not(self):
+        rule = {"not": {"required": ["a"]}}
+        self.assertNotEqual(validate.schema_errors({"a": 1}, rule, {}), [])
+        self.assertEqual(validate.schema_errors({"b": 1}, rule, {}), [])
 
     def test_if_then_and_dependent_required(self):
         rule = {"if": {"properties": {"a": {"const": 1}}, "required": ["a"]}, "then": {"required": ["b"]}}

@@ -241,6 +241,14 @@ class ValidatorTests(unittest.TestCase):
                 self.assert_fails_with(self.with_changelog([
                     {"date": date, "summary": "x", "updated": ["state-001"]}]), "zero-padded YYYY-MM-DD")
 
+    def test_needs_verification_cannot_say_how_it_was_checked(self):
+        for verification in ("primary", "secondary", "unconfirmed"):
+            with self.subTest(verification=verification):
+                self.assert_fails_with({"us_state_bills.json": [
+                    state(last_verified="needs_verification", verification=verification)]}, "nobody has checked it")
+        code, output = self.run_validator({"us_state_bills.json": [state(last_verified="needs_verification")]})
+        self.assertEqual(code, 0, output)
+
     def test_tags_must_be_lowercase(self):
         for tag in ("Employment", "AI_Governance", "ai-safety", "ai safety"):
             with self.subTest(tag=tag):

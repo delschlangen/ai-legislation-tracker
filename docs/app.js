@@ -790,6 +790,24 @@
     return becameLaw && isIsoDate(ended) && date < ended && date < TODAY ? 'reached' : 'moot';
   }
 
+  // Whether a record's own lifecycle date (introduced, enacted, expired...)
+  // is something that happened or will happen, judged from its status the
+  // same way whatever the reader's date, as stageStanding does for stages:
+  //   in force    every date stands
+  //   enjoined    every date stands: the law still exists, only its enforcement is blocked
+  //   pending     only its introduction, issue or adoption: it is not law yet
+  //   ended       vetoed, rescinded, superseded or expired: the date that ended it,
+  //               and dates up to it. Anything after it will not happen
+  function lifecycleIsEvent(item, field, date) {
+    const status = String(item.status || '').toLowerCase();
+    if (IN_FORCE_STATUSES.has(status) || status === 'enjoined') return true;
+    if (status === 'pending') return ['date_introduced', 'date_issued', 'date_adopted'].includes(field);
+    const ownEnd = status === 'vetoed' ? 'date_vetoed' : END_DATE_BY_STATUS.get(status);
+    if (field === ownEnd) return true;
+    const ended = ownEnd ? item[ownEnd] : null;
+    return isIsoDate(ended) ? date <= ended : date <= TODAY;
+  }
+
   // Every date a record carries, one row per date, oldest first: its own
   // lifecycle dates, plus each stage from keyDates(). Lifecycle dates stay out
   // of keyDates() itself, which feeds "Coming up" and "Next stage".
@@ -803,17 +821,12 @@
       if (!entry.what.includes(what)) entry.what.push(what);
       if (expected) entry.expected = true;
     };
-    // A lifecycle date still to come is expected only for a law in force, or
-    // as the record's own end date, such as a supersession already scheduled.
-    const status = String(item.status || '').toLowerCase();
-    const ownEnd = status === 'vetoed' ? 'date_vetoed' : END_DATE_BY_STATUS.get(status);
     LIFECYCLE_DATES.forEach(([field, past, future, asWritten]) => {
       const date = item[field];
-      if (!(date > TODAY)) {
-        add(date, past, true);
-      } else if (IN_FORCE_STATUSES.has(status) || field === ownEnd) {
-        add(date, future, true);
+      if (lifecycleIsEvent(item, field, date)) {
+        add(date, date > TODAY ? future : past, true);
       } else {
+        // Neither a fact nor a countdown, before, on or after the day itself.
         add(date, asWritten, false);
       }
     });
@@ -906,6 +919,10 @@
   // Every record says how it was last checked, so the least-checked entries
   // never look like the best-checked ones. MAINTENANCE.md defines each level.
   function renderVerificationNote(item) {
+    if (item.last_verified === 'needs_verification') {
+      return '<p class="verification-note unchecked">Never checked. Treat this entry as provisional ' +
+             'and confirm it against the official source.</p>';
+    }
     switch (item.verification) {
       case 'primary':
         return '<p class="verification-note">Confirmed against the official text.</p>';
@@ -984,6 +1001,8 @@
     // Back and Forward change the address bar without reloading the page, so
     // read the view back out of it.
     window.addEventListener('popstate', (e) => {
+      // Before anything is rebuilt: what had keyboard focus.
+      const focusedBefore = document.activeElement;
       // Text still being typed belonged to the view that was just left.
       cancelSearch();
       // Where the address could not be kept in step, only its fragment means
@@ -1004,7 +1023,7 @@
       } else {
         syncControls();
       }
-      focusAfterHistoryStep(e.state, syncOpenRecord());
+      focusAfterHistoryStep(e.state, syncOpenRecord(), focusedBefore);
     });
 
     // Links to records are followed here, not by the browser, so that a search
@@ -1209,7 +1228,7 @@
   // open record, if there is one. The browser restores the scroll position
   // when the popstate handler returns, so this waits for that and then moves
   // the page only if the control would be out of sight.
-  function focusAfterHistoryStep(state, row) {
+  function focusAfterHistoryStep(state, row, focusedBefore) {
     const id = row ? row.dataset.id : null;
     window.setTimeout(() => {
       const openRow = id ? findRow(id) : null;
@@ -1218,16 +1237,32 @@
         focusInView(target);
         return;
       }
-      // Nothing to return to. Do not leave focus on a control that the
-      // restored scroll position has moved out of sight: the next Tab would
-      // jump the page away from what the reader is looking at. Blurring is not
-      // enough, because browsers start the next Tab from where focus was.
-      const active = document.activeElement;
-      if (active && active !== document.body && !isPartlyInView(active)) {
-        const visible = firstControlInView();
-        if (visible) visible.focus({ preventScroll: true });
-      }
+      keepFocusInSight(focusedBefore);
+      // Browsers restore the scroll position at different moments, sometimes
+      // only after this has run, so look again once the page moves.
+      const again = () => {
+        window.removeEventListener('scroll', again);
+        keepFocusInSight(focusedBefore);
+      };
+      window.addEventListener('scroll', again, { passive: true });
+      window.setTimeout(() => window.removeEventListener('scroll', again), 500);
     }, 0);
+  }
+
+  // Nothing to return to after Back or Forward. Do not leave focus on a
+  // control the restored scroll position has moved out of sight, or let it
+  // fall to the page because rebuilding the table removed the control that had
+  // it: the next Tab would jump the page away from what the reader is looking
+  // at. Blurring is not enough, because browsers start the next Tab from where
+  // focus was. A reader whose focus was already on the page is left alone.
+  function keepFocusInSight(focusedBefore) {
+    const active = document.activeElement;
+    const lost = active === document.body && focusedBefore && focusedBefore !== document.body &&
+      !focusedBefore.isConnected;
+    if (lost || (active && active !== document.body && !isPartlyInView(active))) {
+      const visible = firstPlaceInView();
+      if (visible) visible.focus({ preventScroll: true });
+    }
   }
 
   function isPartlyInView(element) {
@@ -1240,13 +1275,22 @@
     return box.height > 0 && box.top >= 0 && box.bottom <= window.innerHeight;
   }
 
-  // The first record title on screen, or failing that any control on screen.
-  function firstControlInView() {
-    const row = Array.from(tableBody.querySelectorAll('.row-toggle')).find(isWhollyInView);
-    if (row) return row;
-    const controls = document.querySelectorAll(
-      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled])');
-    return Array.from(controls).find(control => !control.hidden && isWhollyInView(control)) || null;
+  // Somewhere on screen to put focus without surprising the reader: a link,
+  // where Space still scrolls and letters do nothing, or else a record's row,
+  // a heading, a label or a paragraph, made focusable for this once. Never a
+  // button, which Space would press, or the search box, where the next keys
+  // would type and filter the table.
+  function firstPlaceInView() {
+    const link = Array.from(document.querySelectorAll('a[href]')).find(isWhollyInView);
+    if (link) return link;
+    const place = Array.from(document.querySelectorAll('.data-row, h1, h2, h3, h4, p, li, .filter-label'))
+      .find(el => isWhollyInView(el) && !el.closest('a, button, input, select, textarea'));
+    if (!place) return null;
+    if (!place.hasAttribute('tabindex')) {
+      place.setAttribute('tabindex', '-1');
+      place.addEventListener('blur', () => place.removeAttribute('tabindex'), { once: true });
+    }
+    return place;
   }
 
   // ---------------------------------------------------------------------------

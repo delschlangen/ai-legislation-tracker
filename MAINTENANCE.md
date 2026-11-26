@@ -89,7 +89,7 @@ Every entry may carry a `verification` field recording **how** it was last check
 | `unconfirmed` | Provisional. Corroboration was thin or a detail could not be pinned down |
 | *(absent)* | As originally recorded and not re-checked since |
 
-`last_verified` may also be the literal string `needs_verification`, meaning nobody has checked the entry at all. The site displays the verification status on each record, so a reader can see how much weight it carries.
+`last_verified` may also be the literal string `needs_verification`, meaning nobody has checked the entry at all. Such an entry has no `verification` field: the validator rejects the two together, and the site marks the entry as never checked. The site displays the verification status on each record, so a reader can see how much weight it carries.
 
 **Current state:** the September 2026 review was conducted against published legal analyses rather than primary texts, because the primary sources were not reachable from the environment the review ran in. Those entries are marked `secondary`. Moving them to `primary` is the top open task.
 

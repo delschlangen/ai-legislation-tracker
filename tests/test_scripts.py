@@ -273,14 +273,22 @@ class DashboardTests(unittest.TestCase):
             self.assertEqual([(r[2], r[3]) for r in rows], [("Live", "First stage"), ("Live", "Second stage")], status)
 
     def test_upcoming_dates_are_future_soonest_first_and_ten_at_most(self):
-        stages = [{"date": f"20{year}-01-01", "description": f"Stage {year}"} for year in range(40, 20, -1)]
-        data = {"international_frameworks": [
-            {"id": "intl-001", "jurisdiction": "Testland", "title": "Phased", "status": "adopted",
-             "effective_date": "2021-01-01", "milestones": sorted(stages, key=lambda m: m["date"])}]}
+        def stages(years):
+            return [{"date": f"20{y}-01-01", "description": f"Stage {y}"} for y in years]
+        # The file read first holds eleven stages, all later than the soonest
+        # one, which sits in the file read last: cutting before sorting, or
+        # sorting each file on its own, would drop or misplace it.
+        data = {
+            "us_state_bills": [{"id": "state-001", "state": "A", "title": "Late", "status": "enacted",
+                                "effective_date": "2030-01-01", "milestones": stages(range(30, 41))}],
+            "international_frameworks": [{"id": "intl-001", "jurisdiction": "B", "title": "Early",
+                                          "status": "adopted", "effective_date": "2026-01-01",
+                                          "milestones": stages([26, 29, 31])}]}
         rows = generate_dashboard.upcoming_effective_dates(data, "2026-06-01")
-        self.assertEqual([r[0] for r in rows], [f"20{year}-01-01" for year in range(27, 37)])
+        self.assertEqual([r[0] for r in rows],
+                         ["2029-01-01", "2030-01-01", "2031-01-01", "2031-01-01"] + [f"20{y}-01-01" for y in range(32, 38)])
         # A stage dated today is not "upcoming".
-        self.assertEqual(generate_dashboard.upcoming_effective_dates(data, "2026-01-01")[0][0], "2027-01-01")
+        self.assertEqual(generate_dashboard.upcoming_effective_dates(data, "2026-01-01")[0][0], "2029-01-01")
 
     def test_committed_example_matches_the_data(self):
         """The whole file, regenerated as of the date it says it was generated,
@@ -353,25 +361,32 @@ class ExportTests(unittest.TestCase):
         return str(value)
 
     def test_every_cell_round_trips(self):
-        """Every field of every record, compared cell by cell."""
+        """Every column of every row, compared cell by cell, including the empty
+        cells for fields a record lacks, so nothing leaks from one row to the next."""
         _, rows = self.export()
         by_id = {r["id"]: r for r in rows}
+        header = list(rows[0])
         stems = {"us_federal_actions": "federal", "us_state_bills": "state", "international_frameworks": "international"}
         compared = 0
         for stem, records in load_records().items():
             for record in records:
                 row = by_id[record["id"]]
-                for field, value in record.items():
-                    if field == "state":
-                        continue   # becomes the jurisdiction column, checked below
-                    self.assertIn(field, row, f"{record['id']}: field '{field}' has no column")
-                    self.assertEqual(row[field], self.expected_cell(value), f"{record['id']}: {field}")
+                for field in record:
+                    if field != "state":   # becomes the jurisdiction column
+                        self.assertIn(field, header, f"{record['id']}: field '{field}' has no column")
+                for column in header:
+                    if column == "jurisdiction_type":
+                        expected = stems[stem]
+                    elif column == "title":
+                        expected = record["title"]
+                    elif column == "jurisdiction":
+                        expected = (record.get("state") or record.get("jurisdiction")
+                                    or ("US Federal" if stem == "us_federal_actions" else ""))
+                    else:
+                        expected = self.expected_cell(record.get(column))
+                    self.assertEqual(row[column], expected, f"{record['id']}: {column}")
                     compared += 1
-                self.assertEqual(row["jurisdiction_type"], stems[stem], record["id"])
-                self.assertEqual(row["title"], record["title"], record["id"])
-                jurisdiction = record.get("state") or record.get("jurisdiction") or ("US Federal" if stem == "us_federal_actions" else "")
-                self.assertEqual(row["jurisdiction"], jurisdiction, record["id"])
-        self.assertGreater(compared, 500)
+        self.assertEqual(compared, len(rows) * len(header))
 
     def test_dates_and_reasons_survive(self):
         records = [r for rs in load_records().values() for r in rs]

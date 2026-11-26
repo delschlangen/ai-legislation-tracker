@@ -138,18 +138,20 @@ def is_valid_date(value, field):
 
 
 # Characters that never belong in a URL as written: ASCII controls and the
-# space, DEL and the C1 controls, and every character JavaScript's trim()
-# removes. The site trims a link before using it, so "https://www.ftc.gov/ "
-# would quietly become the agency's homepage.
-URL_FORBIDDEN = re.compile("[\x00-\x20\x7f-\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]")
+# space, DEL and the C1 controls, every character JavaScript's trim() removes,
+# and the backslash, which browsers read as "/". The site trims a link before
+# using it, so "https://www.ftc.gov/ " would quietly become the homepage.
+URL_FORBIDDEN = re.compile("[\x00-\x20\x7f-\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff\\\\]")
 
 
 def is_specific_url(url):
     """Reject bare domains like https://www.sec.gov that cite no document.
 
-    The URL needs a path segment or a query string. A fragment does not count,
-    so "https://www.sec.gov/#main-content" is still the homepage, and
-    whitespace or control characters are refused outright.
+    The URL needs a host, then a path segment or a query string. A fragment
+    does not count, so "https://www.sec.gov/#main-content" is still the
+    homepage, and nor does a host written as a path ("https:///www.sec.gov",
+    which browsers open as the homepage). Whitespace, control characters and
+    backslashes are refused outright.
 
     The source_url pattern in the schema expresses the same rule;
     tests/test_schema.py checks the two agree."""
@@ -159,7 +161,9 @@ def is_specific_url(url):
         return False
     remainder = url.split("://", 1)[1].split("#", 1)[0]
     before_query, _, query = remainder.partition("?")
-    path = before_query.split("/", 1)[1] if "/" in before_query else ""
+    host, _, path = before_query.partition("/")
+    if not host:
+        return False
     return bool(path.strip("/")) or bool(query)
 
 
@@ -178,7 +182,7 @@ def is_text(value):
 SCHEMA_RULES = {
     "$ref", "type", "enum", "const", "pattern", "minLength", "minItems", "required",
     "properties", "additionalProperties", "items", "allOf", "anyOf", "if", "then",
-    "dependentRequired",
+    "dependentRequired", "not",
 }
 SCHEMA_ANNOTATIONS = {"$schema", "$id", "$defs", "title", "description"}
 
@@ -316,6 +320,8 @@ def schema_errors(value, schema, root, path="$"):
         found.append(f"{path}: matches none of the allowed forms")
     if "if" in schema and "then" in schema and not schema_errors(value, schema["if"], root, path):
         found += schema_errors(value, schema["then"], root, path)
+    if "not" in schema and not schema_errors(value, schema["not"], root, path):
+        found.append(f"{path}: must not match {json.dumps(schema['not'])}")
     return found
 
 
@@ -425,6 +431,10 @@ def check_record(filename, record, problems):
             problems.append(
                 f"{where}: verification {verification!r} is not one of {sorted(VALID_VERIFICATION)}. "
                 "Leave the field out if the entry has not been re-checked")
+        if record.get("last_verified") == DATE_SENTINEL:
+            problems.append(
+                f"{where}: verification says how the entry was checked, but last_verified is "
+                f"'{DATE_SENTINEL}', which says nobody has checked it. Remove one of the two")
 
     for field in DATE_FIELDS:
         if present(field) and not is_valid_date(record[field], field):
