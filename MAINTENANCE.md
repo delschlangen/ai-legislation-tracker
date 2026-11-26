@@ -71,6 +71,7 @@ python3 scripts/maintenance_report.py --links --upstream  # also links and offic
 
 | Review | Date | Scope |
 |:-------|:-----|:------|
+| Correction | 2026-11-26 | `fed-009` corrected from the Federal Register's notes on EO 14110. `fed-005`, `fed-008` and `fed-009` marked `unconfirmed` until checked against the primary text. A mislabeled date removed from `intl-014`. **Not a review:** no `last_verified` date changed |
 | Targeted update | 2026-11-24 | 3 entries added (Illinois SB 315, California AI Transparency Act, EO 14409) and 1 corrected (New York RAISE Act), all checked against published legal analyses and official bill pages. **Not a full review:** every other entry keeps its earlier `last_verified` date |
 | Full dataset review | 2026-09-17 | 31 of 44 entries corrected or added (15 added, 15 corrected, and the TAKE IT DOWN Act added); schema extended for supersession |
 | First release | 2025-12-24 | 28 entries published. They were given `last_verified` 2024-12-24, a year before the repository existed; 13 still carry that date until someone re-checks them |

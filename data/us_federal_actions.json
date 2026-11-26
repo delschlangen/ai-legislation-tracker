@@ -122,7 +122,7 @@
       "sec"
     ],
     "last_verified": "2026-09-17",
-    "verification": "secondary"
+    "verification": "unconfirmed"
   },
   {
     "id": "fed-006",
@@ -193,7 +193,7 @@
       "bis"
     ],
     "last_verified": "2026-09-17",
-    "verification": "secondary"
+    "verification": "unconfirmed"
   },
   {
     "id": "fed-009",
@@ -203,9 +203,8 @@
     "date_issued": "2025-01-23",
     "issuing_body": "White House",
     "supersedes": "fed-001",
-    "summary": "Revoked Executive Order 14110 and reoriented federal AI policy toward promoting innovation and American AI leadership, directing agencies to identify and revise policies that act as barriers to AI development.",
+    "summary": "Reoriented federal AI policy toward promoting innovation and American AI leadership, directing agencies to identify and revise policies that act as barriers to AI development. Executive Order 14110 had already been revoked: the Federal Register records that Executive Order 14148 revoked it on 2025-01-20.",
     "key_provisions": [
-      "Revokes Executive Order 14110",
       "Directs an action plan to sustain American AI leadership",
       "Requires agency review of policies inconsistent with the new policy",
       "Removes the prior safety-reporting and compute-threshold framework"
@@ -218,7 +217,7 @@
       "federal"
     ],
     "last_verified": "2026-09-17",
-    "verification": "secondary"
+    "verification": "unconfirmed"
   },
   {
     "id": "fed-010",
