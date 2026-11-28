@@ -195,6 +195,12 @@ The website reads `data/*.json` directly, so it never needs a second copy. The v
 
 ---
 
+## Releases and the DOI
+
+Publishing a GitHub release archives that version on Zenodo and gives it a DOI of its own. The DOI for all versions, [10.5281/zenodo.24618162](https://doi.org/10.5281/zenodo.24618162), always resolves to the newest release. Zenodo copies its metadata from `CITATION.cff` at the release's commit, so update `CITATION.cff` and `CITATION.md` before tagging, not after. A release is permanent: a correction made later goes into the next release.
+
+---
+
 ## Contact
 
 Open an issue on the repository. For anything else, see the maintainer link in the README.

@@ -5,6 +5,9 @@
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-purple?style=for-the-badge" alt="License: MIT"/>
   </a>
+  <a href="https://doi.org/10.5281/zenodo.24618162">
+    <img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.24618162-1682D4?style=for-the-badge" alt="DOI 10.5281/zenodo.24618162"/>
+  </a>
   <a href="https://orcid.org/0009-0005-5116-9564">
     <img src="https://img.shields.io/badge/ORCID-0009--0005--5116--9564-A6CE39?style=for-the-badge&logo=orcid&logoColor=white" alt="ORCID"/>
   </a>
@@ -315,7 +318,9 @@ If you would rather edit the data directly, see [CONTRIBUTING.md](CONTRIBUTING.m
 
 ## Citing This Dataset
 
-GitHub's **"Cite this repository"** button (top right of the repo page) reads [CITATION.cff](CITATION.cff) and produces APA and BibTeX entries. [CITATION.md](CITATION.md) has Chicago, Bluebook and IEEE formats, plus guidance on citing a specific commit for reproducibility.
+The dataset is archived on Zenodo with the DOI **[10.5281/zenodo.24618162](https://doi.org/10.5281/zenodo.24618162)**. That DOI always resolves to the latest release, and each release also has a DOI of its own, shown on its Zenodo page, for citing an exact version.
+
+GitHub's **"Cite this repository"** button (top right of the repo page) reads [CITATION.cff](CITATION.cff) and produces APA and BibTeX entries. [CITATION.md](CITATION.md) has Chicago, Bluebook and IEEE formats, plus guidance on citing a specific version for reproducibility.
 
 ---
 

@@ -1,7 +1,12 @@
 cff-version: 1.2.0
-message: "If you use this dataset, please cite it as below. For reproducible work, cite a specific commit (see CITATION.md)."
+message: "If you use this dataset, please cite it as below. For reproducible work, cite the DOI of a specific release (see CITATION.md)."
 title: "AI Legislation Tracker: A Curated Dataset of Global AI Laws and Governance Frameworks"
 type: dataset
+doi: 10.5281/zenodo.24618162
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.24618162
+    description: "DOI for all versions, archived on Zenodo. It resolves to the latest release; each release also has its own DOI."
 authors:
   - family-names: Schlangen
     given-names: Del

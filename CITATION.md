@@ -4,6 +4,8 @@
 
 When referencing this dataset in academic papers, policy reports, or other publications, please use one of the citation formats below.
 
+The dataset is archived on Zenodo: **DOI [10.5281/zenodo.24618162](https://doi.org/10.5281/zenodo.24618162)**. That DOI always resolves to the latest release. The source code and the live data are on GitHub at https://github.com/delschlangen/ai-legislation-tracker.
+
 ---
 
 ## BibTeX
@@ -13,8 +15,9 @@ When referencing this dataset in academic papers, policy reports, or other publi
   author       = {Schlangen, Del},
   title        = {{AI Legislation Tracker}: A Curated Dataset of Global AI Laws and Governance Frameworks},
   year         = {2026},
-  publisher    = {GitHub},
-  howpublished = {\url{https://github.com/delschlangen/ai-legislation-tracker}},
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.24618162},
+  url          = {https://doi.org/10.5281/zenodo.24618162},
   note         = {Dataset tracking US federal, US state, and international AI legislation. Data current as of September 2026.}
 }
 ```
@@ -25,19 +28,19 @@ When referencing this dataset in academic papers, policy reports, or other publi
 
 ### APA (7th Edition)
 
-Schlangen, D. (2026). *AI Legislation Tracker: A curated dataset of global AI laws and governance frameworks* [Data set]. GitHub. https://github.com/delschlangen/ai-legislation-tracker
+Schlangen, D. (2026). *AI Legislation Tracker: A curated dataset of global AI laws and governance frameworks* [Data set]. Zenodo. https://doi.org/10.5281/zenodo.24618162
 
 ### Chicago (17th Edition)
 
-Schlangen, Del. "AI Legislation Tracker: A Curated Dataset of Global AI Laws and Governance Frameworks." GitHub, 2026. https://github.com/delschlangen/ai-legislation-tracker.
+Schlangen, Del. "AI Legislation Tracker: A Curated Dataset of Global AI Laws and Governance Frameworks." Zenodo, 2026. https://doi.org/10.5281/zenodo.24618162.
 
 ### Bluebook (Legal Citation)
 
-Del Schlangen, *AI Legislation Tracker: A Curated Dataset of Global AI Laws and Governance Frameworks*, GitHub (2026), https://github.com/delschlangen/ai-legislation-tracker.
+Del Schlangen, *AI Legislation Tracker: A Curated Dataset of Global AI Laws and Governance Frameworks*, Zenodo (2026), https://doi.org/10.5281/zenodo.24618162.
 
 ### IEEE
 
-D. Schlangen, "AI Legislation Tracker: A Curated Dataset of Global AI Laws and Governance Frameworks," GitHub, 2026. [Online]. Available: https://github.com/delschlangen/ai-legislation-tracker
+D. Schlangen, "AI Legislation Tracker: A Curated Dataset of Global AI Laws and Governance Frameworks," Zenodo, 2026, doi: 10.5281/zenodo.24618162.
 
 ---
 
@@ -55,7 +58,7 @@ D. Schlangen, "AI Legislation Tracker: A Curated Dataset of Global AI Laws and G
 
 When citing, we recommend including the access date:
 
-> Schlangen, D. (2026). *AI Legislation Tracker* [Data set]. GitHub. https://github.com/delschlangen/ai-legislation-tracker (accessed September 17, 2026).
+> Schlangen, D. (2026). *AI Legislation Tracker* [Data set]. Zenodo. https://doi.org/10.5281/zenodo.24618162 (accessed November 28, 2026).
 
 ---
 
@@ -70,7 +73,10 @@ Example:
 
 ## Citing a Specific Version
 
-This dataset changes as the law does. For anything that needs to be reproducible, cite a commit rather than the branch:
+This dataset changes as the law does. For anything that needs to be reproducible, cite a fixed version rather than the latest one.
+
+- **A release.** Each GitHub release is archived on Zenodo with a DOI of its own, shown on that release's Zenodo page, next to the DOI for all versions (10.5281/zenodo.24618162). Cite the release's own DOI.
+- **A commit.** For changes made since the latest release, cite a commit rather than the branch:
 
 ```
 https://github.com/delschlangen/ai-legislation-tracker/blob/<commit-sha>/data/us_state_bills.json
