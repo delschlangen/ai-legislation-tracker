@@ -83,7 +83,7 @@ Adding a record, or changing a status or a date, changes things that are written
 3. `examples/current_landscape.md`, by regenerating it: `python3 src/generate_dashboard.py examples/current_landscape.md`
 4. `data/meta/changelog.json`, for any change of fact. The validator checks its shape and that every record is listed as added once. It cannot tell whether a correction to an existing record was logged: that part is on you
 5. `MAINTENANCE.md` review history, if you did a review pass
-6. `CITATION.md` and `CITATION.cff` (`date-released`, "data current as of") after a review pass
+6. `CITATION.md` and `CITATION.cff` (`date-released`, "data current as of") after a review pass, and before a release: each GitHub release is archived on Zenodo, which copies `CITATION.cff` into the permanent record. The DOI for all versions is `10.5281/zenodo.24618162`; README, `CITATION.cff` and `CITATION.md` must agree on it, and a test checks that
 
 The weekly maintenance report flags README upcoming rows once their date has passed. That is the one check time itself can trip; the tests never start failing just because a date went by.
 

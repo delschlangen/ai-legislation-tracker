@@ -445,6 +445,18 @@ class RepoConsistencyTests(unittest.TestCase):
                              "(total, enacted/active/adopted, pending, the rest)")
         self.assertEqual(seen, set(files), "README 'At a glance' table is missing a row")
 
+    def test_the_doi_is_the_same_everywhere(self):
+        """README, CITATION.cff and CITATION.md cite one Zenodo DOI, the one for all versions."""
+        cff = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
+        match = re.search(r"^doi:\s*(10\.[0-9]{4,9}/\S+)\s*$", cff, re.M)
+        self.assertIsNotNone(match, "CITATION.cff has no doi")
+        doi = match.group(1)
+        self.assertIn(f"value: {doi}", cff)
+        citation_md = (ROOT / "CITATION.md").read_text(encoding="utf-8")
+        for name, text in (("README.md", self.readme), ("CITATION.md", citation_md)):
+            self.assertEqual(set(re.findall(r"10\.5281/zenodo\.[0-9]+", text)), {doi}, f"{name} cites another DOI")
+        self.assertIn(doi.replace("/", "%2F"), self.readme, "README badge shows another DOI")
+
     RECORD_LINK = re.compile(r"\]\(https://delschlangen\.github\.io/ai-legislation-tracker/#((?:fed|state|intl)-\d{3})\)")
 
     def upcoming_rows(self):
